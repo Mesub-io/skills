@@ -54,28 +54,32 @@ skills:
     version: 0.1.0
   - id: mesub-gate-access
     group: build
-    status: planned
+    status: experimental
     issue: 3
     docs: /docs/access
     description: Gate a route or a page on a plan with the guards and hasAccess, and answer 402 and 503 correctly.
+    version: 0.1.0
   - id: mesub-subscribe-and-manage
     group: build
-    status: planned
+    status: experimental
     issue: 4
     docs: /docs/subscribe
     description: The wallet side with @mesub/react, the server routes it calls, and subscribing from the server.
+    version: 0.1.0
   - id: mesub-webhooks
     group: build
-    status: planned
+    status: experimental
     issue: 5
     docs: /docs/webhooks
     description: Receive Mesub's events, verify the signature, deduplicate and handle retries.
+    version: 0.1.0
   - id: mesub-testing
     group: verify
-    status: planned
+    status: experimental
     issue: 6
     docs: /docs/testing
     description: Test an integration without touching the chain with @mesub/node/testing.
+    version: 0.1.0
   - id: mesub-errors
     group: verify
     status: experimental

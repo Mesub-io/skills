@@ -1,0 +1,37 @@
+schema: v1
+id: mesub-subscribe-and-manage
+version: 0.1.0
+title: Mesub Subscribe and Manage
+description: "The wallet side with @mesub/react, the server routes it calls, and subscribing from the server."
+# The artefacts and topics this skill owns. No other skill may list the same one.
+owns:
+  - the subscribe window beyond the first button, useSubscribe and its states
+  - the manage window, ManageButton, ManageSubscriptions and useSubscriptions
+  - the options of MesubProvider, theme, fetch, manageUrl and chain
+  - theming the widget
+  - what the widget routes take, answer and refuse
+  - subscribing from the server with mesub.subscriptions.create and submit
+  - cancel, resume and close from the server, and a subscription's payments
+  - a subscription's statuses and what each allows
+use_when:
+  - a React app needs its own subscribe button, or must react when a subscription is made
+  - a customer must be able to cancel, resume or close a subscription from the app
+  - the widget must match the app's design, or its "Cancel any time" link must lead to the app's own page
+  - an app without the widget must subscribe or manage from its own server and its own wallet UI
+  - a call to the widget routes answers something unexpected
+do_not_use_when:
+  - the project has no Mesub code yet, or the routes and the provider are not in place
+  - the task is gating a route or a page on a plan, or its refusals and outage behaviour
+  - the task is receiving Mesub's events
+  - the task is testing the integration, or diagnosing an error code or a failed charge
+# Shipped skills this one hands off to. `pnpm render` writes the hand-off block from it.
+delegates_to: []
+# Which of @mesub/node and @mesub/react this skill makes the agent use.
+packages:
+  - "@mesub/node"
+  - "@mesub/react"
+# The docs pages this skill is written from, as paths in the docs repository.
+sources:
+  - src/docs/react.mdx
+  - src/docs/subscribe.mdx
+  - src/docs/manage.mdx
