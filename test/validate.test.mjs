@@ -125,12 +125,15 @@ for (const [name, rules, change, message] of CASES) {
   })
 }
 
-test('a source that the docs repository does not hold fails when it is given', () => {
+test('a source or a fallback that the docs repository does not hold fails when it is given', () => {
   const root = makeKit()
   const docs = makeKit()
-  write(docs, 'src/docs/alpha.mdx', '# Alpha\n')
+  for (const page of ['alpha', 'gamma']) write(docs, `src/docs/${page}.mdx`, '# Page\n')
   const { findings } = validateKit(root, { docsSite: docs })
-  assert.deepEqual(findings.map((finding) => [finding.rule, finding.file]), [['skill-yaml/sources', 'skills/mesub-beta/skill.yaml']])
+  assert.deepEqual(findings.map((finding) => [finding.rule, finding.file]), [
+    ['catalog/fallback', 'catalog.yaml'],
+    ['skill-yaml/sources', 'skills/mesub-beta/skill.yaml'],
+  ])
 })
 
 // Version rules need a history: the good kit committed, then changed.

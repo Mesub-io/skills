@@ -92,6 +92,13 @@ export function validateKit(root, options = {}) {
   if (findings.length > 0) return { findings, notes }
 
   const all = walk(root)
+
+  // A fallback that leads nowhere is no fallback.
+  for (const skill of options.docsSite ? catalog.skills : []) {
+    if (!existsSync(join(options.docsSite, sourceOfDocs(skill.docs)))) {
+      add('catalog/fallback', 'catalog.yaml', `skill "${skill.id}": ${skill.docs} is not a page of the docs repository (${sourceOfDocs(skill.docs)})`)
+    }
+  }
   const shipped = shippedSkills(catalog)
 
   // --- Repository layout ---
