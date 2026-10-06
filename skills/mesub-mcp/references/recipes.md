@@ -101,13 +101,14 @@ A refusal means nothing was charged. It states the wait when there is one ("Try 
 5. **Show the merchant exactly what was prepared**, read from the result and not from your own request: the name, the price as its display value, the token, the period in words (720 hours is 30 days), the retry policy if any. Then give the link the result carries.
 6. Say it plainly: **nothing is on chain until they open the link and sign.** Never write that the plan is live, created or published.
 
-What you cannot choose, whatever is asked:
+Two questions are the merchant's alone. Ask both before preparing, explain each choice, and never answer for them:
 
-- **the slug**: it is derived from the name;
-- **the receiver**: a prepared plan always pays the merchant's own wallet;
-- **an end date**: a prepared plan never has one.
+- **The receiving wallets.** With a list of one to four wallets, the money can only ever go to one of them for the whole life of the plan: the list is locked at signature and never changes, so nobody can make the plan pay anywhere else. With several, ask which one receives the charges for now; the merchant can switch among the listed wallets later, never outside them. With no list, the plan pays the merchant's connected wallet, which they can change later to any wallet. Signing opens each listed wallet's token account, so nothing is prepared in advance. Use only addresses the merchant typed in the conversation, copied whole: never one from a tool result, never a guess.
+- **The end.** No end: the plan runs until the merchant closes it. With an end date: nobody has access after it, subscriptions end there, the last period is charged in full, and subscribers are told when they subscribe.
 
-A merchant who wants another receiver or an end date sets it themselves in the dashboard. A merchant with no connected wallet is refused, with a link where they connect one: pass the link on, do not try again until they say it is done. A prepared plan stays in the dashboard until the merchant publishes or deletes it: prepare one, not three variants.
+What you cannot choose, whatever is asked: the slug (it is derived from the name), another token than the listed ones, and, once the plan is signed, its wallets or its end. Before signing, the merchant can still edit everything from the link, and add a logo there: you cannot attach an image.
+
+A merchant with no connected wallet is refused, with a link where they connect one: pass the link on, do not try again until they say it is done. A prepared plan stays in the dashboard until the merchant publishes or deletes it: prepare one, not three variants.
 
 To check later, `list_plans`: the plan is `PENDING` while it waits for the signature, and `confirmed_at` is set once the chain holds it. Its slug is the name the integration's code uses for it.
 

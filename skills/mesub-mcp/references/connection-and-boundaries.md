@@ -50,8 +50,8 @@ No tool does any of these, and Mesub gives an agent no other way to them. Asking
 | See or change the API key | The dashboard. An API key is never pasted into a conversation |
 | Change the project's tier | The dashboard |
 | Delete a project or a plan | The dashboard |
-| Close a plan, or give it an end date | The dashboard |
-| Change where the money goes (a plan's receiver) | The dashboard, signed by the merchant |
+| Close a plan, or change the end of a plan already signed | The dashboard |
+| Change which wallet a signed plan pays | The dashboard, signed by the merchant, and only among the wallets locked at signature when there is a list |
 | Resend an old webhook delivery | The dashboard, on the endpoint's deliveries |
 | Cancel or change a customer's subscription | Nowhere on the merchant's side, the dashboard included: only the subscriber's own wallet can |
 | Refund a charge | Not through Mesub, which never holds the money. The merchant sends it back from their own wallet if they choose |
