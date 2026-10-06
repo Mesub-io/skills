@@ -120,4 +120,6 @@ Useful when checking by hand. Paths are under the mount point.
 | `POST /subscriptions` | 401 `unauthenticated` | 201 with the terms and a transaction to sign |
 | any path, key refused by Mesub | 500, thrown to the framework | 500 |
 
+Under Express the default error handler answers a thrown error's own status, so without an error handler of the app's own a refused key shows as 401 and an unknown slug as 404. Give the app an error handler that answers 500 for a `MesubError`.
+
 A refusal is `{ "error": { "code": "...", "message": "..." } }`. A 401 from these routes always means nobody is signed in on the app. Mesub refusing the API key is never passed on as a 401: it would read to the widget as "sign in first".

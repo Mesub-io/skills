@@ -52,7 +52,7 @@ A guard and `hasAccess` turn exactly one thing into an answer: Mesub being unrea
 | `MesubError`, `code: 'plan_not_found'` | No plan of this project under that slug | Compare the slug with the dashboard |
 | `MesubError`, `code: 'invalid_request'` | A wallet that is not an address, an email that is not one | Fix what `customer` returns |
 
-Where it goes: Express hands it to `next(err)`, Next.js and NestJS let it end as a 500. Leave it there. Do not map it to 401 or 402: a refused key answered as 402 tells every subscriber to pay again.
+Where it goes: Express hands it to `next(err)`, Next.js and NestJS let it end as a 500. Under Express the default error handler answers a thrown error's own status, so without an error handler of the app's own a refused key shows as 401 and an unknown slug as 404. Give the app an error handler that answers 500 for a `MesubError`. Leave it there. Do not map it to 401 or 402: a refused key answered as 402 tells every subscriber to pay again.
 
 `access` and `accessList` throw in one more case: `MesubError` with `code: 'unavailable'` or `'rate_limited'` when Mesub cannot answer. They have no fallback. On a screen, catch only those:
 

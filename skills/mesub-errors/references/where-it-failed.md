@@ -11,7 +11,7 @@ A refusal, not an error. The body is `{ access: false, reason }`.
 | 401 | `unauthenticated` | `customer` returned nothing | The session does not reach the guard, or nobody is signed in |
 | 402 | `no_access` | Mesub said this customer has no access. The body also carries `status` | Read `status`, then `late_reason` or `end_reason` in `reasons.md`. Check the customer is named the same way as when subscribing |
 | 503 | `unavailable` | Mesub could not answer about a customer it never saw. `Retry-After: 30` | An outage or a rate limit, not a no. A customer already seen is served the last answer known |
-| 500 | none | The guard threw: a refused API key or an unknown plan | Read the server log. It is a `MesubError` `unauthorized` or `plan_not_found` |
+| 500, or under Express 401 or 404 with no JSON body of the guard's | none | The guard threw: a refused API key or an unknown plan | Read the server log. It is a `MesubError` `unauthorized` or `plan_not_found` |
 
 `hasAccess` behaves the same without a response: the last answer known in an outage, `false` for a customer never seen, and it throws on a refused key or an unknown slug. `access` always throws.
 
@@ -33,7 +33,7 @@ A refusal is `{ error: { code, message } }`.
 | 429 | `rate_limited` | Mesub's rate limit, handed on at once with its `Retry-After` |
 | 502 | `unavailable` or `unexpected` | Mesub did not answer, or answered something the SDK cannot read. A fixed message, none of the server's details |
 | any other | an API code | Mesub's own refusal, with its status, its code and its sentence: look it up in `api-error-codes.md` |
-| 500 | none | The routes threw to the framework: Mesub refused the API key, or `customer` returned a malformed value. Read the server log |
+| 500, or under Express 401 for everybody | none | The routes threw to the framework: Mesub refused the API key, or `customer` returned a malformed value. Read the server log |
 
 A 404 on every route, with no `error.code` in the body, is not the routes answering: the mount path and the provider's `endpoint` differ.
 
@@ -60,3 +60,7 @@ A thrown `MesubError`: `sdk-errors.md`.
 ## A subscription that exists but does not grant access
 
 Nothing failed in the code. Read the subscription: `reasons.md`, then its payments: `attempts.md`.
+
+## Express and a thrown error
+
+Under Express the default error handler answers a thrown error's own status, so without an error handler of the app's own a refused key shows as 401 and an unknown slug as 404. Give the app an error handler that answers 500 for a `MesubError`. Tell it from a real refusal by the body: a guard's 401 carries `reason: "unauthenticated"` and the routes' carries `error.code: "unauthenticated"`; Express's own page carries neither.
