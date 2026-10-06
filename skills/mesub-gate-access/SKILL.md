@@ -65,6 +65,7 @@ Anything else is thrown and ends as a 500: a refused API key, an unknown slug, a
 - **Leave `maxStaleMs` and `guardTimeout` alone unless the user decides.** `maxStaleMs: 0` makes an outage keep everyone out. With several servers or short-lived processes, plug a shared store instead: `references/outage-and-cache.md`.
 - **`hasAccess` called by hand** ignores `guardTimeout`, and answers `false` both for "no" and for "Mesub is down and never saw them": word the page for both.
 - **Gate on the server.** Hiding a component is not a gate, and `@mesub/react` has none.
+- **In a test, never mock `@mesub/node` or the guard.** Hand the app the client of `FakeMesub` from `@mesub/node/testing`. Why: a mocked check passes on a route with no guard.
 - **Before using an option this skill does not show, read it in the installed package** (`node_modules/@mesub/node/README.md` and its types). Never write a call from memory.
 
 ### The check
