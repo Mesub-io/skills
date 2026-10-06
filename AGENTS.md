@@ -177,7 +177,7 @@ Nothing is automated yet: no release workflow, no signed-off commits, no externa
 
 ## Licence
 
-No licence has been chosen, so the repository has no `LICENSE` and no skill declares one. When the owner decides: set `license` to an SPDX id in `catalog.yaml`, add the `LICENSE` file, run `pnpm render`. The README and every frontmatter follow, and validation fails if the file is missing.
+The kit is under Apache-2.0: skills are made to be copied into other people's repositories. `license` in `catalog.yaml` is the one place it is set; `pnpm render` writes it into the README and into every `SKILL.md` frontmatter, and validation fails if the `LICENSE` file is missing.
 
 ## Git
 

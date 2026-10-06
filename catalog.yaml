@@ -13,8 +13,9 @@ repository: https://github.com/Mesub-io/skills
 docs_url: https://docs.mesub.io
 # The skill that carries the kit directory (references/kit-directory.md).
 directory: mesub-quickstart
-# license: unset until the owner chooses one. Set an SPDX id here, add LICENSE,
-# then render: the README and every SKILL.md frontmatter follow.
+# An SPDX id, with its LICENSE file at the root. `pnpm render` writes it into the
+# README and into every SKILL.md frontmatter.
+license: Apache-2.0
 
 # One entry per way the kit is published, and there is one on purpose: the same
 # folder for every agent. `renderer` names a module of scripts/lib/distributions/,
