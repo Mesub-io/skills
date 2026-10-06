@@ -61,10 +61,11 @@ skills:
     version: 0.1.0
   - id: mesub-subscribe-and-manage
     group: build
-    status: planned
+    status: experimental
     issue: 4
     docs: /docs/subscribe
     description: The wallet side with @mesub/react, the server routes it calls, and subscribing from the server.
+    version: 0.1.0
   - id: mesub-webhooks
     group: build
     status: planned
