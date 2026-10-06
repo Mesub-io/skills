@@ -24,6 +24,8 @@ export const SKILL_YAML_FIELDS = [
 ]
 export const PACKAGES = ['@mesub/node', '@mesub/react']
 export const MAX_SKILL_LINES = 500
+// The tightest agent cuts a skill's main file at 8,000 bytes when it injects it.
+export const MAX_SKILL_BYTES = 8000
 export const PLACEHOLDER = 'TODO'
 export const DIRECTORY_FILE = 'references/kit-directory.md'
 // What a description must hold to trigger: the opening, and the casual phrasing.
