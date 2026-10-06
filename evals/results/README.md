@@ -1,5 +1,5 @@
 # Recorded runs
 
-One file per run: `<date>-<skill-id>-<agent>.md`, written from the template in [the evals README](../README.md). A run is recorded as it went, failures included: a line that failed stays failed in the file, and the fix goes in the skill.
+One file per run, or per pass of several runs, named by its date. A run is recorded as it went, failures included: a line that failed stays failed in the file, and the fix goes in the skill or in the eval.
 
-No run has been recorded yet.
+- [2026-10-06, first pass](2026-10-06-first-pass.md): twelve runs, two prompts per skill.

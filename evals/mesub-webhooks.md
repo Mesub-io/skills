@@ -31,12 +31,12 @@ Fixture: [express-mesub](fixtures/express-mesub/README.md).
 node "<skill-dir>/scripts/check-webhooks.mjs"
 
 # With the server running: exits 0, the three deliveries that are not Mesub's refused with a 4xx
-node --env-file=.env "<skill-dir>/scripts/send-test-delivery.mjs" http://localhost:3000/webhooks/mesub
+node --env-file=.env "<skill-dir>/scripts/send-test-delivery.mjs" <base-url>/webhooks/mesub
 ```
 
 ## Prompt 2: Cut access when a customer cancels
 
-Fixture: [express-mesub](fixtures/express-mesub/README.md).
+Fixture: [next-mesub](fixtures/next-mesub/README.md).
 
 > When someone cancels their plan in our Next.js app, remove their premium flag in our database right away.
 
