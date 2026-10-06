@@ -12,14 +12,20 @@ What the guards and the widget routes of `@mesub/node` answer in each situation,
 | Signed in, nothing on the plan | nothing, or `fake.deny(customer, 'pro')` | 402, body `{ access: false, reason: 'no_access', status: 'none' }` |
 | Signed in, Mesub says no for a reason | `fake.deny(customer, 'pro', { status: 'stopped' })` | 402, `status` is the one given |
 | Nobody signed in | `customer` returns `null` | 401, `reason: 'unauthenticated'`, and Mesub is not asked |
+| In the last period of a plan with an end date | `fake.grantLastPeriod(customer, 'pro', endsAt)`, `endsAt` ahead | 200: `answer.access_until` is the end, `answer.next_charge_at` is null |
+| The plan's end passed, Mesub has not ended the subscription yet | `fake.grantLastPeriod(customer, 'pro', aPastDate)` | 402, `status: 'active'`: only `access` says no |
+| The plan has ended | `fake.endPlan('pro')` after a grant | 402, `status: 'ended'` |
 | Mesub down, customer never seen | `fake.fail('outage')` | 503, header `Retry-After: 30`, `reason: 'unavailable'` |
 | Mesub rate-limits, customer never seen | `fake.fail({ status: 429, code: 'rate_limited' })` | 503, the same |
 | Mesub down, customer let through before | grant, one request, then `fake.fail('outage')` | 200, from the last answer |
 | Mesub down, customer refused before | deny, one request, then `fake.fail('outage')` | 402, from the last answer |
+| Mesub down, customer last seen in a plan's last period | `grantLastPeriod`, one request, then `fake.fail('outage')` | 200 until that answer's `access_until`, 402 after: an answer with no charge or retry ahead is not served past it. Needs the test framework's timers to cross the date |
 | Mesub refuses the API key | `fake.fail({ status: 401, code: 'invalid_api_key' })` | An error, never a refusal (below) |
 | The slug is not a plan | `new FakeMesub({ plans: ['pro'] })` and a guard on another slug | An error, never a refusal (below) |
 
 The minimum for any paid route is the first four rows and the first outage row. A test that only checks the 200 passes on a route with no guard at all.
+
+The three rows about a plan's end are worth a test when the project has a plan with an end date, or when the app reads `status` or `next_charge_at` anywhere: the second one fails on any code that lets `status === 'active'` in. `assets/guard.test.ts` holds the last two.
 
 What the handler receives when let through (`res.locals.mesub` in Express, the second argument in Next.js, `@MesubAccess()` in NestJS): `wallet`, `customer` (`{ kind, value }`), `plan` (the one that let the request through), `answer` (Mesub's answer) and `stale` (true when it came from the outage fallback).
 
@@ -48,7 +54,7 @@ Paths are under the mount point (`/api/mesub` in the examples). Error bodies are
 | `GET /plans/:slug` | 200 with the plan, signed in or not. 404 `plan_not_found` for a slug that is not in the fake's `plans`, or not in the routes' own `plans` option |
 | `GET /subscriptions` | 200 `{ subscriptions, has_more }`, only those of who is signed in, without `email` or `external_id`. 401 `unauthenticated` signed out |
 | `GET /subscriptions/:id` | 200 `{ subscription, upcoming, payments, paid, payments_error }`. 404 `subscription_not_found` for another customer's, exactly as for an unknown id |
-| `POST /subscriptions` with `{ plan, wallet }` | 201 with `subscription` (`id`, `status: 'pending'`), `transaction`, `terms`, `costs`. 400 `invalid_request` when one is missing. 409 `already_subscribed` when that wallet holds the plan. 403 `wallet_mismatch` when `customer` is a wallet and the body names another |
+| `POST /subscriptions` with `{ plan, wallet }` | 201 with `subscription` (`id`, `status: 'pending'`), `transaction`, `terms`, `costs`. 400 `invalid_request` when one is missing. 409 `already_subscribed` when that wallet holds the plan. 409 `plan_ended` once the plan's end has passed. 403 `wallet_mismatch` when `customer` is a wallet and the body names another |
 | `POST /subscriptions/:id/submit` with `{ transaction, terms_signature }` | 201 `{ subscription }`, now `active`. 409 `not_awaiting_signature` the second time |
 | `POST /subscriptions/:id/cancel`, `/resume`, `/close` | 201 `{ transaction, last_valid_block_height }`, or Mesub's 409 |
 | `POST /subscriptions/:id/cancel/confirm` (and `resume`, `close`) with `{ signature }` | 201 `{ subscription }`. 400 `nothing_to_confirm` before the step was built |

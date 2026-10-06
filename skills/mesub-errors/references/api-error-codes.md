@@ -32,11 +32,23 @@ New codes are added and none is renamed: an unknown code is handled by its statu
 | `plan_not_on_chain` | 409 | no | The plan was never published: still a draft | The user publishes it in the dashboard |
 | `plan_deleted` | 409 | no | The plan is gone, or was rebuilt since the subscription was signed (resume) | Nothing to resume: the customer subscribes to a plan that exists |
 | `plan_sunset` | 409 | no | The plan takes no new subscribers | Stop offering it: show "Subscribe" only when the plan's `available` is true |
-| `plan_ended` | 409 | no | The plan is past its end date | Same |
+| `plan_ended` | 409 | no | The plan is past its end date. With an API key, the answer of `create` | Stop offering it, as for `plan_sunset`. Its subscriptions ended with it: `end_reason` `plan_ended` in `reasons.md`. The dashboard answers the same code elsewhere: see below |
 | `plan_rebuilt` | 409 | no | Another plan now stands at its address | The user checks the plan in the dashboard |
 | `plan_mismatch` | 409 | no | The plan on chain is not the one Mesub recorded | The user checks the plan in the dashboard |
 | `receiver_account_missing` | 409 | no | Nobody the plan pays has an account for its token | The user opens a token account for the receiving wallet |
 | `mint_not_on_chain` | 400 | no | The plan's token does not exist on chain | The user fixes the plan's token |
+
+`plan_ended` in the dashboard: the same code refuses closing that plan to new subscribers, changing its names, and retrying one of its payments by hand. Nothing can be charged on it any more, so none of the three is to be tried again.
+
+### A plan's end date (the dashboard only)
+
+Answered when the user creates a plan with an end date in the dashboard. No call made with an API key answers them, so app code has no branch to write for them: when the user reports one, the fix is the date.
+
+| API code | Status | Wait | What it means | What to do |
+|---|---|---|---|---|
+| `end_date_too_soon` | 400 | no | The end date is less than one billing period, plus five minutes, away | The user picks a later date, or no end date |
+| `end_date_too_far` | 400 | no | The end date is more than 100 years away | Almost always a date sent in milliseconds: an end date is counted in Unix seconds |
+| `end_date_stale` | 409 | no | The plan was left unsigned until its end date no longer held | The user changes the date, then signs the creation |
 
 ## Subscribing (`create`, and `submit` where noted)
 
@@ -64,7 +76,7 @@ New codes are added and none is renamed: an unknown code is handled by its statu
 | `terms_expired` | 403 | no | The terms ran out, five minutes after `create` | Create again and sign the fresh terms |
 | `invalid_terms_signature` | 403 | no | The signature is not the subscription's wallet's, over the terms Mesub handed out | Sign `terms.message` as it came, with the wallet given to `create` |
 | `terms_used` | 403 | no | The terms were already spent by another submit | Read the subscription back: an earlier submit may have landed |
-| `terms_changed` | 409 | no | Newer terms were handed out, or the plan changed since they were signed | Create again |
+| `terms_changed` | 409 | no | Newer terms were handed out, or the plan changed since they were signed. Also when the terms name a second charge and the plan's end date has since come too close for it | Create again: the new terms say what is charged now, a single charge in that last case |
 | `not_our_transaction` | 400 | no | The transaction is not the one Mesub built, or the wallet's signature on it is missing or wrong | Send back the transaction of `create`, signed and not rebuilt |
 | `transaction_not_built` | 409 | no | Submitted before any transaction was built | Call `create` first |
 | `transaction_expired` | 409 | no | The transaction can no longer land | Create again |

@@ -23,19 +23,36 @@ The window goes through `plan`, `wallet`, `review`, `approve`, `confirming` and 
 | No answer on what became of the payment (90 s passed, or a 5xx) | "Still confirming", and Check again | Check again sends the same request: it never pays twice. See the host limit in the routes reference |
 | Double click | One window, one subscription prepared, the wallet asked once | |
 
+### A plan with an end date
+
+The window words it itself, from the plan's `ends_at` and then from the terms the wallet signs. Nothing to add in the app, and nothing to reword.
+
+| Screen | The plan ends after a second charge | The plan ends before a second charge can run |
+|---|---|---|
+| The plan | The price and its period, then "Ends on" with the date | The price, then `once`: "Access until ..., when the plan ends. Nothing more is charged." |
+| The review | "Next charge" and "Plan ends" | No "Next charge": "Access until", and "Nothing more is charged." in place of "Cancel anytime." |
+| The second approval | "Step 2 of 2: ... now, then ... every ..." | "Step 2 of 2: ... now, a single charge." |
+| The receipt | "Next charge" | "Access until", and no next charge |
+
+- **The last period is charged in full**, even when the plan ends inside it, and access stops at the plan's end all the same. The terms under "The terms you sign" say both: `server-subscribe.md` has the lines.
+- From the review on, the terms decide whether it is a single charge (`Amount: ..., a single charge`), not the page.
+- Once the plan has ended Mesub refuses the subscription (409 `plan_ended`) and the window shows its message. The plan's `available` is false by then: do not offer the button.
+
 ## Cancelling, resuming, closing
 
 The window goes through `confirm`, `wallet`, `approve`, `confirming` and `done`.
 
 | What happens | What the window does |
 |---|---|
-| The action is asked | Says what it does first: "You keep access until ..." for a cancellation that is paid up, "It stops now" otherwise, and that closing returns the deposit |
+| The action is asked | Says what it does first: "You keep access until ..." for a cancellation that is paid up, "It stops now" otherwise, and that closing returns the deposit. A resume on a plan that ends before another charge says "It runs again until ..., when the plan ends. Nothing more is charged." |
 | The paying wallet is already connected to the site | It is found without a prompt |
 | Another wallet, or another account of it, is picked | "Wrong wallet": which account the wallet is on and which one pays. Nothing is built or signed |
 | The wallet refuses | "Not approved". Nothing changed |
 | Mesub refuses the action | "Cannot cancel it" (or resume, close) with Mesub's message |
 | The transaction did not land (`reason` on the confirm) | "It did not go through", with the reason, and Try again |
 | No answer on the confirm | "Still confirming", and Check again, which sends the same confirm and no new transaction |
+
+A subscription in the last period of a plan with an end date has no next charge. The lists and the manage window show "Access until" with the date where they show "Next charge" on any other active one, and the action stays Cancel.
 
 Only the wallet that pays a subscription can sign for it. A subscriber who lost that wallet cannot cancel from the app, and neither can the app: the API key alone changes nothing.
 

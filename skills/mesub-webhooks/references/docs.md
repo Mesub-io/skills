@@ -11,6 +11,6 @@ This skill holds what a webhook handler needs. The docs hold the rest, and they 
 | [Test your integration](https://docs.mesub.io/docs/testing) | Everything else the fake of `@mesub/node/testing` does |
 
 - **The installed package decides what compiles.** Before using an event name, a field or an option, look in `node_modules/@mesub/node/dist/index.d.ts` and `node_modules/@mesub/node/README.md`. Never write a call from memory.
-- The docs can be ahead of the package. Known at `@mesub/node` 0.1.0: the docs list `subscription.renewal_upcoming` and the `test` flag, and the package's types name neither. Both arrive at runtime all the same: `references/events.md` says how to read them.
+- The docs can be ahead of the package. Known at `@mesub/node` 0.1.0: the package's types do not name the `test` flag the docs list, and a copy installed before `subscription.renewal_upcoming` was typed does not name that event either. Both arrive at runtime all the same: `references/events.md` says how to read them.
 - If a docs page cannot be reached, say so and work from the installed package. Do not guess what the page said.
 - When you finish, give the user the Webhooks link, so they can check the work against it.

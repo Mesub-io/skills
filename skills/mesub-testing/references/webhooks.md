@@ -75,7 +75,7 @@ const delivery = await signWebhook(
 Two differences from what the docs describe, to know when the handler depends on them:
 
 - A test delivery sent from the dashboard carries `"test": true` at the top of its body and a subscription whose id is `sub_test`. `fake.webhook('test')` sets neither. Build it as above when the handler recognises tests that way.
-- The docs list an event `subscription.renewal_upcoming`. The SDK at 0.1.0 does not type it, so `fake.webhook` does not take it. Verification still hands back a type it does not know, so sign one with `signWebhook` to test the handler's default branch.
+- The docs list an event `subscription.renewal_upcoming`. `fake.webhook('subscription.renewal_upcoming')` makes one when the installed copy types the event: look for the name in `node_modules/@mesub/node/dist/testing.d.ts`. With an older copy, sign one with `signWebhook`: verification still hands back a type it does not know.
 
 ## An event does not change the fake
 

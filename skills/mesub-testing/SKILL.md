@@ -44,6 +44,8 @@ beforeEach(() => {
 fake.grant({ external_id: 'user_42' }, 'pro'); // active and paid
 fake.deny({ external_id: 'user_7' }, 'pro', { status: 'stopped' });
 fake.fail('outage'); // 503 on every call, until fake.fail(null)
+fake.grantLastPeriod({ external_id: 'user_9' }, 'pro', endsAt); // the plan ends: access until then
+fake.endPlan('pro'); // its end passed: nobody has access on it
 ```
 
 `fake.client()` is a real `Mesub` wired to the fake. A test replaces two things, the client and who is signed in, and hands both in from outside: `references/seams.md`. Every method of the fake: `references/fake-mesub.md`.

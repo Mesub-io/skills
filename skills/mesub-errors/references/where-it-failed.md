@@ -9,7 +9,7 @@ A refusal, not an error. The body is `{ access: false, reason }`.
 | Status | `reason` | What it means | What to check |
 |---|---|---|---|
 | 401 | `unauthenticated` | `customer` returned nothing | The session does not reach the guard, or nobody is signed in |
-| 402 | `no_access` | Mesub said this customer has no access. The body also carries `status` | Read `status`, then `late_reason` or `end_reason` in `reasons.md`. Check the customer is named the same way as when subscribing |
+| 402 | `no_access` | Mesub said this customer has no access. The body also carries `status` | Read `status`, then `late_reason` or `end_reason` in `reasons.md`. Check the customer is named the same way as when subscribing. A `status` of `active` here is a plan past its end date, or a parked seat whose paid period is over, not a bug in the guard |
 | 503 | `unavailable` | Mesub could not answer about a customer it never saw. `Retry-After: 30` | An outage or a rate limit, not a no. A customer already seen is served the last answer known |
 | 500, or under Express 401 or 404 with no JSON body of the guard's | none | The guard threw: a refused API key or an unknown plan | Read the server log. It is a `MesubError` `unauthorized` or `plan_not_found` |
 
@@ -46,7 +46,7 @@ The widget handles its own failures and shows a screen for each. An app does not
 | "Sign in first" | The routes answered 401 |
 | "Wrong wallet" | 403 from the routes |
 | "Plan not found" | 404 on the plan |
-| "Cannot subscribe", with Mesub's sentence | A 409: Mesub's refusal, as written |
+| "Cannot subscribe", with Mesub's sentence | A 409: Mesub's refusal, as written. `plan_ended` when the plan is past its end date |
 | "Too many requests" | A 429, with the wait in seconds |
 | "No answer" | Nothing came back within 15 s on a read or a build |
 | "Still confirming" | No word after the transaction was sent. "Check again" never pays twice |
@@ -59,7 +59,7 @@ A thrown `MesubError`: `sdk-errors.md`.
 
 ## A subscription that exists but does not grant access
 
-Nothing failed in the code. Read the subscription: `reasons.md`, then its payments: `attempts.md`.
+Nothing failed in the code. Read the subscription: `reasons.md`, then its payments: `attempts.md`. When its `status` reads `active` and it is not parked (`paused`), read its plan's `ends_at` first (`mesub.plans.retrieve`): nobody has access after a plan's end date.
 
 ## Express and a thrown error
 

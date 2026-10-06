@@ -54,7 +54,7 @@ Anything else is thrown and ends as a 500: a refused API key, an unknown slug, a
 ### Rules
 
 - **`customer` comes from a session the app verified**, never from the query, the body, a header or a wallet the page sends. Why: whoever types a subscriber's id would get their access. Name the customer as the widget routes do, or the subscription is not found.
-- **Gate on `access`, never on `status`.** A `cancelled` subscription still grants until its paid period ends, and an `unpaid` one may or may not: `references/answer-and-statuses.md`.
+- **Gate on `access`, never on `status`.** A `cancelled` subscription still grants until its paid period ends, an `unpaid` one may or may not, and just after a plan's end date `active` can read with `access: false`: `references/answer-and-statuses.md`.
 - **Always `await hasAccess`.** An unawaited promise is truthy: everyone gets in.
 - **Never turn an error into "not subscribed".** No `try` that returns `false`, no `.catch(() => false)`. Why: the SDK already answers for an outage, so what is left is a broken integration, which would silently lock every subscriber out.
 - **Keep 402 and 503 apart, in the front too.** A 503 shown as "please subscribe" tells a paying customer they are not one.

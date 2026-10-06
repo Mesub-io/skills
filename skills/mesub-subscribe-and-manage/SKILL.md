@@ -42,7 +42,7 @@ Prefer the widget when both fit: it handles expired terms, the wrong wallet and 
 ### Rules for the widget
 
 - **Access is decided on the server.** `onSubscribed`, `state === 'subscribed'` and `onChanged` are signals to fetch again, never a grant. Why: client state is the visitor's to edit, and `state` is `idle` again after a reload.
-- **Do not lock a customer out when they cancel.** A paid-up subscription keeps access until `access_until`. Keep asking Mesub.
+- **Do not lock a customer out when they cancel.** A paid-up subscription keeps access until `access_until`, never later than its plan's end date. Keep asking Mesub.
 - **Read `action`, do not compute it.** `useSubscriptions()` says what each subscription allows now. Keep a default branch on `status`: `references/statuses.md`.
 - **Do not rebuild or wrap the window's screens**, and add no wallet library. Every failure has its screen and says whether anything was charged: `references/widget-screens.md`.
 - **`manageUrl` is a path starting with one `/`, an http(s) URL or `null`.** Any other string is ignored without a word.
@@ -58,7 +58,7 @@ Prefer the widget when both fit: it handles expired terms, the wrong wallet and 
 - **An unknown outcome is not a failure.** On `MesubSubmitError` read the subscription back and never create anew until it reads `expired`. A confirm that timed out is sent again with the same signature.
 - **Only the paying wallet can cancel, resume or close.** No server call does it alone: say so if asked for one.
 - **`submit` waits up to 130 s and a confirm 90 s**, in the widget's routes too: `references/routes.md` for hosts that cut sooner.
-- **Show `terms.message` and the costs before the wallet is asked**, and show Mesub's refusal messages as written.
+- **Show `terms.message` as written and the costs before the wallet is asked**, and Mesub's refusal messages as written. On a plan with an end date the terms say what a page must not reword: `references/server-subscribe.md`.
 
 ### The check
 

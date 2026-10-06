@@ -89,3 +89,4 @@ Null on a `paid` attempt, a short stable string on every other.
 2. Any `rejected` since: the cause is on the customer's side. Its `reason` says which, and `late_reason` on the subscription says the same more coarsely.
 3. Only `blocked` or `skipped` since: the customer did nothing wrong and no retry was spent. Check the plan first (receiver, puller), then wait.
 4. No attempt at all on a subscription that is `pending`, `expired` or `failed`: the checkout never started, nothing was ever charged.
+5. No attempt at the end of a period on an `active` subscription whose `next_charge_at` is null: it is in the last period of a plan with an end date. Nothing failed: no charge is due, and it ends with the plan (`reasons.md`).
