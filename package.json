@@ -1,0 +1,19 @@
+{
+  "name": "mesub-skills-kit",
+  "private": true,
+  "type": "module",
+  "description": "Tooling of the Mesub skills kit: render, validate, new-skill. Not published.",
+  "engines": {
+    "node": ">=22"
+  },
+  "packageManager": "pnpm@11.27.0",
+  "scripts": {
+    "render": "node scripts/render.mjs",
+    "validate": "node scripts/validate.mjs",
+    "new-skill": "node scripts/new-skill.mjs",
+    "test": "node --test \"test/*.test.mjs\""
+  },
+  "devDependencies": {
+    "yaml": "2.9.1"
+  }
+}

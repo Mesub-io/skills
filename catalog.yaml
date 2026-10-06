@@ -1,0 +1,88 @@
+# The kit's single source of truth: what the kit is, which skills exist, how they
+# are grouped and where the kit is published.
+#
+# `pnpm render` writes the README blocks, skills.sh.json and the
+# hand-off blocks inside each skill from this file. `pnpm validate` fails when
+# any of them drifts. Edit this file, then render: never edit rendered output.
+schema: v1
+name: mesub-skills
+version: 0.1.0
+description: Skills that teach an AI coding agent to add Solana subscriptions to an app with @mesub/node and @mesub/react.
+repository: https://github.com/Mesub-io/skills
+# Base of every docs fallback. One line to change when the docs move.
+docs_url: https://docs.mesub.io
+# The skill that carries the kit directory (references/kit-directory.md).
+directory: mesub-quickstart
+# license: unset until the owner chooses one. Set an SPDX id here, add LICENSE,
+# then render: the README and every SKILL.md frontmatter follow.
+
+# One entry per way the kit is published, and there is one on purpose: the same
+# folder for every agent. `renderer` names a module of scripts/lib/distributions/,
+# which writes the files listed in `manifests`.
+distributions:
+  - id: skills-cli
+    name: skills CLI
+    renderer: skills-cli
+    manifests:
+      - skills.sh.json
+
+groups:
+  - id: start
+    title: Get started
+    description: From an empty project to a first paying subscriber.
+  - id: build
+    title: Build the integration
+    description: Gate access, take subscriptions and receive events.
+  - id: verify
+    title: Test and debug
+    description: Test an integration and diagnose what answers wrong.
+  - id: tools
+    title: Tooling
+    description: Mesub tools an agent can call.
+
+# status: stable or experimental (shipped, with a folder and a version) or
+# planned (no folder: listed as coming, never as installable).
+# description: the one-line territory. docs: the page to fall back on.
+skills:
+  - id: mesub-quickstart
+    group: start
+    status: planned
+    issue: 2
+    docs: /docs/quickstart
+    description: From an empty project to a first paying subscriber, on Express, Next.js or NestJS, and the directory of the kit.
+  - id: mesub-gate-access
+    group: build
+    status: planned
+    issue: 3
+    docs: /docs/access
+    description: Gate a route or a page on a plan with the guards and hasAccess, and answer 402 and 503 correctly.
+  - id: mesub-subscribe-and-manage
+    group: build
+    status: planned
+    issue: 4
+    docs: /docs/subscribe
+    description: The wallet side with @mesub/react, the server routes it calls, and subscribing from the server.
+  - id: mesub-webhooks
+    group: build
+    status: planned
+    issue: 5
+    docs: /docs/webhooks
+    description: Receive Mesub's events, verify the signature, deduplicate and handle retries.
+  - id: mesub-testing
+    group: verify
+    status: planned
+    issue: 6
+    docs: /docs/testing
+    description: Test an integration without touching the chain with @mesub/node/testing.
+  - id: mesub-errors
+    group: verify
+    status: planned
+    issue: 7
+    docs: /reference/errors
+    description: Diagnose a failure from an error code, a reason or an attempt's outcome, and fix it.
+  - id: mesub-mcp
+    group: tools
+    status: planned
+    issue: 9
+    docs: /docs/mcp
+    description: Connect and use the Mesub MCP server from an agent.
