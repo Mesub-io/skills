@@ -151,7 +151,7 @@ Every validation rule has a failing kit in `test/validate.test.mjs`: the good ki
 - a content rule above is broken (`content/*`);
 - a stable skill has no eval file, an eval names no shipped skill, or breaks the format (`evals/*`);
 - any rendered file differs from what the catalog renders (`render/*`);
-- the catalog's version has no changelog entry, or a licence is set without its file (`release/*`);
+- a licence is set without its file (`release/*`);
 - a skill's content changed since the base branch and its version did not rise (`version/*`).
 
 ## Adding a skill
@@ -161,7 +161,6 @@ Every validation rule has a failing kit in `test/validate.test.mjs`: the good ki
 3. Add `evals/<id>.md` (see [evals/README.md](evals/README.md)). It is required before the status may become `stable`.
 4. `pnpm render`, review what it wrote, then `pnpm validate` and `pnpm test`.
 5. If the skill that carries the directory changed (it does whenever a skill ships), raise its version too.
-6. Add a line to `CHANGELOG.md` under `Unreleased`.
 
 ## Changing a skill
 
@@ -169,11 +168,10 @@ Any change under `skills/<id>/`, rendered or not, raises that skill's version in
 
 ## Releasing
 
-A release is three things, done by hand for now:
+A release is two things, done by hand for now:
 
 1. Raise `version` in `catalog.yaml`: patch for corrections, minor when a skill ships or gains guidance, major when installing or a territory changes in a way that breaks a user.
-2. Move the `Unreleased` lines of `CHANGELOG.md` under `## X.Y.Z`, then `pnpm render` and `pnpm validate`.
-3. Once merged, tag that commit `vX.Y.Z` and push the tag. Tags are what users pin: never move one.
+2. Once merged, tag that commit `vX.Y.Z` and push the tag. Tags are what users pin: never move one. The tag's own notes say what changed: there is no changelog file to keep in step.
 
 Nothing is automated yet: no release workflow, no signed-off commits, no external link checker.
 

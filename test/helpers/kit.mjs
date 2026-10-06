@@ -118,7 +118,6 @@ const FILES = {
   'README.md': '# Kit\n\n<!-- skills:start -->\n<!-- skills:end -->\n\n<!-- install:start -->\n<!-- install:end -->\n\nSee [the rules](AGENTS.md).\n',
   'AGENTS.md': '# Rules\n',
   'CONTRIBUTING.md': '# Contributing\n',
-  'CHANGELOG.md': '# Changelog\n\n## 1.0.0\n\n- First.\n',
   'evals/README.md': '# Evals\n',
   'evals/mesub-alpha.md':
     '# Eval: mesub-alpha\n\n## Prompt 1: The thing\n\n> Do the thing.\n\n### Expected behaviours\n\n- [ ] Does it.\n\n### Must not\n\n- [ ] Breaks it.\n\n### Checks\n\n```bash\ntrue\n```\n',

@@ -112,7 +112,6 @@ const CASES = [
   ['catalog changed without rendering', 'render/drift', { after: (root) => { edit(root, 'catalog.yaml', 'description: Does the beta thing.', 'description: Beta, reworded.'); edit(root, `${BETA}/skill.yaml`, 'Does the beta thing.', 'Beta, reworded.') } }],
   ['skills.sh.json edited by hand', 'render/drift', { after: (root) => edit(root, 'skills.sh.json', 'Group one', 'Group 1') }],
   ['README without its markers', 'render/markers', { after: (root) => edit(root, 'README.md', '<!-- install:start -->', '') }],
-  ['kit version without a changelog entry', 'release/changelog', { after: (root) => edit(root, 'CHANGELOG.md', '## 1.0.0', '## 0.9.0') }],
   ['licence set without a LICENSE file', ['release/license', 'links/broken'], { before: (root) => edit(root, 'catalog.yaml', 'schema: v1', 'schema: v1\nlicense: MIT') }],
 ]
 

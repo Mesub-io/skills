@@ -16,7 +16,7 @@ import { staleFiles } from './render.mjs'
 /** @typedef {import('./catalog.mjs').Finding} Finding */
 
 const SKIP = ['.git', 'node_modules', '.docs-site']
-const ROOT_DOCS = ['README.md', 'AGENTS.md', 'CONTRIBUTING.md', 'CHANGELOG.md']
+const ROOT_DOCS = ['README.md', 'AGENTS.md', 'CONTRIBUTING.md']
 const EVAL_PARTS = ['Expected behaviours', 'Must not', 'Checks']
 
 /** Files under dir, as paths relative to it. Symlinks are listed, never followed. */
@@ -346,10 +346,6 @@ export function validateKit(root, options = {}) {
   for (const file of stale) add('render/drift', file.file, `${file.message}: run pnpm render`)
 
   // --- Release ---
-  const changelog = existsSync(join(root, 'CHANGELOG.md')) ? readFileSync(join(root, 'CHANGELOG.md'), 'utf8') : ''
-  if (!new RegExp(`^## \\[?${catalog.version.replace(/\./g, '\\.')}\\]?(\\s|$)`, 'm').test(changelog)) {
-    add('release/changelog', 'CHANGELOG.md', `no "## ${catalog.version}" entry for the catalog's version`)
-  }
   if (catalog.license && !existsSync(join(root, 'LICENSE'))) add('release/license', 'LICENSE', `catalog.yaml says ${catalog.license}, the file is missing`)
 
   // --- Versions against the base branch ---

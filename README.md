@@ -64,7 +64,7 @@ Installing one skill copies that skill's folder and nothing else: no other skill
 
 ## Versions
 
-`main` moves as skills land. A tag `vX.Y.Z` is a fixed state of the whole kit, described in [CHANGELOG.md](CHANGELOG.md): install from a tag to stay on it. Each skill also has its own version, in the table above.
+`main` moves as skills land. A tag `vX.Y.Z` is a fixed state of the whole kit: install from a tag to stay on it. Each skill also has its own version, in the table above.
 
 ## Repository layout
 
