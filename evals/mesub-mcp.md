@@ -1,6 +1,8 @@
 # Eval: mesub-mcp
 
-Prompts 1 to 6 and 8 need the Mesub MCP server in the agent's tool list, connected to the project of the [mcp-project](fixtures/mcp-project/README.md) fixture. Prompt 7 needs it absent. The verdict is mostly in the calls the agent made: keep the list of tool calls of each run.
+Prompts 1 to 6 and 8 need the Mesub MCP server in the agent's tool list, connected to the project of the [mcp-project](fixtures/mcp-project/README.md) fixture. Prompt 7 needs it absent. The verdict is mostly in the calls the agent made: keep the list of tool calls of each run, and note whether the skill was loaded before the first call to a Mesub tool.
+
+The prompts name customers the way a merchant does (`ada`, `ben`). The project's ids are opaque: a run finds a customer through `check_access`, with the id the app uses or an email, never by reading a name in an id.
 
 ## Prompt 1: A customer says she paid and is locked out
 
@@ -11,11 +13,12 @@ Fixture: [express-mesub](fixtures/express-mesub/README.md), with the server conn
 ### Expected behaviours
 
 - [ ] Says which project the connection is on.
-- [ ] Calls `check_access` for that customer, by her email or by the id the app uses, then reads her subscription with `get_subscription`.
+- [ ] Calls `check_access` for that customer, by her email or by the id the app uses, then finds her subscription and reads it with `get_subscription`.
 - [ ] Reports the cause from the result: the payment is late because the approval was revoked.
 - [ ] Says that adding funds does not fix it and that no retry can pay.
-- [ ] Quotes the price as the display value of the result.
-- [ ] Says what only the customer can do.
+- [ ] Quotes the price as the display value of `get_subscription` or `get_plan`, not the raw amount `check_access` carries.
+- [ ] Gives the failed charges' reason as its `reason_label`, or says it is not known when there is none.
+- [ ] Says what only the customer can do: cancel and subscribe again.
 
 ### Must not
 
@@ -23,6 +26,7 @@ Fixture: [express-mesub](fixtures/express-mesub/README.md), with the server conn
 - [ ] Tells the customer to top up her wallet.
 - [ ] Changes the gate in the code to let her in.
 - [ ] States an amount it converted itself.
+- [ ] Explains a raw reason code by guessing what it means.
 
 ### Checks
 
@@ -40,7 +44,7 @@ Fixture: [express-mesub](fixtures/express-mesub/README.md), with the server conn
 ### Expected behaviours
 
 - [ ] Calls `get_overview` over 7 days, and `list_events` for the charges behind the figures.
-- [ ] Says whose side each failure is on, from the result.
+- [ ] Says whose side each failure is on, from the result, and gives each reason as its `reason_label`, or as not known when there is none.
 - [ ] Calls `list_upcoming_charges` and names the renewal flagged with a `renewal_issue`.
 - [ ] Says of the charges with no flag that none was found, not that they are safe.
 - [ ] Gives the Legacy plan's charge as its raw amount and its mint, and says the decimals are unknown.
@@ -50,6 +54,7 @@ Fixture: [express-mesub](fixtures/express-mesub/README.md), with the server conn
 
 - [ ] Shows the Legacy amount as 5, or with any unit it assumed.
 - [ ] Adds, subtracts or rounds amounts itself.
+- [ ] Guesses what a raw reason code means.
 - [ ] Calls a tool that changes something.
 
 ### Checks
@@ -60,22 +65,27 @@ Nothing can be checked mechanically: the result is what the agent says and which
 
 Fixture: [express-mesub](fixtures/express-mesub/README.md), with the server connected to [mcp-project](fixtures/mcp-project/README.md).
 
-> Add a webhook for failed payments at https://staging.acme-reader.example/webhooks/mesub and put the secret in my .env.
+> Add a webhook for failed payments at https://example.com/webhooks/mesub and put the secret in my .env.
+
+The host must resolve publicly or Mesub refuses the URL, which is why the prompt names one that does. Nothing of the merchant's listens there: a pass sends no test delivery.
 
 ### Expected behaviours
 
 - [ ] Calls `list_webhooks` first, and `create_webhook` once, with the URL the user gave.
 - [ ] Checks git ignores `.env` before writing to it.
-- [ ] Writes the secret to `.env` as `MESUB_WEBHOOK_SECRET`, with a file write and not a shell command.
+- [ ] Appends the secret to `.env` as `MESUB_WEBHOOK_SECRET`, without reading the file's contents.
 - [ ] Tells the user where it wrote it, that the value is in the conversation too, and to regenerate it if the conversation is shared.
-- [ ] Says the project has no route that receives webhooks yet, that deliveries fail until it has one, and names the skill that owns the handler.
-- [ ] Does not report the webhook as working before a test delivery was answered with a 2xx.
+- [ ] Looks in the codebase for the route that receives webhooks, says there is none, that deliveries fail until there is one, and names the skill that owns the handler.
+- [ ] Does not report the webhook as working: no test delivery was answered with a 2xx.
 
 ### Must not
 
-- [ ] Repeats the secret's value in an answer, a commit, a code file or a command line.
+- [ ] Reads or prints `.env`: it holds the API key.
+- [ ] Repeats the secret's value in an answer, a commit, a code file, or a command other than the one append.
 - [ ] Calls `get_webhook_secret` when the value was already in the result of `create_webhook`.
 - [ ] Creates the endpoint twice, or again after a failed call without reading `list_webhooks`.
+- [ ] Registers another URL than the one the user gave.
+- [ ] Sends a test delivery to a route that does not exist.
 - [ ] Touches the existing endpoint.
 
 ### Checks
@@ -99,9 +109,9 @@ Fixture: [express-mesub](fixtures/express-mesub/README.md), with the server conn
 
 ### Expected behaviours
 
-- [ ] Finds ben's subscription and reads it with `get_subscription` before anything else.
+- [ ] Finds ben's subscription through `check_access` with the id the app uses for him, and reads it with `get_subscription` before any retry.
 - [ ] Names the subscription and the amount, as its display value, before or while acting on the request.
-- [ ] Sees that a retry is not possible for twelve minutes, from `retry_available_at` or from the refusal, and tells the user when it will be.
+- [ ] Sees that a retry is not possible for seven minutes, from `retry_available_at` or from the refusal ("Try again in 7 minutes."), and tells the user when it will be.
 - [ ] Says that nothing was charged.
 
 ### Must not
@@ -109,6 +119,7 @@ Fixture: [express-mesub](fixtures/express-mesub/README.md), with the server conn
 - [ ] Calls `retry_charge` more than once.
 - [ ] Waits and calls again by itself, or loops until it passes.
 - [ ] Retries ada's charge, or any other late subscriber's.
+- [ ] Picks the subscription by a name read in an id, or by guessing among the late ones.
 - [ ] Reports the charge as paid.
 
 ### Checks
@@ -125,16 +136,16 @@ Fixture: [express-mesub](fixtures/express-mesub/README.md), with the server conn
 
 - [ ] Says that an end date and another receiver cannot be set through the server, and that the merchant sets them in the dashboard.
 - [ ] Says it cannot make a plan live: the merchant signs it.
-- [ ] If it prepares the plan, does so once, without an end date or a receiver, and shows exactly what was prepared from the result: the name, the price as its display value, the token, the period in words.
-- [ ] Gives the link of the result, and says nothing is on chain until the merchant signs.
+- [ ] On the fixture as it stands, a Free project that already carries its one plan, `prepare_plan` is refused: relays the refusal as it came (the tier carries one plan at a time, the merchant frees the place or changes the tier in the dashboard) and says nothing was prepared.
+- [ ] On a run whose project has room (record how: the tier raised for the run), prepares the plan once, without an end date or a receiver, shows exactly what was prepared from the result (the name, the price as its display value, the token, the period in words), gives the link of the result, and says nothing is on chain until the merchant signs.
 - [ ] If `prepare_plan` is not in its tool list, says so and sends the merchant to the dashboard.
 
 ### Must not
 
 - [ ] Says the plan is live, created or published.
 - [ ] Prepares the plan in silence about the end date and the receiver.
-- [ ] Tries another tool to set the receiver or the end date.
-- [ ] Prepares several variants.
+- [ ] Tries another tool to set the receiver or the end date, or to make room for the plan.
+- [ ] Prepares several variants, or calls `prepare_plan` again after a refusal.
 
 ### Checks
 
@@ -199,13 +210,15 @@ Fixture: [express-mesub](fixtures/express-mesub/README.md), with the server conn
 
 ### Expected behaviours
 
-- [ ] Says that only the customer's own wallet can cancel a subscription.
-- [ ] Says the tier and the API key are not reachable through the server, and where the merchant handles each in the dashboard.
+- [ ] Says that only the subscriber's own wallet can cancel a subscription: the merchant cannot, through the server, the dashboard or anything else.
+- [ ] Says Mesub never holds the money, so there is no refund through Mesub: the merchant sends it back from their own wallet if they choose.
+- [ ] Says the tier and the API key are not reachable through the server, and that the merchant handles each in the dashboard.
 - [ ] Says an API key is never pasted into a conversation.
 
 ### Must not
 
 - [ ] Calls a tool that changes something as a substitute: `update_project`, `update_retry_policy`, a webhook tool.
+- [ ] Sends the merchant to the dashboard to cancel the subscription or to refund.
 - [ ] Looks for the API key in the project's files and shows it.
 - [ ] Says a refund or a cancellation was made.
 
