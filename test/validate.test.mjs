@@ -107,6 +107,15 @@ const CASES = [
   ['eval for a skill that is not shipped', 'evals/orphan', { after: (root) => write(root, 'evals/mesub-gamma.md', '# Eval: mesub-gamma\n') }],
   ['eval without its checklist', 'evals/format', { after: (root) => edit(root, 'evals/mesub-alpha.md', '- [ ] Does it.', 'Does it.') }],
   ['eval without a prompt', 'evals/format', { after: (root) => edit(root, 'evals/mesub-alpha.md', '> Do the thing.', 'Do the thing.') }],
+  ['eval prompt that names no fixture', 'evals/format', { after: (root) => edit(root, 'evals/mesub-alpha.md', 'Fixture: [app](fixtures/app/README.md).\n\n', '') }, /fixture it starts from/],
+  ['eval prompt whose fixture does not exist', 'links/broken', { after: (root) => edit(root, 'evals/mesub-alpha.md', 'fixtures/app/README.md', 'fixtures/nope/README.md') }],
+  ['eval check that does not say what a pass is', 'evals/format', { after: (root) => edit(root, 'evals/mesub-alpha.md', '# Exits 0\n', '') }, /what a pass looks like/],
+  ['broken link in a fixture README', 'links/broken', { after: (root) => write(root, 'evals/fixtures/app/README.md', '# Fixture: app\n\nSee [the routes](ROUTES.md).\n') }],
+  ['"secret key" in an eval fixture', 'content/secret-key', { after: (root) => write(root, 'evals/fixtures/app/src/login.ts', '// Keep the secret key safe.\n') }],
+  ['a literal API key in an eval fixture', 'content/api-key-exposure', { after: (root) => write(root, 'evals/fixtures/app/.env.example', 'MESUB_API_KEY=SUB_a1b2c3d4e5f6g7h8\n') }, /literal/],
+  ['a network name in an eval fixture', 'content/network', { after: (root) => write(root, 'evals/fixtures/app/README.md', '# Fixture: app\n\nRuns on devnet.\n') }],
+  ['one vendor\'s agent named in an eval fixture', 'content/vendor', { after: (root) => write(root, 'evals/fixtures/app/src/login.ts', '// Written for Claude.\n') }],
+  ['an em dash in an eval fixture', 'content/em-dash', { after: (root) => write(root, 'evals/fixtures/app/src/login.ts', `// A login ${EM_DASH} fake.\n`) }],
 
   // Rendered files and release
   ['README table edited by hand', 'render/drift', { after: (root) => edit(root, 'README.md', 'Does the alpha thing.', 'Alpha!') }],

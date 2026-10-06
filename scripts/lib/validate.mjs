@@ -6,6 +6,7 @@ import { parse } from 'yaml'
 import { SEMVER, isShipped, loadCatalog, semverGreater, shippedSkills, skillById, validateCatalog } from './catalog.mjs'
 import { contentFindings, emDashes } from './content.mjs'
 import { renderers } from './distributions/index.mjs'
+import { extractChecks } from './eval-checks.mjs'
 import { fences, headings, links, section, splitFrontmatter, withoutBlocks } from './markdown.mjs'
 import {
   ALLOWED_ENTRIES, DESCRIPTION_HABIT, DESCRIPTION_OPENING, DIRECTORY_FILE, FRONTMATTER_FIELDS, LISTED_FOLDERS,
@@ -18,6 +19,9 @@ import { staleFiles } from './render.mjs'
 const SKIP = ['.git', 'node_modules', '.docs-site']
 const ROOT_DOCS = ['README.md', 'AGENTS.md', 'CONTRIBUTING.md']
 const EVAL_PARTS = ['Expected behaviours', 'Must not', 'Checks']
+const FIXTURES = 'evals/fixtures/'
+// A prompt says where a run starts: a fixture of this repository, by its README.
+const FIXTURE_LINE = /^Fixture: \[[^\]]+\]\(fixtures\/[\w-]+\/README\.md\)/m
 
 /** Files under dir, as paths relative to it. Symlinks are listed, never followed. */
 function walk(dir, prefix = '') {
@@ -112,6 +116,10 @@ export function validateKit(root, options = {}) {
     const content = text(join(root, path))
     if (content === null) continue
     for (const found of emDashes(content)) add(found.rule, `${path}:${found.line}`, found.message)
+    // A fixture is the project an agent reads first: it obeys what a skill obeys.
+    for (const found of path.startsWith(FIXTURES) ? contentFindings(content) : []) {
+      if (found.rule !== 'content/em-dash') add(found.rule, `${path}:${found.line}`, found.message)
+    }
   }
   const folders = existsSync(join(root, 'skills'))
     ? readdirSync(join(root, 'skills'), { withFileTypes: true }).filter((entry) => entry.isDirectory()).map((entry) => entry.name)
@@ -298,7 +306,8 @@ export function validateKit(root, options = {}) {
 
   // --- Root docs: local links ---
   const evalFiles = all.filter((path) => /^evals\/[^/]+\.md$/.test(path))
-  for (const path of [...ROOT_DOCS, ...evalFiles]) {
+  const evalDocs = all.filter((path) => /^evals\/.+\/README\.md$/.test(path))
+  for (const path of [...ROOT_DOCS, ...evalFiles, ...evalDocs]) {
     if (!existsSync(join(root, path))) {
       add('layout/missing-file', path, 'required at the root of the kit')
       continue
@@ -333,6 +342,7 @@ export function validateKit(root, options = {}) {
       const label = `prompt ${index + 1}`
       if (!new RegExp(`^Prompt ${index + 1}: \\S`).test(prompt)) add('evals/format', path, `${label}: heading must be "## Prompt ${index + 1}: title"`)
       if (!/^> \S/m.test(prompt)) add('evals/format', path, `${label}: the prompt itself, as a quote, is missing`)
+      if (!FIXTURE_LINE.test(prompt)) add('evals/format', path, `${label}: names no fixture it starts from: "Fixture: [name](fixtures/name/README.md)"`)
       const parts = [...prompt.matchAll(/^### (.+?)\s*$/gm)].map((match) => match[1])
       if (parts.join('|') !== EVAL_PARTS.join('|')) add('evals/format', path, `${label}: parts must be, in order: ${EVAL_PARTS.join(', ')}`)
       for (const part of EVAL_PARTS.slice(0, 2)) {
@@ -340,6 +350,11 @@ export function validateKit(root, options = {}) {
         if (!/^- \[ \] \S/m.test(body)) add('evals/format', path, `${label}: "${part}" needs at least one "- [ ]" line`)
       }
     })
+    for (const prompt of extractChecks(content)) {
+      for (const check of prompt.commands.filter((command) => command.expect === '')) {
+        add('evals/format', `${path}:${check.line}`, `prompt ${prompt.number}: a command under "Checks" needs a comment above it saying what a pass looks like`)
+      }
+    }
   }
 
   // --- Rendered files ---

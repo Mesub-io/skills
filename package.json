@@ -2,7 +2,7 @@
   "name": "mesub-skills-kit",
   "private": true,
   "type": "module",
-  "description": "Tooling of the Mesub skills kit: render, validate, new-skill. Not published.",
+  "description": "Tooling of the Mesub skills kit: render, validate, new-skill, eval:checks. Not published.",
   "engines": {
     "node": ">=22"
   },
@@ -11,6 +11,7 @@
     "render": "node scripts/render.mjs",
     "validate": "node scripts/validate.mjs",
     "new-skill": "node scripts/new-skill.mjs",
+    "eval:checks": "node scripts/run-eval-checks.mjs",
     "test": "node --test \"test/*.test.mjs\""
   },
   "devDependencies": {
