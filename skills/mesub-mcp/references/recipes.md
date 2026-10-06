@@ -27,7 +27,7 @@ Before the first one in a conversation, call `get_project` and say which project
 
 On the Free tier nothing retries by itself: the merchant fires each retry, by hand. On a tier that retries, the plan's policy does. The overview's `retries_automatic` field, when the server returns it, says which case the project is in.
 
-3. Do not stop at `check_access`: its attempts carry raw amounts, with no display value, and it returns no subscription id. Go on to **`list_subscriptions`** with `q` set to part of the wallet the answer named, then **`get_subscription`** with the id it returns. That adds the price as a display value (the one to quote; `get_plan` has it too), every charge with why it failed, `parked_at` (the seat is over the tier's cap and not charged), and `retry_available_at` (whether and when a retry is allowed).
+3. Do not stop at `check_access`: its attempts carry raw amounts, with no display value, and it returns no subscription id. Go on to **`list_subscriptions`** with `q` set to the wallet the answer named. Its row carries the price as a display value (the one to quote; `get_plan` has it too), `late_reason` and `retry_available_at` (whether and when a retry is allowed). **`get_subscription`**, with the id of that row, is for what only it has: every charge with why it failed, what was paid in all, and `parked_at` (the seat is over the tier's cap and not charged).
 4. A failed charge carries a `reason`, a short code, and beside it a `reason_label`, the same thing in words. Show the label to a person, never the code. When the label is null, or the server does not return one yet, say the reason is not known: do not guess what a code means.
 5. Stop there. Report the cause and whose it is. Do not retry a charge nobody asked for, and do not suggest a way round the gate.
 
@@ -78,8 +78,8 @@ To change or remove an endpoint later: state the old and the new value, or the U
 
 ## "This customer paid late, retry the charge"
 
-1. Find the subscription: **`list_subscriptions`** with `status` `late`, or `q` with part of the wallet.
-2. **`get_subscription`**, always, before any retry. Read:
+1. Find the subscription. A name the merchant uses for a customer (`ben`) is the app's own id for them: call **`check_access`** with it as `external_id` (or with their email) before asking the merchant who they are. Then **`list_subscriptions`** with `q` set to the wallet that answer names. Never pick among the late ones by guessing.
+2. Read the row before any retry (`get_subscription` has the same, and every attempt):
    - the status: only a subscription behind on its payment (`UNPAID`) can be retried;
    - `late_reason`: on `APPROVAL_REVOKED` or `AUTHORITY_CLOSED` a retry fails again whatever the wallet holds. Say so instead of retrying;
    - `retry_available_at`: in the past means now, a date ahead means wait until then, null means it would be refused;

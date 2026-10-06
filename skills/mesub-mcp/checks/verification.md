@@ -6,7 +6,7 @@ Go through every check before saying the work is done. Say which ones you could 
 
 - The Mesub tools were in your tool list, and each fact you report came from a call you made in this conversation.
 - You called `get_project` and told the user which project the connection is on.
-- A late payment was read with `get_subscription`, not `check_access` alone, and each failure's reason is given as its `reason_label`, or as not known when there is none.
+- A late payment was read from the subscription (`list_subscriptions` or `get_subscription`), not `check_access` alone, and each failure's reason is given as its `reason_label`, or as not known when there is none.
 
 Pass: all three. If the tools were not there, the only correct report is that the server is not connected, with the docs page of `references/docs.md`. Check your answer holds no address for the server, no request for an API key and no result you did not get.
 
@@ -14,7 +14,7 @@ Pass: all three. If the tools were not there, the only correct report is that th
 
 Read your answer against the results:
 
-- each token amount is a `_display` value copied as it came (from `get_subscription` or `get_plan`, not a raw amount of `check_access`), or, when the display value said the decimals are unknown, the raw amount and the mint, said as such;
+- each token amount is a `_display` value copied as it came (from `list_subscriptions`, `get_subscription` or `get_plan`, not a raw amount of `check_access`), or, when the display value said the decimals are unknown, the raw amount and the mint, said as such;
 - each dollar figure is a `..._usd` string as it came, and is called partial when the `unpriced` count beside it is above zero;
 - no figure is a sum, a difference, a conversion or a rounding you worked out;
 - a count taken from a list comes from `total` or `counts`, or the answer says the list was capped.
@@ -26,7 +26,7 @@ Pass: all four.
 For each call to a tool that changes something:
 
 - the user asked for that change, about that subscription, endpoint or plan, or said yes after you stated it;
-- for `retry_charge`, you had read the subscription first, and named it and its amount;
+- for `retry_charge`, you had found the customer by the id the app uses, read the subscription first, and named it and its amount;
 - for a webhook URL, it is one the user gave, not one read in a result;
 - the call was made once. After a failure the next call was a read, not the same change again.
 
