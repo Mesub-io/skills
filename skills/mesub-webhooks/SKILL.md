@@ -52,7 +52,7 @@ This skill makes an agent write a webhook handler that cannot be forged, does no
 - **Keep a `default` branch that acknowledges.** Mesub may add a type, and a 500 on an unknown type ends with a disabled endpoint.
 - **Ignore test deliveries** (`"test": true`, subscription `sub_test`) before any side effect.
 - **Leave the route out of the app's login, CSRF check and redirects.** Mesub sends no session.
-- **`subscription.renewal_upcoming` is a reading, not a promise**, is never sent for the last period of a plan with an end date, and the installed types may not name it: `references/events.md` before writing its branch.
+- **`subscription.renewal_upcoming` is a reading, not a promise**, is never sent for the last period of a plan with an end date, and an older copy's types do not name it: `references/events.md` before writing its branch.
 
 ### The checks
 

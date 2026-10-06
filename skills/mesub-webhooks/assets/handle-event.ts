@@ -26,7 +26,7 @@ function isTest(event: WebhookEvent): boolean {
     return (event as { test?: unknown }).test === true || event.data.id === 'sub_test';
 }
 
-// The SDK's types may not name this event yet, and it does not check its detail: read it by hand.
+// An older copy of the SDK neither names this event nor checks its detail: read by hand, it works with both.
 function renewalUpcomingOf(event: WebhookEvent): RenewalUpcomingDetail | null {
     if ((event.type as string) !== 'subscription.renewal_upcoming') return null;
 
