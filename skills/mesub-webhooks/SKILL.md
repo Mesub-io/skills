@@ -48,11 +48,11 @@ This skill makes an agent write a webhook handler that cannot be forged, does no
 - **Never ask for the signing secret in the conversation, never write its value, never log it** nor the `webhook-signature` header. No browser prefix. A secret seen in a chat or a commit is leaked: the user replaces it in the dashboard.
 - **Deduplicate on `event.id`** with one atomic write, and release the id when the handling fails. Why: an event can arrive twice, and an id kept after a failure makes the retry vanish. The id is the `webhook-id` header, not in the body.
 - **Answer a 2xx within 10 seconds, before slow work.** Anything else, a redirect included, is a failure. Mesub retries for about three days, then disables the endpoint.
-- **Do not trust the order.** A retry can land after a newer event. Before granting or revoking, ask `hasAccess`. Do not keep "is subscribed" from events: a cancellation reaching its end sends no event at all.
+- **Do not trust the order.** A retry can land after a newer event. Before granting or revoking, ask `hasAccess`. Do not keep "is subscribed" from events: a cancellation reaching its end sends no event at all, and a plan's end date cuts access minutes before `subscription.ended`.
 - **Keep a `default` branch that acknowledges.** Mesub may add a type, and a 500 on an unknown type ends with a disabled endpoint.
 - **Ignore test deliveries** (`"test": true`, subscription `sub_test`) before any side effect.
 - **Leave the route out of the app's login, CSRF check and redirects.** Mesub sends no session.
-- **`subscription.renewal_upcoming` is a reading, not a promise**, and the installed types may not name it: `references/events.md` before writing its branch.
+- **`subscription.renewal_upcoming` is a reading, not a promise**, is never sent for the last period of a plan with an end date, and the installed types may not name it: `references/events.md` before writing its branch.
 
 ### The checks
 
