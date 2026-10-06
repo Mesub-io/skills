@@ -6,11 +6,11 @@ A kit of skills that teach an AI coding agent to add Solana subscriptions to an 
 
 <!-- skills:start -->
 <!-- Rendered from catalog.yaml by `pnpm render`. Do not edit. -->
-No skill is installable yet: the 7 below are coming.
+1 of 7 skills are installable today. A skill marked coming cannot be installed yet.
 
 | Group | Skill | Territory | Status | Fallback |
 |---|---|---|---|---|
-| Get started | `mesub-quickstart` | From an empty project to a first paying subscriber, on Express, Next.js or NestJS, and the directory of the kit. | coming ([#2](https://github.com/Mesub-io/skills/issues/2)) | [docs](https://docs.mesub.io/docs/quickstart) |
+| Get started | [`mesub-quickstart`](skills/mesub-quickstart) | From an empty project to a first paying subscriber, on Express, Next.js or NestJS, and the directory of the kit. | experimental 0.1.0 | [docs](https://docs.mesub.io/docs/quickstart) |
 | Build the integration | `mesub-gate-access` | Gate a route or a page on a plan with the guards and hasAccess, and answer 402 and 503 correctly. | coming ([#3](https://github.com/Mesub-io/skills/issues/3)) | [docs](https://docs.mesub.io/docs/access) |
 | Build the integration | `mesub-subscribe-and-manage` | The wallet side with @mesub/react, the server routes it calls, and subscribing from the server. | coming ([#4](https://github.com/Mesub-io/skills/issues/4)) | [docs](https://docs.mesub.io/docs/subscribe) |
 | Build the integration | `mesub-webhooks` | Receive Mesub's events, verify the signature, deduplicate and handle retries. | coming ([#5](https://github.com/Mesub-io/skills/issues/5)) | [docs](https://docs.mesub.io/docs/webhooks) |
@@ -25,8 +25,6 @@ Every skill works alone. Where one hands off to another, it says how to check th
 
 <!-- install:start -->
 <!-- Rendered from catalog.yaml by `pnpm render`. Do not edit. -->
-Nothing to install yet: no skill has shipped. The commands below are the ones that will work once one has.
-
 ### With the skills CLI
 
 The [skills CLI](https://skills.sh) installs the skills you pick, and only those, for whichever agents you use. You do not have to take the whole kit: each skill works alone.
@@ -39,13 +37,13 @@ npx skills add Mesub-io/skills --list
 npx skills add Mesub-io/skills
 
 # One skill, no prompt (add -g for your user folder instead of the project)
-npx skills add Mesub-io/skills --skill <skill-id> --yes
+npx skills add Mesub-io/skills --skill mesub-quickstart --yes
 
 # Every skill of the kit
 npx skills add Mesub-io/skills --skill '*' --yes
 
 # Stay on one release: replace vX.Y.Z with a tag of this repository
-npx skills add Mesub-io/skills#vX.Y.Z --skill <skill-id> --yes
+npx skills add Mesub-io/skills#vX.Y.Z --skill mesub-quickstart --yes
 ```
 
 ### Clone or copy

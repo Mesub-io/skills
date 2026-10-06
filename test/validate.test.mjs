@@ -50,7 +50,8 @@ const CASES = [
   ['missing section', 'skill-md/sections', { after: (root) => edit(root, `${BETA}/SKILL.md`, '## Assets\n\nNone.\n\n', '') }],
   ['sections out of order', 'skill-md/sections', { after: (root) => edit(root, `${BETA}/SKILL.md`, '## Assets\n\nNone.\n\n## Scripts\n\nNone.', '## Scripts\n\nNone.\n\n## Assets\n\nNone.') }],
   ['H1 that is not the title', 'skill-md/title', { after: (root) => edit(root, `${BETA}/SKILL.md`, '# Beta', '# Something else') }],
-  ['SKILL.md over 500 lines', 'skill-md/length', { after: (root) => edit(root, `${BETA}/SKILL.md`, 'Read the API key', `${'A line.\n'.repeat(500)}Read the API key`) }],
+  ['SKILL.md over 500 lines', 'skill-md/length', { after: (root) => edit(root, `${BETA}/SKILL.md`, 'Read the API key', `${'A\n'.repeat(500)}Read the API key`) }],
+  ['SKILL.md over 8,000 bytes', 'skill-md/bytes', { after: (root) => edit(root, `${BETA}/SKILL.md`, 'Read the API key', `${'a'.repeat(8000)} Read the API key`) }],
   ['reference no SKILL.md names', 'skill-md/unlisted', { after: (root) => write(root, `${BETA}/references/extra.md`, '# Extra\n') }],
   ['skeleton left unfilled', 'skill-md/placeholder', { after: say('TODO: say more.') }],
 

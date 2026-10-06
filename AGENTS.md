@@ -69,7 +69,7 @@ The `description` is the only thing an agent sees before deciding to load the sk
 - Open with `Use this skill when` and say the task in the user's words.
 - Add the casual phrasing someone would really type: `even if the user just says "users should pay monthly"`. This is what makes a skill load when nobody names Mesub's vocabulary.
 - End with what it covers, as keywords an agent can match: package names, function names, error codes.
-- At most 1024 characters. State the territory, not the neighbour's.
+- At most 1024 characters, and say the task in the first 150: an agent with many skills installed shortens every description from the end to fit its budget. State the territory, not the neighbour's.
 
 Then one H1, the `title` of `skill.yaml`, and exactly these sections, in this order:
 
@@ -81,7 +81,22 @@ Then one H1, the `title` of `skill.yaml`, and exactly these sections, in this or
 6. `## References`, 7. `## Assets`, 8. `## Scripts`: one line per file, or `None.`
 9. `## Checks`: `checks/verification.md`.
 
-At most 500 lines: move detail to `references/`.
+At most 8,000 bytes and 500 lines, frontmatter and rendered blocks included: move detail to `references/`.
+
+### Size limits
+
+They are the tightest ones found among agents, so a skill that fits works everywhere:
+
+| What | Limit | Where it comes from |
+|---|---|---|
+| `name` | 64 characters | The Agent Skills specification, and Codex's loader |
+| `description` | 1024 characters, one line | The specification, and Codex's loader |
+| `compatibility` | 500 characters | The specification |
+| `SKILL.md`, whole file | 8,000 bytes | Codex cuts a skill's main file there when it injects it (`MAX_SKILL_PROMPT_BYTES` in `codex-rs/ext/skills/src/render.rs`), with a warning |
+| `SKILL.md` | 500 lines | The specification's recommendation |
+| All descriptions together | 2% of the context window, or 8,000 characters | Codex's budget for its list of skills: over it, descriptions are shortened, then skills dropped |
+
+Files under `references/`, `assets/` and `scripts/` have no limit: an agent reads them like any file. Keep each reference to one subject so it is cheap to load, and link them from `SKILL.md` only, one level deep.
 
 ### skill.yaml
 
@@ -143,7 +158,7 @@ Every validation rule has a failing kit in `test/validate.test.mjs`: the good ki
 - the catalog is malformed, a skill lacks its docs fallback, or a distribution names no renderer (`catalog/*`);
 - a folder under `skills/` and the catalog disagree, a required file is missing, a folder holds something the mould does not allow, a `SKILL.md` lies outside `skills/<id>/`, or a numbered copy of a file is left behind (`layout/*`);
 - the frontmatter breaks the format, the name is not the folder and the id, or the description cannot trigger (`frontmatter/*`);
-- the sections, the title, the length or the list of files of a `SKILL.md` break the mould, or a `TODO` is left (`skill-md/*`);
+- the sections, the title, the size or the list of files of a `SKILL.md` break the mould, or a `TODO` is left (`skill-md/*`);
 - `skill.yaml` misses a field, disagrees with the catalog, shares an owned topic, or delegates to itself, to an unknown skill or to a planned one (`skill-yaml/*`);
 - a hand-off or the directory is missing, or a planned skill is named (`related/*`);
 - a link or a path leaves the skill's folder or points at a file that is not there (`links/*`);

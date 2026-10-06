@@ -47,10 +47,11 @@ groups:
 skills:
   - id: mesub-quickstart
     group: start
-    status: planned
+    status: experimental
     issue: 2
     docs: /docs/quickstart
     description: From an empty project to a first paying subscriber, on Express, Next.js or NestJS, and the directory of the kit.
+    version: 0.1.0
   - id: mesub-gate-access
     group: build
     status: planned

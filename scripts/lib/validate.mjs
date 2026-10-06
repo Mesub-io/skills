@@ -9,7 +9,7 @@ import { renderers } from './distributions/index.mjs'
 import { fences, headings, links, section, splitFrontmatter, withoutBlocks } from './markdown.mjs'
 import {
   ALLOWED_ENTRIES, DESCRIPTION_HABIT, DESCRIPTION_OPENING, DIRECTORY_FILE, FRONTMATTER_FIELDS, LISTED_FOLDERS,
-  MAX_SKILL_LINES, PACKAGES, PLACEHOLDER, REQUIRED_FILES, SECTIONS, SKILL_YAML_FIELDS,
+  MAX_SKILL_BYTES, MAX_SKILL_LINES, PACKAGES, PLACEHOLDER, REQUIRED_FILES, SECTIONS, SKILL_YAML_FIELDS,
 } from './mould.mjs'
 import { staleFiles } from './render.mjs'
 
@@ -219,6 +219,8 @@ export function validateKit(root, options = {}) {
       if (h2.join('|') !== SECTIONS.join('|')) add('skill-md/sections', file, `the sections must be exactly, in order: ${SECTIONS.join(', ')}`)
       const h1 = found.filter((heading) => heading.level === 1).map((heading) => heading.title)
       if (meta && (h1.length !== 1 || h1[0] !== meta.title)) add('skill-md/title', file, `one H1, the title of skill.yaml: "${meta.title}"`)
+      const bytes = Buffer.byteLength(skillMd, 'utf8')
+      if (bytes > MAX_SKILL_BYTES) add('skill-md/bytes', file, `${bytes} bytes, over ${MAX_SKILL_BYTES}: an agent would cut the end off, move detail to references/`)
       if (skillMd.split('\n').length > MAX_SKILL_LINES) add('skill-md/length', file, `more than ${MAX_SKILL_LINES} lines: move detail to references/`)
       for (const path of files) {
         if (LISTED_FOLDERS.includes(path.split('/')[0]) && !skillMd.includes(path)) {
