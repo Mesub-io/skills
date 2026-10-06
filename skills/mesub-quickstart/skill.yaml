@@ -1,0 +1,33 @@
+schema: v1
+id: mesub-quickstart
+version: 0.1.0
+title: Mesub Quickstart
+description: "From an empty project to a first paying subscriber, on Express, Next.js or NestJS, and the directory of the kit."
+# The artefacts and topics this skill owns. No other skill may list the same one.
+owns:
+  - first-time setup of @mesub/node and @mesub/react in a project
+  - where MESUB_API_KEY lives and how it stays out of the browser
+  - mounting the widget routes for the first time
+  - the first subscribe button and its provider
+  - the kit directory
+use_when:
+  - a project has no Mesub code yet and must take its first subscription
+  - the user asks for subscriptions, recurring payments or a paywall on Solana without naming how
+  - an existing setup must be checked end to end before going further
+do_not_use_when:
+  - the integration already works and the task is one paid route's rules, its refusals or its outage behaviour
+  - the task is the subscribe or manage window itself, its states, its theming or a server-side subscribe
+  - the task is receiving Mesub's events
+  - the task is testing the integration or reading an error code
+# Shipped skills this one hands off to. `pnpm render` writes the hand-off block from it.
+delegates_to: []
+# Which of @mesub/node and @mesub/react this skill makes the agent use.
+packages:
+  - "@mesub/node"
+  - "@mesub/react"
+# The docs pages this skill is written from, as paths in the docs repository.
+sources:
+  - src/docs/quickstart.mdx
+  - src/docs/api-key.mdx
+  - src/docs/access.mdx
+  - src/docs/react.mdx
