@@ -25,10 +25,12 @@ Every skill of the mesub-skills kit. Each one installs alone and works alone: fo
 - To install it alone: `npx -y skills add Mesub-io/skills --skill mesub-subscribe-and-manage`.
 - If it cannot be installed, read https://docs.mesub.io/docs/subscribe instead.
 
-## `mesub-webhooks` (not available yet)
+## `mesub-webhooks`
 
 - Territory: Receive Mesub's events, verify the signature, deduplicate and handle retries.
-- It cannot be installed yet. Read https://docs.mesub.io/docs/webhooks instead.
+- Installed if `mesub-webhooks` is among your available skills, or if `npx -y skills list` names it.
+- To install it alone: `npx -y skills add Mesub-io/skills --skill mesub-webhooks`.
+- If it cannot be installed, read https://docs.mesub.io/docs/webhooks instead.
 
 ## `mesub-testing` (not available yet)
 

@@ -68,10 +68,11 @@ skills:
     version: 0.1.0
   - id: mesub-webhooks
     group: build
-    status: planned
+    status: experimental
     issue: 5
     docs: /docs/webhooks
     description: Receive Mesub's events, verify the signature, deduplicate and handle retries.
+    version: 0.1.0
   - id: mesub-testing
     group: verify
     status: planned
