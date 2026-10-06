@@ -75,10 +75,11 @@ skills:
     version: 0.1.0
   - id: mesub-testing
     group: verify
-    status: planned
+    status: experimental
     issue: 6
     docs: /docs/testing
     description: Test an integration without touching the chain with @mesub/node/testing.
+    version: 0.1.0
   - id: mesub-errors
     group: verify
     status: planned
