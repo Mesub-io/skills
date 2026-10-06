@@ -16,10 +16,12 @@ Every skill of the mesub-skills kit. Each one installs alone and works alone: fo
 - Territory: Gate a route or a page on a plan with the guards and hasAccess, and answer 402 and 503 correctly.
 - It cannot be installed yet. Read https://docs.mesub.io/docs/access instead.
 
-## `mesub-subscribe-and-manage` (not available yet)
+## `mesub-subscribe-and-manage`
 
 - Territory: The wallet side with @mesub/react, the server routes it calls, and subscribing from the server.
-- It cannot be installed yet. Read https://docs.mesub.io/docs/subscribe instead.
+- Installed if `mesub-subscribe-and-manage` is among your available skills, or if `npx -y skills list` names it.
+- To install it alone: `npx -y skills add Mesub-io/skills --skill mesub-subscribe-and-manage`.
+- If it cannot be installed, read https://docs.mesub.io/docs/subscribe instead.
 
 ## `mesub-webhooks` (not available yet)
 
