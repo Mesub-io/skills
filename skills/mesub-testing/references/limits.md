@@ -10,6 +10,9 @@ A green test run against the fake proves the app's own code: who it asks about, 
 | Accepts any `transaction` and any `terms_signature` on submit, any non-empty `signature` on a confirm | Checks them against what the wallet really signed |
 | Lands a submit or a confirm at once | Waits for the network, and may answer late or not at all |
 | Never moves by itself: no renewal, no retry, no status change, no event sent | Charges every period, retries, stops, and sends the events |
+| On a plan with an end date, refuses access once the date has passed, and ends nothing until `endPlan` is called | Ends each subscription within a few minutes of the plan's end, and sends `subscription.ended` |
+| Serves a charge or a retry dated any time before a plan's end | Serves none due in the last two minutes before the end either |
+| Hands out made-up terms, one line, the same for every plan | Writes the real terms, with the lines about a plan's end date and a single charge |
 | Has no rate limit and no cap unless `fail()` says so | Has both |
 | Knows the plans the test named, at a made-up price | Knows the project's real plans, their token and their period |
 | Accepts its own made-up key and signs with its own made-up secret | Accepts the project's API key, signs with the endpoint's secret |

@@ -33,10 +33,12 @@ const { subscription } = await mesub.subscriptions.submit(created.subscription.i
 
 | Call | The fake answers | Refusals |
 |---|---|---|
-| `create` | A `pending` subscription, a made-up `transaction`, zero `costs`, `terms` that expire in five minutes | 400 `invalid_request` without `plan` and `wallet`. 404 `plan_not_found`. 409 `already_subscribed` when that wallet holds the plan (`active`, `cancelled`, `unpaid`) |
+| `create` | A `pending` subscription, a made-up `transaction`, zero `costs`, `terms` that expire in five minutes | 400 `invalid_request` without `plan` and `wallet`. 404 `plan_not_found`. 409 `plan_ended` once the plan's end date has passed. 409 `already_subscribed` when that wallet holds the plan (`active`, `cancelled`, `unpaid`) |
 | `create` again, same customer, wallet and plan | The same pending subscription | |
-| `submit` | `active`, paid, a period of 30 days, and access granted under each name the subscription carries | 409 `not_awaiting_signature` when it is not `pending` |
+| `submit` | `active`, paid, a period of 30 days, and access granted under each name the subscription carries. On a plan that ends inside those 30 days: `access_until` at the plan's end and `next_charge_at` null | 409 `not_awaiting_signature` when it is not `pending` |
 | `retrieve`, `list` | What was added or created, newest first | 404 `subscription_not_found` |
+
+`fake.endPlan(plan)` ends every subscription the fake holds on that plan, as it ends the access answers: `plan_ended` for an `active` or `unpaid` one, `cancelled` for a cancelled one. Giving a plan an end date: `fake-mesub.md` in this folder.
 
 ## Cancel, resume, close
 

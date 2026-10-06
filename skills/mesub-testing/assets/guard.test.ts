@@ -55,6 +55,24 @@ describe('GET /api/analytics', () => {
         expect(response.body.status).toBe('stopped');
     });
 
+    it('answers 402 past the end date of the plan, while the status still reads active', async () => {
+        // Mesub takes a few minutes to end a subscription: until then only `access` says no.
+        fake.grantLastPeriod({ external_id: 'user_42' }, 'pro', new Date(Date.now() - 60_000));
+
+        const response = await request(app).get('/api/analytics').expect(402);
+
+        expect(response.body.status).toBe('active');
+    });
+
+    it('answers 402 once the plan has ended', async () => {
+        fake.grant({ external_id: 'user_42' }, 'pro');
+        fake.endPlan('pro');
+
+        const response = await request(app).get('/api/analytics').expect(402);
+
+        expect(response.body.status).toBe('ended');
+    });
+
     it('answers 401 when nobody is signed in, without asking Mesub', async () => {
         signedIn = null;
 
