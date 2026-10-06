@@ -2,7 +2,6 @@
 // shipped skill the hand-off block, the licence line and the kit directory.
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
-import { parse } from 'yaml'
 import { docsLink, isShipped, shippedSkills, skillById } from './catalog.mjs'
 import { renderers } from './distributions/index.mjs'
 import { replaceBlock } from './markdown.mjs'
@@ -32,25 +31,26 @@ export function handOff(catalog, skill) {
   ].join('\n')
 }
 
-/** The "Related skills" block of one skill, from its delegates_to. */
-export function relatedBlock(catalog, skill, delegates) {
+/**
+ * The "Related skills" block of one skill: the other shipped skills by name, and the
+ * directory every skill carries. One short block: a SKILL.md has a size limit, and the
+ * territory, the install command and the docs fallback of each neighbour sit in the directory.
+ */
+export function relatedBlock(catalog, skill) {
+  const others = shippedSkills(catalog).filter((other) => other.id !== skill.id)
   const lines = [NOTE]
-  const neighbours = delegates.map((id) => skillById(catalog, id)).filter(Boolean)
-  if (neighbours.length === 0) {
-    lines.push('This skill works alone and hands off to no other skill.')
+  if (others.length === 0) {
+    lines.push('This skill works alone and is the only one of the kit so far.')
   } else {
     lines.push(
-      'This skill works alone: never assume a neighbour is installed. When the task leaves this territory, check the neighbour is there, install it if not, or read its docs.',
+      `This skill works alone: never assume another one is installed. The other skills of the kit: ${others.map((other) => `\`${other.id}\``).join(', ')}.`,
     )
-    for (const neighbour of neighbours) lines.push('', handOff(catalog, neighbour))
   }
-  if (catalog.directory === skill.id) {
-    lines.push('', `Every skill of the kit, with the same three answers for each: \`${DIRECTORY_FILE}\`.`)
-  }
+  lines.push('', `For a task outside this skill, find its owner in \`${DIRECTORY_FILE}\` (what each skill covers, how to install it alone, its docs page), and say which skill owns it.`)
   return lines.join('\n')
 }
 
-/** The kit directory, a whole file carried by one skill. */
+/** The kit directory, a whole file carried by every shipped skill. */
 export function directoryFile(catalog) {
   return [
     NOTE,
@@ -145,17 +145,10 @@ export function renderAll(root, catalog) {
     const path = `skills/${skill.id}/SKILL.md`
     const content = read(root, path)
     if (content === null) continue
-    let delegates = []
-    try {
-      delegates = parse(read(root, `skills/${skill.id}/skill.yaml`) ?? '')?.delegates_to ?? []
-    } catch {
-      // The validator reports the broken skill.yaml.
-    }
-    if (!Array.isArray(delegates)) delegates = []
-    const replaced = replaceBlock(withLicence(content, catalog.license), 'related', relatedBlock(catalog, skill, delegates))
+    const replaced = replaceBlock(withLicence(content, catalog.license), 'related', relatedBlock(catalog, skill))
     if (replaced === null) problems.push({ file: path, message: 'markers <!-- related:start --> and <!-- related:end --> are missing' })
     else files[path] = replaced
-    if (catalog.directory === skill.id) files[`skills/${skill.id}/${DIRECTORY_FILE}`] = directoryFile(catalog)
+    files[`skills/${skill.id}/${DIRECTORY_FILE}`] = directoryFile(catalog)
   }
   return { files, problems }
 }

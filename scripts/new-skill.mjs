@@ -45,7 +45,6 @@ export function newSkill(root, argv) {
     title: values.title,
     description: entry.get('description'),
     license: catalog.license,
-    carriesDirectory: catalog.directory === id,
   })
   for (const [name, content] of Object.entries(files)) {
     mkdirSync(dirname(join(root, 'skills', id, name)), { recursive: true })

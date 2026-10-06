@@ -87,7 +87,9 @@ node "<skill-dir>/scripts/check-error-handling.mjs"
 
 <!-- related:start -->
 <!-- Rendered from catalog.yaml by `pnpm render`. Do not edit. -->
-This skill works alone and hands off to no other skill.
+This skill works alone: never assume another one is installed. The other skills of the kit: `mesub-quickstart`, `mesub-gate-access`, `mesub-subscribe-and-manage`, `mesub-webhooks`, `mesub-testing`.
+
+For a task outside this skill, find its owner in `references/kit-directory.md` (what each skill covers, how to install it alone, its docs page), and say which skill owns it.
 <!-- related:end -->
 
 ## References
@@ -98,6 +100,7 @@ This skill works alone and hands off to no other skill.
 - `references/reasons.md`: the `reason` of a submit or confirm, `late_reason`, `end_reason`, the statuses that are not failures.
 - `references/attempts.md`: an attempt's `outcome` and every `reason`, by whose doing it is.
 - `references/docs.md`: the docs pages behind this skill.
+- `references/kit-directory.md`: every skill of the kit, how to install each one alone, and its docs fallback.
 
 ## Assets
 

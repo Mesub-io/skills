@@ -69,7 +69,9 @@ The second needs the server running and posts to localhost only. **Neither produ
 
 <!-- related:start -->
 <!-- Rendered from catalog.yaml by `pnpm render`. Do not edit. -->
-This skill works alone and hands off to no other skill.
+This skill works alone: never assume another one is installed. The other skills of the kit: `mesub-quickstart`, `mesub-gate-access`, `mesub-subscribe-and-manage`, `mesub-testing`, `mesub-errors`.
+
+For a task outside this skill, find its owner in `references/kit-directory.md` (what each skill covers, how to install it alone, its docs page), and say which skill owns it.
 <!-- related:end -->
 
 ## References
@@ -79,6 +81,7 @@ This skill works alone and hands off to no other skill.
 - `references/frameworks.md`: the raw body on Express, Next.js and NestJS, the two ways to call the check, what it throws.
 - `references/local-testing.md`: signed deliveries in tests, the local script, a tunnel and a test from the dashboard.
 - `references/docs.md`: the docs pages behind this skill.
+- `references/kit-directory.md`: every skill of the kit, how to install each one alone, and its docs fallback.
 
 ## Assets
 
