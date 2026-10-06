@@ -6,14 +6,14 @@ A kit of skills that teach an AI coding agent to add Solana subscriptions to an 
 
 <!-- skills:start -->
 <!-- Rendered from catalog.yaml by `pnpm render`. Do not edit. -->
-1 of 7 skills are installable today. A skill marked coming cannot be installed yet.
+2 of 7 skills are installable today. A skill marked coming cannot be installed yet.
 
 | Group | Skill | Territory | Status | Fallback |
 |---|---|---|---|---|
 | Get started | [`mesub-quickstart`](skills/mesub-quickstart) | From an empty project to a first paying subscriber, on Express, Next.js or NestJS, and the directory of the kit. | experimental 0.1.0 | [docs](https://docs.mesub.io/docs/quickstart) |
 | Build the integration | `mesub-gate-access` | Gate a route or a page on a plan with the guards and hasAccess, and answer 402 and 503 correctly. | coming ([#3](https://github.com/Mesub-io/skills/issues/3)) | [docs](https://docs.mesub.io/docs/access) |
 | Build the integration | `mesub-subscribe-and-manage` | The wallet side with @mesub/react, the server routes it calls, and subscribing from the server. | coming ([#4](https://github.com/Mesub-io/skills/issues/4)) | [docs](https://docs.mesub.io/docs/subscribe) |
-| Build the integration | `mesub-webhooks` | Receive Mesub's events, verify the signature, deduplicate and handle retries. | coming ([#5](https://github.com/Mesub-io/skills/issues/5)) | [docs](https://docs.mesub.io/docs/webhooks) |
+| Build the integration | [`mesub-webhooks`](skills/mesub-webhooks) | Receive Mesub's events, verify the signature, deduplicate and handle retries. | experimental 0.1.0 | [docs](https://docs.mesub.io/docs/webhooks) |
 | Test and debug | `mesub-testing` | Test an integration without touching the chain with @mesub/node/testing. | coming ([#6](https://github.com/Mesub-io/skills/issues/6)) | [docs](https://docs.mesub.io/docs/testing) |
 | Test and debug | `mesub-errors` | Diagnose a failure from an error code, a reason or an attempt's outcome, and fix it. | coming ([#7](https://github.com/Mesub-io/skills/issues/7)) | [docs](https://docs.mesub.io/reference/errors) |
 | Tooling | `mesub-mcp` | Connect and use the Mesub MCP server from an agent. | coming ([#9](https://github.com/Mesub-io/skills/issues/9)) | [docs](https://docs.mesub.io/docs/mcp) |
