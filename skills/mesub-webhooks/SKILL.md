@@ -33,7 +33,7 @@ This skill makes an agent write a webhook handler that cannot be forged, does no
 
 ### Steps
 
-1. **Check what is installed.** Read `node_modules/@mesub/node/package.json` for the version, and `dist/index.d.ts` beside it for `verifyWebhook` and the event names. The package may not be on the public registry: if it is absent, stop and tell the user. Never install a lookalike or write the check by hand.
+1. **Check what is installed.** Read `node_modules/@mesub/node/package.json` for the version, and the `.d.ts` files of `dist/` beside it for `verifyWebhook` and the event names. The package may not be on the public registry: if it is absent, stop and tell the user. Never install a lookalike or write the check by hand.
 2. **Ask the user for what only they can do.** In the dashboard, under Developers then Webhooks, they add the endpoint (a public HTTPS URL, up to 16 per project), pick its events, and put its signing secret in the server's environment as `MESUB_WEBHOOK_SECRET`.
 3. **Copy the handler**: `assets/handle-event.ts`, then the route for the framework (`assets/express-webhook.ts`, `assets/next-webhook-route.ts` or `assets/nest-webhook.controller.ts`). Adapt the lines marked `ADAPT`, after reading `references/frameworks.md`.
 4. **Write the store** behind `EventStore`, in the app's database: `references/delivery.md`.

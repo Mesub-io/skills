@@ -100,7 +100,7 @@ Sent once per period, when a subscription enters the last quarter of it and thre
 - It must be selected for the endpoint in the dashboard. An endpoint created before the event existed does not get it by itself.
 - **It is never sent for a charge that cannot happen.** A subscription in the last period of a plan with an end date has no renewal: no event, and no mail from Mesub. A reminder built on this event never reaches those customers.
 
-**An older copy of the SDK does not name it.** The type and its checked detail were added while the package was still 0.1.0, so the version does not tell: look for `subscription.renewal_upcoming` in `node_modules/@mesub/node/dist/index.d.ts`. With it, a `case` in the typed `switch` works and the detail is checked. Without it the event is still handed back at runtime, but that `case` does not compile and the detail is unchecked: read it the way `assets/handle-event.ts` does: compare `event.type` as a string before the typed `switch`, and check `can_pay` is a boolean before using the detail.
+**An older copy of the SDK does not name it.** The type and its checked detail were added while the package was still 0.1.0, so the version does not tell: search the `.d.ts` files of `node_modules/@mesub/node/dist` for `subscription.renewal_upcoming` (the types sit in a shared file, not always in `index.d.ts`). With it, a `case` in the typed `switch` works and the detail is checked. Without it the event is still handed back at runtime, but that `case` does not compile and the detail is unchecked: read it the way `assets/handle-event.ts` does: compare `event.type` as a string before the typed `switch`, and check `can_pay` is a boolean before using the detail.
 
 ## At a plan's end
 
