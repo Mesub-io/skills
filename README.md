@@ -6,7 +6,7 @@ A kit of skills that teach an AI coding agent to add Solana subscriptions to an 
 
 <!-- skills:start -->
 <!-- Rendered from catalog.yaml by `pnpm render`. Do not edit. -->
-5 of 7 skills are installable today. A skill marked coming cannot be installed yet.
+6 of 7 skills are installable today. A skill marked coming cannot be installed yet.
 
 | Group | Skill | Territory | Status | Fallback |
 |---|---|---|---|---|
@@ -15,7 +15,7 @@ A kit of skills that teach an AI coding agent to add Solana subscriptions to an 
 | Build the integration | [`mesub-subscribe-and-manage`](skills/mesub-subscribe-and-manage) | The wallet side with @mesub/react, the server routes it calls, and subscribing from the server. | experimental 0.1.0 | [docs](https://docs.mesub.io/docs/subscribe) |
 | Build the integration | [`mesub-webhooks`](skills/mesub-webhooks) | Receive Mesub's events, verify the signature, deduplicate and handle retries. | experimental 0.1.0 | [docs](https://docs.mesub.io/docs/webhooks) |
 | Test and debug | [`mesub-testing`](skills/mesub-testing) | Test an integration without touching the chain with @mesub/node/testing. | experimental 0.1.0 | [docs](https://docs.mesub.io/docs/testing) |
-| Test and debug | `mesub-errors` | Diagnose a failure from an error code, a reason or an attempt's outcome, and fix it. | coming ([#7](https://github.com/Mesub-io/skills/issues/7)) | [docs](https://docs.mesub.io/reference/errors) |
+| Test and debug | [`mesub-errors`](skills/mesub-errors) | Diagnose a failure from an error code, a reason or an attempt's outcome, and fix it. | experimental 0.1.0 | [docs](https://docs.mesub.io/reference/errors) |
 | Tooling | `mesub-mcp` | Connect and use the Mesub MCP server from an agent. | coming ([#9](https://github.com/Mesub-io/skills/issues/9)) | [docs](https://docs.mesub.io/docs/mcp) |
 <!-- skills:end -->
 
