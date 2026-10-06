@@ -54,10 +54,11 @@ skills:
     version: 0.1.0
   - id: mesub-gate-access
     group: build
-    status: planned
+    status: experimental
     issue: 3
     docs: /docs/access
     description: Gate a route or a page on a plan with the guards and hasAccess, and answer 402 and 503 correctly.
+    version: 0.1.0
   - id: mesub-subscribe-and-manage
     group: build
     status: experimental

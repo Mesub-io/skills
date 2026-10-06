@@ -13,6 +13,7 @@
       "title": "Build the integration",
       "description": "Gate access, take subscriptions and receive events.",
       "skills": [
+        "mesub-gate-access",
         "mesub-subscribe-and-manage"
       ]
     }
