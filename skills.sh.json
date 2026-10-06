@@ -10,6 +10,15 @@
       ]
     },
     {
+      "title": "Build the integration",
+      "description": "Gate access, take subscriptions and receive events.",
+      "skills": [
+        "mesub-gate-access",
+        "mesub-subscribe-and-manage",
+        "mesub-webhooks"
+      ]
+    },
+    {
       "title": "Test and debug",
       "description": "Test an integration and diagnose what answers wrong.",
       "skills": [

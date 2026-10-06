@@ -1,0 +1,33 @@
+schema: v1
+id: mesub-gate-access
+version: 0.1.0
+title: Mesub Gate Access
+description: "Gate a route or a page on a plan with the guards and hasAccess, and answer 402 and 503 correctly."
+# The artefacts and topics this skill owns. No other skill may list the same one.
+owns:
+  - gating a route, an API or a page on a plan with hasAccess, access and accessList
+  - the guards requirePlan, withMesub and RequirePlan, their options and onDenied
+  - gating on several plans
+  - answering 401, 402 and 503 with Retry-After on a paid route
+  - the outage fallback and the access cache (maxStaleMs, guardTimeout, the cache store)
+  - what each subscription status means for access
+use_when:
+  - a route, an API or a page must be reserved to the subscribers of one or several plans
+  - a paid route answers 401, 402, 503 or 500 and the reason must be found
+  - a refusal must become a redirect, a page or the app's own JSON
+  - the behaviour of paid routes during a Mesub outage must be chosen or checked
+  - several servers or short-lived processes must share the cached answers
+do_not_use_when:
+  - the project has no Mesub code yet and the packages, the API key and the widget routes are still to set up
+  - the task is the subscribe or manage window, or subscribing from the server
+  - the task is receiving Mesub's events
+  - the task is writing tests against a fake Mesub
+# Shipped skills this one hands off to. `pnpm render` writes the hand-off block from it.
+delegates_to: []
+# Which of @mesub/node and @mesub/react this skill makes the agent use.
+packages:
+  - "@mesub/node"
+# The docs pages this skill is written from, as paths in the docs repository.
+sources:
+  - src/docs/access.mdx
+  - src/docs/lifecycle.mdx

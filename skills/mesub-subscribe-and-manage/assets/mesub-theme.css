@@ -1,0 +1,17 @@
+/* Branding for the Mesub widget. Load it with, or after, '@mesub/react/styles.css'.
+   The stylesheet only reads these properties, it never sets them: a value set here always wins.
+   Set them on :root, or on a wrapper to brand one area only. */
+:root {
+    /* ADAPT: every value below is the app's own. Remove a line to keep the default. */
+    --mesub-accent: #f46036; /* actions, current state, focus ring */
+    --mesub-on-accent: #ffffff; /* text on the accent: keep it readable against it */
+    --mesub-bg: #ffffff; /* the window and the list rows */
+    --mesub-text: #14151a; /* titles: the muted tones and the borders derive from it */
+    --mesub-font: 'Inter', sans-serif; /* inherits the page's font by default */
+    --mesub-radius: 12px; /* buttons: the window is a little rounder */
+}
+
+/* Dark mode is not a second set of values here. Either pass theme="dark" (or "auto",
+   which follows the system) to MesubProvider, or put data-mesub-theme="dark" on an
+   ancestor such as <html>. Values set above still win in dark mode: scope them if
+   the dark window must keep the default dark colours. */

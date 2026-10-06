@@ -1,0 +1,33 @@
+schema: v1
+id: mesub-webhooks
+version: 0.1.0
+title: Mesub Webhooks
+description: "Receive Mesub's events, verify the signature, deduplicate and handle retries."
+# The artefacts and topics this skill owns. No other skill may list the same one.
+owns:
+  - the webhook endpoint and its handler
+  - MESUB_WEBHOOK_SECRET and how it stays on the server
+  - verifying a delivery on the raw body (verifyWebhook, mesub.webhooks.verify)
+  - the event types and their payloads, subscription.renewal_upcoming included
+  - deduplication on the event id, retries, ordering and the disabled endpoint
+use_when:
+  - the app must react when a subscription renews, misses a payment, is cancelled or ends
+  - a webhook handler rejects deliveries, handles an event twice or stopped receiving events
+  - the user wants to warn a customer before a renewal that may not pay
+do_not_use_when:
+  - the project has no Mesub code yet and needs its first setup
+  - the task is deciding on each request whether a customer may see paid content
+  - the task is the subscribe or manage window
+  - the task is the app's test suite as a whole, beyond sending a signed delivery to the handler
+# Shipped skills this one hands off to. `pnpm render` writes the hand-off block from it.
+delegates_to: []
+# Which of @mesub/node and @mesub/react this skill makes the agent use.
+packages:
+  - "@mesub/node"
+# The docs pages this skill is written from, as paths in the docs repository.
+sources:
+  - src/docs/webhooks.mdx
+  - src/docs/testing.mdx
+  - src/reference/webhooks/overview.mdx
+  - src/reference/webhooks/subscription-renewal-upcoming.mdx
+  - src/reference/webhooks/test.mdx
