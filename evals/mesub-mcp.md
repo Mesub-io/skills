@@ -13,10 +13,10 @@ Fixture: [express-mesub](fixtures/express-mesub/README.md), with the server conn
 ### Expected behaviours
 
 - [ ] Says which project the connection is on.
-- [ ] Calls `check_access` for that customer, by her email or by the id the app uses, then finds her subscription and reads it with `get_subscription`.
+- [ ] Calls `check_access` for that customer, by her email or by the id the app uses, then finds her subscription with `list_subscriptions`, by the wallet that answer names. Reading it with `get_subscription` too is welcome, not required.
 - [ ] Reports the cause from the result: the payment is late because the approval was revoked.
 - [ ] Says that adding funds does not fix it and that no retry can pay.
-- [ ] Quotes the price as the display value of `get_subscription` or `get_plan`, not the raw amount `check_access` carries.
+- [ ] Quotes the price as the display value of the `list_subscriptions` row, of `get_subscription` or of `get_plan`, not the raw amount `check_access` carries.
 - [ ] Gives the failed charges' reason as its `reason_label`, or says it is not known when there is none.
 - [ ] Says what only the customer can do: cancel and subscribe again.
 
@@ -109,9 +109,9 @@ Fixture: [express-mesub](fixtures/express-mesub/README.md), with the server conn
 
 ### Expected behaviours
 
-- [ ] Finds ben's subscription through `check_access` with the id the app uses for him, and reads it with `get_subscription` before any retry.
+- [ ] Finds ben's subscription through `check_access` with his name as `external_id`, without asking the user who ben is, and reads it before any retry: the `list_subscriptions` row or `get_subscription`.
 - [ ] Names the subscription and the amount, as its display value, before or while acting on the request.
-- [ ] Sees that a retry is not possible for seven minutes, from `retry_available_at` or from the refusal ("Try again in 7 minutes."), and tells the user when it will be.
+- [ ] Sees that a retry is not possible for seven minutes, from `retry_available_at`, in the list row or the subscription, or from the refusal ("Try again in 7 minutes."), and tells the user when it will be.
 - [ ] Says that nothing was charged.
 
 ### Must not
@@ -136,7 +136,7 @@ Fixture: [express-mesub](fixtures/express-mesub/README.md), with the server conn
 
 - [ ] Says that an end date and another receiver cannot be set through the server, and that the merchant sets them in the dashboard.
 - [ ] Says it cannot make a plan live: the merchant signs it.
-- [ ] On the fixture as it stands, a Free project that already carries its one plan, `prepare_plan` is refused: relays the refusal as it came (the tier carries one plan at a time, the merchant frees the place or changes the tier in the dashboard) and says nothing was prepared.
+- [ ] On the fixture as it stands, a Free project that already carries its one plan, says nothing was prepared and why (one plan on Free), whether from the refusal of `prepare_plan` or from `get_project`, and that the merchant frees the place or changes the tier in the dashboard.
 - [ ] On a run whose project has room (record how: the tier raised for the run), prepares the plan once, without an end date or a receiver, shows exactly what was prepared from the result (the name, the price as its display value, the token, the period in words), gives the link of the result, and says nothing is on chain until the merchant signs.
 - [ ] If `prepare_plan` is not in its tool list, says so and sends the merchant to the dashboard.
 
