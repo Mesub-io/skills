@@ -42,9 +42,9 @@ What the skills CLI reads, checked in its source (v1.7.0): it finds `skills/<id>
 A user picks the skills they want. `npx skills add Mesub-io/skills --skill <id>` copies that skill's folder and nothing else (checked: `SKILL.md`, `skill.yaml`, `references/`, `assets/`, `scripts/` with their modes, `checks/`, into `.agents/skills/<id>/` of the project). So:
 
 1. A skill never assumes a neighbour is installed, and never points at a file outside its own folder. A link or a path that leaves the folder fails validation.
-2. A hand-off carries its fallback. List the neighbours in `delegates_to` of `skill.yaml`: `pnpm render` writes, inside the `related` markers of `SKILL.md`, for each one its territory, how to tell whether it is installed, the command that installs it alone, and the docs page to read when it cannot be installed. All of it comes from the catalog. Do not write hand-offs by hand, and do not name a neighbour's id elsewhere in the skill without that block.
-3. Only a shipped skill can be delegated to. A planned skill cannot be named at all: when it ships, its neighbours add it to `delegates_to` in the same pull request or a later one, and raise their version.
-4. The kit has a directory. The skill named by `directory` in the catalog (`mesub-quickstart`) carries `references/kit-directory.md`, rendered: every skill of the kit with the same answers, and a planned skill listed as not available yet with its docs fallback only. The README table is the same data for a human.
+2. Every skill knows its neighbours. `pnpm render` writes, inside the `related` markers of `SKILL.md`, the names of the other shipped skills and a pointer to the directory. It is short on purpose: a `SKILL.md` has a size limit, and what a neighbour covers lives in the directory. Do not write hand-offs by hand.
+3. A planned skill is never named in a `SKILL.md`. When it ships, `pnpm render` adds it to every neighbour's block and directory. `delegates_to` in `skill.yaml` records the neighbours a skill most often hands to: it is checked (shipped skills only, never itself) and does not change what is rendered.
+4. Every shipped skill carries the kit directory, `references/kit-directory.md`, rendered: each skill of the kit with its territory, how to tell whether it is installed, the command that installs it alone and the docs page to read when it cannot be, and a planned skill listed as not available yet with its docs fallback only. A user who installs one skill has it. The skill named by `directory` in the catalog (`mesub-quickstart`) is the one the README sends people to first. The README table is the same data for a human.
 
 ## The mould
 
@@ -110,7 +110,7 @@ Files under `references/`, `assets/` and `scripts/` have no limit: an agent read
 | `owns` | The artefacts and topics this skill is the owner of. No two skills may list the same one. |
 | `use_when` | The situations that call for this skill. |
 | `do_not_use_when` | The situations that look close but belong elsewhere. |
-| `delegates_to` | Ids of shipped skills this one hands off to. May be empty. Drives the rendered hand-off block. |
+| `delegates_to` | Ids of shipped skills this one most often hands off to. May be empty. Checked, not rendered. |
 | `packages` | Which of `@mesub/node` and `@mesub/react` the skill makes the agent use. May be empty. |
 | `sources` | The docs files the skill is written from, as paths in the docs repository (`src/docs/webhooks.mdx`, `src/reference/errors.mdx`, `public/openapi.json`). At least one. |
 

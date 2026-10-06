@@ -235,13 +235,13 @@ export function validateKit(root, options = {}) {
           add('skill-md/unlisted', `${dir}/${path}`, 'not named in SKILL.md: no agent would load it')
         }
       }
-      // A hand-off needs its fallback: the rendered block must name every neighbour.
+      // The rendered block names every other shipped skill: one left out is a block not rendered.
       const related = section(skillMd, 'Related skills') ?? ''
-      for (const id of meta && isList(meta.delegates_to) ? meta.delegates_to : []) {
-        if (!related.includes(`\`${id}\``)) add('related/missing', file, `delegates to "${id}" but "Related skills" has no hand-off for it: run pnpm render`)
+      for (const other of shipped) {
+        if (other.id !== skill.id && !related.includes(`\`${other.id}\``)) add('related/missing', file, `"Related skills" does not name "${other.id}": run pnpm render`)
       }
-      if (catalog.directory === skill.id && !files.includes(DIRECTORY_FILE)) {
-        add('related/directory', `${dir}/${DIRECTORY_FILE}`, 'this skill carries the kit directory: run pnpm render')
+      if (!files.includes(DIRECTORY_FILE)) {
+        add('related/directory', `${dir}/${DIRECTORY_FILE}`, 'every skill carries the kit directory: run pnpm render')
       }
     }
 
@@ -253,7 +253,7 @@ export function validateKit(root, options = {}) {
       const file = `${dir}/${path}`
       const raw = text(join(root, file))
       if (raw === null) continue
-      if (path === DIRECTORY_FILE && catalog.directory === skill.id) continue
+      if (path === DIRECTORY_FILE) continue
       // What the author wrote: the rendered hand-offs name planned skills and other docs on purpose.
       const written = withoutBlocks(raw, ['related'])
       for (const found of contentFindings(written)) {

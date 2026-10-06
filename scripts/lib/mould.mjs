@@ -37,7 +37,7 @@ export const DESCRIPTION_HABIT = 'even if the user just'
  * @param {{ id: string, title: string, description: string, license?: string, carriesDirectory?: boolean }} skill
  * @returns {Record<string, string>}
  */
-export function skeleton({ id, title, description, license, carriesDirectory = false }) {
+export function skeleton({ id, title, description, license, carriesDirectory = true }) {
   const skillMd = [
     '---',
     `name: ${id}`,
