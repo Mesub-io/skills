@@ -64,6 +64,7 @@ A cancellation is not an immediate stop.
 - A subscription that is paid up **keeps its access until the end of the period it paid for** (`access_until`), and can be resumed until then. Do not lock the customer out when they cancel: keep asking Mesub, which answers yes until that date.
 - Once the date has passed it reads `ended`, and closing it returns the deposit the wallet paid when subscribing.
 - A subscription cancelled while `unpaid` or `stopped` has no access, and its missed period is never collected.
+- On a plan with an end date, access never runs past the plan's end, cancelled or not, and the last period is charged in full even when the plan ends inside it: the terms the customer signed say so. In that last period `next_charge_at` is `null`, and resuming a cancellation brings no charge back: it runs to `access_until`, then ends.
 
 Say this to the customer before they sign: what they keep, until when, and that closing returns the deposit.
 

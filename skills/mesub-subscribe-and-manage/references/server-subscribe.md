@@ -28,9 +28,34 @@ What it answers:
 | `subscription` | `{ id, status }`, `pending` at this point |
 | `transaction` | Base64, signed by nobody |
 | `last_valid_block_height` | A string |
-| `terms.message` | Plain text, one fact per line: the amount, the period, who is paid, how to cancel |
+| `terms.message` | Plain text, one fact per line: the amount, the period, who is paid, how to cancel, and when the plan ends if it has an end date (below) |
 | `terms.expires_at` | ISO date, five minutes after `create` today. Read the field, do not hard-code the delay |
 | `costs` | In lamports, as strings. `rent` is a deposit returned when the subscription is closed, `fee` is spent. `rent.authority` is `null` when the customer already has one for that token |
+
+### A plan with an end date
+
+Nobody has access past a plan's end date, and the last period is charged in full even when the plan ends inside it. Mesub writes both in `terms.message`, so the customer reads them before signing. The lines that say what is charged, for a plan of 20 USDC every 30 days:
+
+```text
+Amount: 20 USDC every 30 days
+First charge: 20 USDC now, in the transaction you sign next
+Then: 20 USDC every 30 days, until you cancel, or the plan ends on 2027-01-01
+Last charge: 20 USDC, in full, for the last period that starts before the plan ends
+Access: stops when the plan ends on 2027-01-01, even if the last period paid for is not over
+```
+
+With no end date the third line stops at "until you cancel" and the last two are absent. When the plan ends before a second charge can be made, the first one is the only one:
+
+```text
+Amount: 20 USDC, a single charge
+Single charge: 20 USDC now, in full, in the transaction you sign next
+Access: until the plan ends on 2026-10-02, even if the period paid for is not over
+No further charge: the plan ends on 2026-10-02
+```
+
+- **Show the message as it is.** The date is the plan's end, as a day in UTC. A page that words these lines its own way, or prints "per month" beside a single charge, tells the customer something other than what they sign.
+- Do not work out which case it is from the plan: read it in the terms. The `Amount` line ends with `, a single charge` when it is one.
+- After a single charge the subscription has `next_charge_at` `null` and `access_until` at the plan's end.
 
 ## 2. Sign, in the browser
 
@@ -112,7 +137,9 @@ Thrown as a `MesubError`. `apiCode` is Mesub's own code, `code` the SDK's broade
 | `create` | `already_subscribed` | This wallet already holds this plan: show it, do not retry |
 | `create` | `insufficient_balance` | The wallet cannot pay the first period |
 | `create` | `plan_not_found` | Fix the slug |
+| `create` | `plan_ended` | The plan is past its end date: stop offering it |
 | `submit` | `terms_expired` | Create again and have the fresh terms signed |
+| `submit` | `terms_changed` | The plan changed since, or its end has come too close for the second charge the terms name. Create again: the new terms say it is a single charge |
 | `submit` | `transaction_expired` | Create again |
 | `submit` | `subscription_not_found` | The id is not one of the project's |
 

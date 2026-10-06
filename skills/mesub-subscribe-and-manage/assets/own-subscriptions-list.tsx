@@ -46,7 +46,8 @@ export function MySubscriptions() {
                 <li key={held.id}>
                     {/* `plan` is the slug. Dates are ISO strings, null when they do not apply. */}
                     <strong>{held.plan ?? 'Subscription'}</strong>: {statusLabel(held)}
-                    {held.status === 'cancelled' && held.access_until
+                    {/* No charge ahead: cancelled, or in the last period of a plan that ends. */}
+                    {held.access_until && (held.status === 'cancelled' || (held.status === 'active' && !held.next_charge_at))
                         ? `, access until ${new Date(held.access_until).toLocaleDateString()}`
                         : null}
                     {/* `action` is the one thing it allows now, or null. The list reads again by itself after. */}

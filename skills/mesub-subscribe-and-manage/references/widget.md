@@ -41,7 +41,7 @@ Any other string (`account`, `//host/page`, a value with a space) is ignored and
 - `onSubscribed(subscription)`: called once Mesub confirmed the first payment, even if the window was closed meanwhile.
 - `children`: the label, "Subscribe" by default. While signing, confirming and once subscribed the button words itself.
 - Every other `<button>` prop goes to the button, and the ref is forwarded. An `onClick` that calls `preventDefault()` stops the window from opening: that is how to run the app's own check first.
-- It carries `data-mesub-subscribe` and `data-mesub-state`. Once subscribed it is disabled and followed by a `<span data-mesub-receipt>` with the next charge and a receipt link.
+- It carries `data-mesub-subscribe` and `data-mesub-state`. Once subscribed it is disabled and followed by a `<span data-mesub-receipt>` with the next charge, when there is one, and a receipt link.
 
 ## useSubscribe
 
@@ -77,7 +77,7 @@ Opens one subscription in the Mesub window: how it stands, what is charged next,
 <ManageSubscriptions onChanged={(subscription) => refresh()} />
 ```
 
-The signed-in customer's subscriptions, in the page: plan, price, status, the next date that matters, the paying wallet, and one button per row for what it allows. It words every state itself (loading, signed out, error with Try again, none yet).
+The signed-in customer's subscriptions, in the page: plan, price, status, the next date that matters (the next charge, the next try, or the end of its access), the paying wallet, and one button per row for what it allows. It words every state itself (loading, signed out, error with Try again, none yet).
 
 - `onChanged(subscription)`: called once one was cancelled, resumed or closed.
 - Other `<div>` props go to its root, which carries `data-mesub-subscriptions` and `data-mesub-state`.
@@ -100,6 +100,6 @@ Fields are as the server serves them: snake case, dates as ISO strings, `plan` i
 
 ## What is not exported
 
-- No hook reads a plan. For a pricing page, call `mesub.plans.retrieve(slug)` or `mesub.plans.list()` on the server, or fetch `GET <endpoint>/plans/<slug>`, which is public. Show the subscribe button only when the plan's `available` is true, and print `amount_display` with `symbol`, never a number computed from `amount`.
+- No hook reads a plan. For a pricing page, call `mesub.plans.retrieve(slug)` or `mesub.plans.list()` on the server, or fetch `GET <endpoint>/plans/<slug>`, which is public. Show the subscribe button only when the plan's `available` is true, and print `amount_display` with `symbol`, never a number computed from `amount`. `ends_at` is the plan's end date, `null` for a plan with no end: a pricing page that prints "per month" for a plan about to end promises charges the terms do not.
 - The error class and the window's parts are internal. Do not import from a path inside the package.
 - One window at a time: a second `subscribe()` or `manage()` while one is open gets the first one's answer.
