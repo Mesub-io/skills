@@ -31,7 +31,7 @@ This is why the guards, the widget routes and the webhook handler must share one
 
 - "Seen" is per customer **and per plan**, as the customer was named: asked by `external_id` before, asked by `wallet` now, is never seen.
 - The last answer known may be a "no": a guard then answers 402 during the outage, not 503.
-- A stale "yes" with no charge or retry ahead (a cancelled subscription, a parked seat) stops granting at its own `access_until`. One with a renewal ahead keeps granting: it was most likely paid while Mesub was down.
+- A stale "yes" with no charge or retry ahead (a cancelled subscription, a parked seat, a subscription in the last period of a plan with an end date) stops granting at its own `access_until`, so nobody is served past a plan's end. One with a renewal ahead keeps granting: it was most likely paid while Mesub was down.
 - A paying customer never seen by this process gets 503 from a guard, and `false` from `hasAccess`. With the default memory cache that is everyone after a restart: see the store below.
 
 ## The options

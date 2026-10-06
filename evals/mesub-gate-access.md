@@ -57,6 +57,7 @@ Fixture: [next-mesub](fixtures/next-mesub/README.md).
 - [ ] Sends the full data and trims it in a client component.
 - [ ] Calls `hasAccess` without `await`.
 - [ ] Uses `access` or `accessList` as the gate.
+- [ ] Decides who is paying from `status` (for instance `status === 'active'`) instead of what `hasAccess` answers.
 
 ### Checks
 
