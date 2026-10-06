@@ -74,7 +74,7 @@ A missed charge does not end access at once: read `data.access` and `data.access
 
 ## subscription.renewal_upcoming
 
-Sent once per period, when a subscription enters the last quarter of it (about a week before the charge on a monthly plan), whether the charge can pay or not. Mesub reads the customer's wallet at that moment:
+Sent once per period, when a subscription enters the last quarter of it and three days before the charge at most, whether the charge can pay or not. Mesub reads the customer's wallet at that moment:
 
 ```json
 {
