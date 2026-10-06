@@ -25,6 +25,13 @@
         "mesub-testing",
         "mesub-errors"
       ]
+    },
+    {
+      "title": "Tooling",
+      "description": "Mesub tools an agent can call.",
+      "skills": [
+        "mesub-mcp"
+      ]
     }
   ]
 }

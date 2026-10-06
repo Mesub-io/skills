@@ -6,7 +6,7 @@ A kit of skills that teach an AI coding agent to add Solana subscriptions to an 
 
 <!-- skills:start -->
 <!-- Rendered from catalog.yaml by `pnpm render`. Do not edit. -->
-6 of 7 skills are installable today. A skill marked coming cannot be installed yet.
+7 of 7 skills are installable today. A skill marked coming cannot be installed yet.
 
 | Group | Skill | Territory | Status | Fallback |
 |---|---|---|---|---|
@@ -16,7 +16,7 @@ A kit of skills that teach an AI coding agent to add Solana subscriptions to an 
 | Build the integration | [`mesub-webhooks`](skills/mesub-webhooks) | Receive Mesub's events, verify the signature, deduplicate and handle retries. | experimental 0.1.0 | [docs](https://docs.mesub.io/docs/webhooks) |
 | Test and debug | [`mesub-testing`](skills/mesub-testing) | Test an integration without touching the chain with @mesub/node/testing. | experimental 0.1.0 | [docs](https://docs.mesub.io/docs/testing) |
 | Test and debug | [`mesub-errors`](skills/mesub-errors) | Diagnose a failure from an error code, a reason or an attempt's outcome, and fix it. | experimental 0.1.0 | [docs](https://docs.mesub.io/reference/errors) |
-| Tooling | `mesub-mcp` | Connect and use the Mesub MCP server from an agent. | coming ([#9](https://github.com/Mesub-io/skills/issues/9)) | [docs](https://docs.mesub.io/docs/mcp) |
+| Tooling | [`mesub-mcp`](skills/mesub-mcp) | Act on a merchant's live project through the Mesub MCP server: read it, diagnose, manage webhooks, retry a charge, prepare a plan. | experimental 0.1.0 | [docs](https://docs.mesub.io/docs/mcp) |
 <!-- skills:end -->
 
 Every skill works alone. Where one hands off to another, it says how to check the other is installed, how to install just that one, and which docs page to read otherwise. `mesub-quickstart` carries the directory of the whole kit.

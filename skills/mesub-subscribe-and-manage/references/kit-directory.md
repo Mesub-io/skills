@@ -46,7 +46,9 @@ Every skill of the mesub-skills kit. Each one installs alone and works alone: fo
 - To install it alone: `npx -y skills add Mesub-io/skills --skill mesub-errors`.
 - If it cannot be installed, read https://docs.mesub.io/reference/errors instead.
 
-## `mesub-mcp` (not available yet)
+## `mesub-mcp`
 
-- Territory: Connect and use the Mesub MCP server from an agent.
-- It cannot be installed yet. Read https://docs.mesub.io/docs/mcp instead.
+- Territory: Act on a merchant's live project through the Mesub MCP server: read it, diagnose, manage webhooks, retry a charge, prepare a plan.
+- Installed if `mesub-mcp` is among your available skills, or if `npx -y skills list` names it.
+- To install it alone: `npx -y skills add Mesub-io/skills --skill mesub-mcp`.
+- If it cannot be installed, read https://docs.mesub.io/docs/mcp instead.
