@@ -22,7 +22,7 @@ When it is not connected, never:
 - ask the user for an API key, or read one from an env file, to call Mesub yourself in its place;
 - answer as if a tool had been called.
 
-What can still be done without it: reading and writing the integration's code with the other skills of the kit, and telling the user where in the dashboard the same information is.
+Offer what can still be done without it: reading in the code how the app gates access and names its customers, writing the integration with the other skills of the kit, and telling the user where in the dashboard the same information is.
 
 ## How a merchant connects
 
@@ -47,13 +47,14 @@ No tool does any of these, and Mesub gives an agent no other way to them. Asking
 
 | Never through the server | Where it is done |
 |---|---|
-| See or change the API key | The dashboard. Never in a conversation |
+| See or change the API key | The dashboard. An API key is never pasted into a conversation |
 | Change the project's tier | The dashboard |
 | Delete a project or a plan | The dashboard |
 | Close a plan, or give it an end date | The dashboard |
 | Change where the money goes (a plan's receiver) | The dashboard, signed by the merchant |
 | Resend an old webhook delivery | The dashboard, on the endpoint's deliveries |
-| Cancel or change a customer's subscription | Nowhere on the merchant's side: only the customer's wallet can |
+| Cancel or change a customer's subscription | Nowhere on the merchant's side, the dashboard included: only the subscriber's own wallet can |
+| Refund a charge | Not through Mesub, which never holds the money. The merchant sends it back from their own wallet if they choose |
 
 When asked for one of them: say it cannot be done through the server, say where it is done, and stop. Do not look for a tool that comes close. `update_project` renames and does nothing else; `update_retry_policy` changes retries and nothing else of a plan; `delete_webhook` is not a way to "reset" anything.
 

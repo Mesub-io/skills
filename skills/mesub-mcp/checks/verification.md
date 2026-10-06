@@ -6,14 +6,15 @@ Go through every check before saying the work is done. Say which ones you could 
 
 - The Mesub tools were in your tool list, and each fact you report came from a call you made in this conversation.
 - You called `get_project` and told the user which project the connection is on.
+- A late payment was read with `get_subscription`, not `check_access` alone, and each failure's reason is given as its `reason_label`, or as not known when there is none.
 
-Pass: both. If the tools were not there, the only correct report is that the server is not connected, with the docs page of `references/docs.md`. Check your answer holds no address for the server, no request for an API key and no result you did not get.
+Pass: all three. If the tools were not there, the only correct report is that the server is not connected, with the docs page of `references/docs.md`. Check your answer holds no address for the server, no request for an API key and no result you did not get.
 
 ## 2. Every figure is quoted, not computed
 
 Read your answer against the results:
 
-- each token amount is a `_display` value copied as it came, or, when the display value said the decimals are unknown, the raw amount and the mint, said as such;
+- each token amount is a `_display` value copied as it came (from `get_subscription` or `get_plan`, not a raw amount of `check_access`), or, when the display value said the decimals are unknown, the raw amount and the mint, said as such;
 - each dollar figure is a `..._usd` string as it came, and is called partial when the `unpriced` count beside it is above zero;
 - no figure is a sum, a difference, a conversion or a rounding you worked out;
 - a count taken from a list comes from `total` or `counts`, or the answer says the list was capped.
@@ -51,10 +52,11 @@ Name the env file the server really reads in place of `.env`.
 
 - The file that holds `MESUB_WEBHOOK_SECRET` is ignored by git.
 - `git status` and `git diff` show no env file added and no value starting with `whsec_`.
-- The value is in no code, test, log, commit message or command you ran, and you did not write it again in an answer.
+- The value is in no code, test, log or commit message, and you did not write it again in an answer. The one command that held it is the append to the env file.
+- You did not read or print the env file: it holds the API key.
 - The user was told where it was written, that it sits in this conversation too, and to regenerate it if the conversation is shared.
 
-Pass: all four. If the value went anywhere else, tell the user it must be regenerated, even if the file was fixed since. Regenerating breaks deliveries until the server holds the new one: it is their decision.
+Pass: all five. If the value went anywhere else, tell the user it must be regenerated, even if the file was fixed since. Regenerating breaks deliveries until the server holds the new one: it is their decision.
 
 ## 6. A change is confirmed by a read
 
