@@ -2,6 +2,8 @@
 
 ## Prompt 1: React to a missed payment in an Express app
 
+Fixture: [express-mesub](fixtures/express-mesub/README.md).
+
 > Our Express API already takes subscriptions with Mesub. Send our support channel a message whenever a customer's payment fails.
 
 ### Expected behaviours
@@ -34,6 +36,8 @@ node --env-file=.env "<skill-dir>/scripts/send-test-delivery.mjs" http://localho
 
 ## Prompt 2: Cut access when a customer cancels
 
+Fixture: [express-mesub](fixtures/express-mesub/README.md).
+
 > When someone cancels their plan in our Next.js app, remove their premium flag in our database right away.
 
 ### Expected behaviours
@@ -56,6 +60,8 @@ node "<skill-dir>/scripts/check-webhooks.mjs"
 ```
 
 ## Prompt 3: Deliveries rejected after a refactor
+
+Fixture: [express-mesub](fixtures/express-mesub/README.md).
 
 > Since we added a global JSON body parser, every Mesub webhook comes back as a bad signature. The secret has not changed.
 

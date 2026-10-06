@@ -120,7 +120,9 @@ const FILES = {
   'CONTRIBUTING.md': '# Contributing\n',
   'evals/README.md': '# Evals\n',
   'evals/mesub-alpha.md':
-    '# Eval: mesub-alpha\n\n## Prompt 1: The thing\n\n> Do the thing.\n\n### Expected behaviours\n\n- [ ] Does it.\n\n### Must not\n\n- [ ] Breaks it.\n\n### Checks\n\n```bash\ntrue\n```\n',
+    '# Eval: mesub-alpha\n\n## Prompt 1: The thing\n\nFixture: [app](fixtures/app/README.md).\n\n> Do the thing.\n\n### Expected behaviours\n\n- [ ] Does it.\n\n### Must not\n\n- [ ] Breaks it.\n\n### Checks\n\n```bash\n# Exits 0\ntrue\n```\n',
+  'evals/fixtures/app/README.md': '# Fixture: app\n\nA small app with a login and no Mesub code.\n',
+  'evals/fixtures/app/src/server.ts': 'export const port = 3000\n',
   'skills/mesub-alpha/SKILL.md': skillMd('mesub-alpha', 'Alpha', {
     references: '- `references/guide.md`: the long version.\n- `references/kit-directory.md`: the kit.',
     assets: '- `assets/route.ts`: a route to copy.',
