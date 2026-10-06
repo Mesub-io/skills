@@ -89,7 +89,8 @@ skills:
     version: 0.1.0
   - id: mesub-mcp
     group: tools
-    status: planned
+    status: experimental
     issue: 9
     docs: /docs/mcp
-    description: Connect and use the Mesub MCP server from an agent.
+    description: "Act on a merchant's live project through the Mesub MCP server: read it, diagnose, manage webhooks, retry a charge, prepare a plan."
+    version: 0.1.0

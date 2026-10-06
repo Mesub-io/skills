@@ -1,0 +1,37 @@
+schema: v1
+id: mesub-mcp
+version: 0.1.0
+title: Mesub MCP
+description: "Act on a merchant's live project through the Mesub MCP server: read it, diagnose, manage webhooks, retry a charge, prepare a plan."
+# The artefacts and topics this skill owns. No other skill may list the same one.
+owns:
+  - using the Mesub MCP server's tools on a merchant's live project
+  - choosing the tool that answers a merchant's question about their project
+  - quoting amounts from a tool result, and what a result's caps and pages mean
+  - asking the merchant before a tool charges a subscriber or changes a live webhook endpoint
+  - moving a signing secret a tool returned from the conversation to the server's environment
+  - preparing a plan for the merchant to sign
+  - what the MCP server can never do, and telling when it is not connected or a connection lapsed
+use_when:
+  - the Mesub MCP server's tools are in the agent's tool list and the user asks about their live project
+  - a customer has no access, a payment failed or a renewal is at risk, and the answer is in the project's data
+  - a webhook endpoint must be registered, tested, changed or debugged on the project itself
+  - a late subscriber must be charged again, or a plan prepared
+  - the user asks to connect an agent to Mesub, or a Mesub tool answers that the connection must be made again
+do_not_use_when:
+  - the task is writing or changing the integration's code and nothing must be read or done on the live project
+  - the task is the handler that receives webhooks, a paid route, the subscribe window or the test suite
+  - the user wants something the server never does, such as cancelling a customer's subscription or changing the tier
+# Shipped skills this one hands off to. `pnpm render` writes the hand-off block from it.
+delegates_to:
+  - mesub-webhooks
+  - mesub-errors
+  - mesub-gate-access
+# Which of @mesub/node and @mesub/react this skill makes the agent use.
+packages: []
+# The docs pages this skill is written from, as paths in the docs repository.
+sources:
+  - src/docs/mcp.mdx
+  - src/docs/webhooks.mdx
+  - src/docs/lifecycle.mdx
+  - src/docs/access.mdx
