@@ -145,26 +145,32 @@ function committedKit() {
   return root
 }
 
-test('fails on: skill changed since the base with the same version', () => {
+test('fails on: stable skill changed since the base with the same version', () => {
   const root = committedKit()
-  edit(root, `${BETA}/SKILL.md`, 'The task is the thing.', 'The task is exactly the thing.')
+  edit(root, `${ALPHA}/SKILL.md`, 'The task is the thing.', 'The task is exactly the thing.')
   const { findings } = validateKit(root, { base: 'main' })
   assert.deepEqual(findings.map((finding) => finding.rule), ['version/not-bumped'])
 })
 
-test('fails on: new file in a skill with the same version', () => {
+test('fails on: new file in a stable skill with the same version', () => {
   const root = committedKit()
-  write(root, `${BETA}/references/more.md`, '# More\n')
-  edit(root, `${BETA}/SKILL.md`, '## References\n\nNone.', '## References\n\n- `references/more.md`: more.')
+  write(root, `${ALPHA}/references/more.md`, '# More\n')
+  edit(root, `${ALPHA}/SKILL.md`, '\n\n## Assets', '\n- `references/more.md`: more.\n\n## Assets')
   assert.deepEqual(validateKit(root, { base: 'main' }).findings.map((finding) => finding.rule), ['version/not-bumped'])
 })
 
-test('passes when the changed skill raises its version in both places', () => {
+test('passes when the changed stable skill raises its version in both places', () => {
+  const root = committedKit()
+  edit(root, `${ALPHA}/SKILL.md`, 'The task is the thing.', 'The task is exactly the thing.')
+  edit(root, `${ALPHA}/skill.yaml`, 'version: 1.0.0', 'version: 1.0.1')
+  edit(root, 'catalog.yaml', 'status: stable\n    version: 1.0.0', 'status: stable\n    version: 1.0.1')
+  render(root)
+  assert.deepEqual(validateKit(root, { base: 'main' }).findings, [])
+})
+
+test('passes when an experimental skill changes without raising its version', () => {
   const root = committedKit()
   edit(root, `${BETA}/SKILL.md`, 'The task is the thing.', 'The task is exactly the thing.')
-  edit(root, `${BETA}/skill.yaml`, 'version: 0.2.0', 'version: 0.2.1')
-  edit(root, 'catalog.yaml', 'version: 0.2.0', 'version: 0.2.1')
-  render(root)
   assert.deepEqual(validateKit(root, { base: 'main' }).findings, [])
 })
 

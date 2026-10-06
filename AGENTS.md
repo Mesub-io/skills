@@ -152,7 +152,7 @@ Every validation rule has a failing kit in `test/validate.test.mjs`: the good ki
 - a stable skill has no eval file, an eval names no shipped skill, or breaks the format (`evals/*`);
 - any rendered file differs from what the catalog renders (`render/*`);
 - a licence is set without its file (`release/*`);
-- a skill's content changed since the base branch and its version did not rise (`version/*`).
+- a stable skill's content changed since the base branch and its version did not rise (`version/*`).
 
 ## Adding a skill
 
@@ -160,11 +160,11 @@ Every validation rule has a failing kit in `test/validate.test.mjs`: the good ki
 2. Fill every `TODO`. Write the description to trigger. List `sources`, `owns` and, if any, `delegates_to`.
 3. Add `evals/<id>.md` (see [evals/README.md](evals/README.md)). It is required before the status may become `stable`.
 4. `pnpm render`, review what it wrote, then `pnpm validate` and `pnpm test`.
-5. If the skill that carries the directory changed (it does whenever a skill ships), raise its version too.
+5. If the skill that carries the directory changed (it does whenever a skill ships) and it is stable, raise its version too.
 
 ## Changing a skill
 
-Any change under `skills/<id>/`, rendered or not, raises that skill's version in `skill.yaml` and in the catalog, in the same pull request: patch for a correction, minor for new guidance, a new file or a status change, major when the territory changes (`owns`, `use_when`, `delegates_to`). A version never goes down.
+While a skill is `experimental` it changes freely, at whatever version it has. Once it is `stable`, any change under `skills/<id>/`, rendered or not, raises its version in `skill.yaml` and in the catalog, in the same pull request: patch for a correction, minor for new guidance, a new file or a status change, major when the territory changes (`owns`, `use_when`, `delegates_to`). A version never goes down.
 
 ## Releasing
 

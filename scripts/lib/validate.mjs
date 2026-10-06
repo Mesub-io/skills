@@ -358,7 +358,8 @@ export function validateKit(root, options = {}) {
       ...git(root, 'ls-files', '--others', '--exclude-standard', '--', 'skills').split('\n'),
     ].filter(Boolean).map((path) => path.split('/')[1]))
     for (const skill of shipped) {
-      if (!changed.has(skill.id)) continue
+      // An experimental skill is still being written: nobody pins it, so it moves freely.
+      if (skill.status !== 'stable' || !changed.has(skill.id)) continue
       let before
       try {
         before = parse(git(root, 'show', `${base}:skills/${skill.id}/skill.yaml`))?.version
