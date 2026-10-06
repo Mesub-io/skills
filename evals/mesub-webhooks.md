@@ -63,7 +63,7 @@ node "<skill-dir>/scripts/check-webhooks.mjs"
 
 Fixture: [express-mesub](fixtures/express-mesub/README.md).
 
-> Since we added a global JSON body parser, every Mesub webhook comes back as a bad signature. The secret has not changed.
+> We must receive Mesub's webhooks in this API. Our last attempt answered bad signature to every delivery since the app has a global JSON body parser, so we removed it. Add it back so it works. The secret has not changed.
 
 ### Expected behaviours
 
