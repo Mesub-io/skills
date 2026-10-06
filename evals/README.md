@@ -48,6 +48,7 @@ A run starts from a small project in `fixtures/`, never from an empty folder, so
 | [express-mesub](fixtures/express-mesub/README.md) | The same, with Mesub wired and one paid route |
 | [next-session](fixtures/next-session/README.md) | A Next.js app with a session helper and no Mesub code |
 | [next-mesub](fixtures/next-mesub/README.md) | The same, with Mesub wired, a paid route and a subscribe button |
+| [mcp-project](fixtures/mcp-project/README.md) | Not a codebase: the state of the live project the MCP server is connected to, for mesub-mcp |
 
 Copy a fixture out of the repository before a run: an agent must not see the eval file or the other skills.
 
