@@ -31,10 +31,12 @@ Every skill of the mesub-skills kit. Each one installs alone and works alone: fo
 - Territory: Test an integration without touching the chain with @mesub/node/testing.
 - It cannot be installed yet. Read https://docs.mesub.io/docs/testing instead.
 
-## `mesub-errors` (not available yet)
+## `mesub-errors`
 
 - Territory: Diagnose a failure from an error code, a reason or an attempt's outcome, and fix it.
-- It cannot be installed yet. Read https://docs.mesub.io/reference/errors instead.
+- Installed if `mesub-errors` is among your available skills, or if `npx -y skills list` names it.
+- To install it alone: `npx -y skills add Mesub-io/skills --skill mesub-errors`.
+- If it cannot be installed, read https://docs.mesub.io/reference/errors instead.
 
 ## `mesub-mcp` (not available yet)
 

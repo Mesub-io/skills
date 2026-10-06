@@ -1,0 +1,37 @@
+schema: v1
+id: mesub-errors
+version: 0.1.0
+title: Mesub Errors
+description: "Diagnose a failure from an error code, a reason or an attempt's outcome, and fix it."
+# The artefacts and topics this skill owns. No other skill may list the same one.
+owns:
+  - the lookup table of the API's error codes, with what each means and its fix
+  - reading a MesubError and a MesubSubmitError, and which failures to wait on
+  - the reason of a submit or a confirm, late_reason and end_reason as causes of a failure
+  - reading a payment attempt's outcome and reason
+  - telling which layer answered a failing request
+use_when:
+  - a call to Mesub throws or a route answers an error and its code must be read
+  - a submit or a confirm answers a reason, or a submit's outcome is unknown
+  - a subscription is unpaid, stopped or ended and the cause must be found
+  - a customer was not charged, or was charged late, and the user asks why
+  - code that handles Mesub's errors must be written or reviewed
+do_not_use_when:
+  - the project has no Mesub code yet
+  - nothing fails and the task is to build a paid route, a subscribe flow or an event receiver
+  - the task is writing tests for an integration that works
+# Shipped skills this one hands off to. `pnpm render` writes the hand-off block from it.
+delegates_to: []
+# Which of @mesub/node and @mesub/react this skill makes the agent use.
+packages:
+  - "@mesub/node"
+  - "@mesub/react"
+# The docs pages this skill is written from, as paths in the docs repository.
+sources:
+  - src/reference/errors.mdx
+  - src/docs/manage.mdx
+  - src/docs/lifecycle.mdx
+  - src/docs/subscribe.mdx
+  - src/docs/access.mdx
+  - src/docs/react.mdx
+  - public/openapi.json

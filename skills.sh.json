@@ -8,6 +8,13 @@
       "skills": [
         "mesub-quickstart"
       ]
+    },
+    {
+      "title": "Test and debug",
+      "description": "Test an integration and diagnose what answers wrong.",
+      "skills": [
+        "mesub-errors"
+      ]
     }
   ]
 }

@@ -78,10 +78,11 @@ skills:
     description: Test an integration without touching the chain with @mesub/node/testing.
   - id: mesub-errors
     group: verify
-    status: planned
+    status: experimental
     issue: 7
     docs: /reference/errors
     description: Diagnose a failure from an error code, a reason or an attempt's outcome, and fix it.
+    version: 0.1.0
   - id: mesub-mcp
     group: tools
     status: planned
