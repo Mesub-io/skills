@@ -56,6 +56,10 @@ Without the CLI, a skill is a folder: copy the whole folder into the place your 
 git clone --depth 1 --branch vX.Y.Z https://github.com/Mesub-io/skills.git mesub-skills
 cp -R mesub-skills/skills/<skill-id> <your agent's skills folder>/
 ```
+
+### Licence
+
+Apache-2.0. See [LICENSE](LICENSE).
 <!-- install:end -->
 
 ## What an install copies
