@@ -54,7 +54,7 @@ const API_CODES = new Set([
   'not_awaiting_signature', 'subscription_changed',
   'subscription_not_found', 'subscription_not_active', 'subscription_not_cancelled',
   'subscription_ended', 'close_too_early', 'subscription_not_on_chain', 'nothing_to_confirm',
-  'retry_deadline_passed',
+  'retry_deadline_passed', 'end_date_too_soon', 'end_date_too_far', 'end_date_stale',
 ])
 const LATE_REASONS = new Set(['insufficient_balance', 'approval_revoked', 'authority_closed'])
 const END_REASONS = new Set([

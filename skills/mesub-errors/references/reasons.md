@@ -52,11 +52,24 @@ Set only when `status` is `ended`. It may be null on one that ended before Mesub
 | `cancelled` | The customer cancelled and the paid period ran out | The customer |
 | `closed` | The customer closed the subscription through Mesub | The customer |
 | `authority_closed` | The wallet closed its authorisation outside Mesub | The customer |
-| `plan_ended` | The plan reached its own end date | The user |
+| `plan_ended` | The plan reached its own end date. Its last period was charged in full, and access stopped at that date | The user |
 | `plan_removed` | The user deleted the plan | The user |
 | `plan_replaced` | Another plan now stands at its address | The user |
 
 `ended` is final. To have access again the customer subscribes again, to a plan that still exists.
+
+## A plan with an end date
+
+A plan can carry an end date (`ends_at` on the plan, `null` for one with no end). Four things it does look like failures and are not:
+
+| What is seen | Why |
+|---|---|
+| `access: false` with `status` `active` and `paused` false, or with `unpaid` off the Free tier | The plan's end date has passed. Nobody has access after it, and Mesub ends the subscription within a few minutes: until then the status is unchanged |
+| An `active` subscription with `next_charge_at` null, and no charge at the end of its period | Its last period: the plan ends before another charge. `access_until` is never later than the plan's end |
+| An `unpaid` one with `next_retry_at` null on Dev or Business | The plan ends before the next retry, so none is scheduled. It stays `unpaid` to the plan's end, then ends |
+| A customer charged a full period days before the plan ended | The last period is charged in full even when the plan ends inside it, and access still stops at the end. The terms they signed say both |
+
+At the plan's end an `active` or `unpaid` subscription turns `ended` with `end_reason` `plan_ended`. One the customer had cancelled ends with `cancelled`. A subscription that is cancelled and paid up, with `access: false`, is one cut short by its plan's end.
 
 ## The statuses that are not failures
 
@@ -69,6 +82,7 @@ Set only when `status` is `ended`. It may be null on one that ended before Mesub
 | `stopped` | The retries ran out. Nothing more is charged; the customer can subscribe again |
 | `superseded` | Replaced by a newer subscription of the same wallet to the same plan. Read that one |
 | `cancelled` with `access: true` | Normal: the period already paid runs to `access_until` |
+| `active` with `access: false` and `paused: false` | The plan's end date has passed: see above |
 | any status with `paused: true` | A seat parked over the project's limit: nothing is charged, access runs to the end of the paid period |
 
 Gate on `access`, never on `status`, and keep a default branch: a status may be added.
@@ -76,3 +90,14 @@ Gate on `access`, never on `status`, and keep a default branch: a status may be 
 ## Wording it for the customer
 
 `explain`, exported by `@mesub/node` and by `@mesub/node/situations` for a page, turns an access answer or a subscription into Mesub's own sentences and the actions each side can take. Read its options in the installed package before using it.
+
+Its `key` names the situation. Around a plan's end:
+
+| `key` | When |
+|---|---|
+| `active_last_period` | `active` with access, an `access_until` and no `next_charge_at`: the plan ends before another charge |
+| `unpaid_last_period` | `unpaid` with access and no `next_retry_at`, off the Free tier: the plan ends before the next retry |
+| `ended_plan_ended` | `ended` with `end_reason` `plan_ended`, and also `active`, or `unpaid` off the Free tier with no retry ahead, without access: the minutes before Mesub ends it |
+| `cancelled_ended` | `ended` with `end_reason` `cancelled`, and also `cancelled`, paid up, without access: cut short by the plan's end |
+
+Keys are added: keep a default branch, and `unknown` is the key of a status or a reason newer than the installed package.
