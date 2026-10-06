@@ -43,7 +43,7 @@ curl -i http://localhost:3000/api/analytics
 
 Pass:
 
-- the plan read answers 200 with the plan's name and price. This single call proves the mount path, the key and the slug at once. A 404 `plan_not_found` is a wrong slug, a 404 without that code is a wrong path, a 500 is a refused key. If the app's login middleware rejects signed-out requests it answers 401 here: repeat it signed in.
+- the plan read answers 200 with the plan's name and price. This single call proves the mount path, the key and the slug at once. A 404 `plan_not_found` is a wrong slug, a 404 without that code is a wrong path, a 500 is a refused key (under Express with no error handler of the app's own, a 401 even when signed in). If the app's login middleware rejects signed-out requests it answers 401 here: repeat it signed in.
 - the subscriptions read answers 401 `unauthenticated`. A 200 here means `customer` names somebody without a session: stop and fix it.
 - the paid route answers 401, not 200 and not 402.
 

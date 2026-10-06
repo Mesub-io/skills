@@ -51,6 +51,8 @@ A refusal is `{ "error": { "code": "...", "message": "..." } }`.
 | 502 | the SDK's code | Mesub could not be reached or answered something unreadable. A fixed message, never the server's own details |
 | 500 | none | Thrown to the framework: Mesub refused the API key (missing, wrong, rotated), or something in front of Mesub turned the server away |
 
+Under Express the default error handler answers a thrown error's own status, so without an error handler of the app's own a refused key shows as 401 and an unknown slug as 404. Give the app an error handler that answers 500 for a `MesubError`.
+
 **Never turn that 500 into a 401.** The widget reads a 401 as "sign in first", and every visitor would get the sign-in screen for a broken key.
 
 ## Timings
