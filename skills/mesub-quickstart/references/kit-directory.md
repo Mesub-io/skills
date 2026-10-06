@@ -26,10 +26,12 @@ Every skill of the mesub-skills kit. Each one installs alone and works alone: fo
 - Territory: Receive Mesub's events, verify the signature, deduplicate and handle retries.
 - It cannot be installed yet. Read https://docs.mesub.io/docs/webhooks instead.
 
-## `mesub-testing` (not available yet)
+## `mesub-testing`
 
 - Territory: Test an integration without touching the chain with @mesub/node/testing.
-- It cannot be installed yet. Read https://docs.mesub.io/docs/testing instead.
+- Installed if `mesub-testing` is among your available skills, or if `npx -y skills list` names it.
+- To install it alone: `npx -y skills add Mesub-io/skills --skill mesub-testing`.
+- If it cannot be installed, read https://docs.mesub.io/docs/testing instead.
 
 ## `mesub-errors` (not available yet)
 

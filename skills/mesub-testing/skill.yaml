@@ -1,0 +1,29 @@
+schema: v1
+id: mesub-testing
+version: 0.1.0
+title: Mesub Testing
+description: "Test an integration without touching the chain with @mesub/node/testing."
+# The artefacts and topics this skill owns. No other skill may list the same one.
+owns:
+  - automated tests of a Mesub integration against the fake of @mesub/node/testing
+  - FakeMesub and signWebhook, their options and what each answers
+  - handing the fake's client and the signed-in user to an app under test
+  - which cases a paid route, the widget routes and a webhook handler must be tested for
+  - what must not be mocked in a test of a Mesub integration
+use_when:
+  - a paid route, the widget routes or a webhook handler must be covered by automated tests
+  - a test must simulate a subscriber, a refusal, an outage, a rate limit or a signed event without the network
+  - existing tests mock the SDK or call the real Mesub and must be moved onto the fake
+do_not_use_when:
+  - the project has no Mesub code yet and needs its first setup
+  - the task is to write or change a guard, the widget routes or a webhook handler rather than to test them
+  - the task is to check a deployed integration against the real Mesub, with a real key, wallet or endpoint
+  - the task is to read an error code seen in production
+# Shipped skills this one hands off to. `pnpm render` writes the hand-off block from it.
+delegates_to: []
+# Which of @mesub/node and @mesub/react this skill makes the agent use.
+packages:
+  - "@mesub/node"
+# The docs pages this skill is written from, as paths in the docs repository.
+sources:
+  - src/docs/testing.mdx
