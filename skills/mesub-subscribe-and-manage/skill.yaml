@@ -34,4 +34,5 @@ packages:
 sources:
   - src/docs/react.mdx
   - src/docs/subscribe.mdx
+  - src/reference/subscriptions/transaction.mdx
   - src/docs/manage.mdx

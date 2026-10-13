@@ -38,7 +38,7 @@ const { subscription } = await mesub.subscriptions.submit(created.subscription.i
 |---|---|---|
 | `create` | A `pending` subscription, a made-up `transaction`, zero `costs`, `terms` that expire in five minutes | 400 `invalid_request` without `plan` and `wallet`. 404 `plan_not_found`. 409 `plan_ended` once the plan's end date has passed. 409 `already_subscribed` when that wallet holds the plan (`active`, `cancelled`, `unpaid`) |
 | `create` again, same customer, wallet and plan | The same pending subscription | |
-| `transaction(id)` | For a `pending` subscription, what `create` answers: the subscription, a made-up `transaction`, `terms`, `costs` | Read the others in the installed package before asserting one |
+| `transaction(id)` | For a `pending` subscription, what `create` answers: the subscription, a made-up `transaction`, `terms`, `costs` | `not_awaiting_signature` once it is no longer `pending`, `plan_ended`, `already_subscribed`, `subscription_not_found` for an unknown id |
 | `submit` | `active`, paid, a period of 30 days, and access granted under each name the subscription carries. On a plan that ends inside those 30 days: `access_until` at the plan's end and `next_charge_at` null | 409 `not_awaiting_signature` when it is not `pending` |
 | `retrieve`, `list` | What was added or created, newest first | 404 `subscription_not_found` |
 
