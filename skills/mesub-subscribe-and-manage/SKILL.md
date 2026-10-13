@@ -9,7 +9,7 @@ license: Apache-2.0
 
 ## Overview
 
-This skill covers the moments a wallet signs: subscribing, cancelling, resuming and closing. With `@mesub/react` the widget does the wallet work and calls routes on the app's own server. Without it, the server calls `mesub.subscriptions.*` and the app's own page has the wallet sign.
+This skill covers the moments a wallet signs: subscribing, cancelling, resuming and closing. With `@mesub/react` the widget does the wallet work and calls routes on the app's own server. Without it, the server calls `mesub.subscriptions.*` and the app's page has the wallet sign.
 
 ## When to use this skill
 
@@ -70,7 +70,7 @@ From the project root:
 node "<skill-dir>/scripts/check-wallet-side.mjs"
 ```
 
-`<skill-dir>` is the absolute path of the folder that holds this `SKILL.md`. Do not change into it: the script reads the current directory.
+`<skill-dir>` is the absolute path of the folder that holds this `SKILL.md`. Do not change into it.
 
 **A real subscription or cancellation needs a person with a wallet.** Report the work as wired and checked up to the wallet, never as tested end to end, and say what the user must click.
 
@@ -85,14 +85,15 @@ For a task outside this skill, find its owner in `references/kit-directory.md` (
 
 ## References
 
-- `references/widget.md`: every component, hook and provider prop, and what is not exported.
-- `references/widget-screens.md`: what the window does in each case, and its timings.
-- `references/theming.md`: the stylesheet, the custom properties, dark mode, the attributes.
-- `references/routes.md`: the routes the widget calls, their options, answers, refusals and timings.
-- `references/server-subscribe.md`: create, the fresh transaction, submit, `transaction_expired`, an unknown outcome.
-- `references/server-manage.md`: cancel, resume, close, their refusals, and a subscription's payments.
-- `references/statuses.md`: the nine statuses, what each allows, blocked charges, the fields to read.
-- `references/docs.md`: the docs pages behind this skill, and where they differ from the packages.
+- `references/widget.md`: every component, hook and provider prop, what is not exported.
+- `references/widget-screens.md`: what the window does in each case, its timings.
+- `references/theming.md`: the stylesheet, custom properties, dark mode, attributes.
+- `references/routes.md`: the widget's routes, their options, answers, refusals, timings.
+- `references/server-subscribe.md`: create, the fresh transaction, submit, `transaction_expired`, unknown outcomes.
+- `references/server-manage.md`: cancel, resume, close, their refusals, a subscription's payments.
+- `references/plan-token.md`: a plan's token (an unverified one marked, its mint shown), `amount_usd`.
+- `references/statuses.md`: the nine statuses, what each allows, blocked charges, fields to read.
+- `references/docs.md`: the docs pages behind this skill, where they differ from the packages.
 - `references/kit-directory.md`: every skill of the kit, how to install each one alone, and its docs fallback.
 
 ## Assets
@@ -100,12 +101,12 @@ For a task outside this skill, find its owner in `references/kit-directory.md` (
 - `assets/custom-subscribe-button.tsx`: a button of the app's own on `useSubscribe`.
 - `assets/manage-subscriptions.tsx`: `ManageButton` and `ManageSubscriptions`.
 - `assets/own-subscriptions-list.tsx`: a list drawn by the app on `useSubscriptions`.
-- `assets/mesub-theme.css`: the custom properties that brand the widget.
-- `assets/server-subscriptions.ts`: subscribe, cancel, resume and close from the server, with the ownership check.
+- `assets/mesub-theme.css`: custom properties that brand the widget.
+- `assets/server-subscriptions.ts`: subscribe, cancel, resume, close from the server, with the ownership check.
 
 ## Scripts
 
-- `scripts/check-wallet-side.mjs`: reports a missing provider, an ignored `manageUrl`, a half-done server flow. Read-only, no network, opens no env file.
+- `scripts/check-wallet-side.mjs`: reports a missing provider, an ignored `manageUrl`, a half-done server flow. Read-only, no network, no env file.
 
 ## Checks
 

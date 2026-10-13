@@ -104,6 +104,7 @@ for await (const attempt of mesub.subscriptions.allAttempts(id)) {
 | `outcome` | `paid`, `skipped`, `rejected` or `blocked`. Only `rejected` counts against the customer |
 | `reason` | Why it did not pay, a short stable string. `null` on a `paid` one |
 | `amount` | What was asked for, in the token's smallest unit, as a string |
+| `amount_usd` | `amount` in US dollars at the instant of the charge, a decimal string. `null` until Mesub has priced it. Naming the token: `plan-token.md` |
 | `signature` | The transaction that paid. `null` unless the outcome is `paid` |
 | `retry`, `retry_number`, `retries_allowed` | Whether it was a retry, which one, out of how many. The two numbers are `null` when it is not a retry of the plan's |
 | `period_start` | The start of the period it was for, or `null` |
