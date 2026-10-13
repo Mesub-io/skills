@@ -15,6 +15,7 @@ The window goes through `plan`, `wallet`, `review`, `approve`, `confirming` and 
 | A wallet cannot sign a message, or a transaction without sending it | Leaves it out of the list and names what it lacks | Nothing to fix in code |
 | The wallet refuses to connect or to sign | Nothing is submitted. Try again asks the server anew and shows the review again | `subscribe()` resolves `null` if the visitor closes there |
 | The terms expired before or between the two signatures | Asks the server again and shows the review with fresh terms | Stale terms are never signed nor submitted |
+| The customer reads the terms for a while | Once the terms are signed, asks the server for a fresh transaction and has that one signed. A transaction lives about half a minute, the terms five | Nothing to add in the app. It needs builds of both packages that have the route: see the routes reference |
 | The plan is unknown (404) | "Plan not found" | The slug, or the `plans` list of the routes |
 | Mesub refuses (409: already subscribed, not enough to pay the first period, plan closed) | Shows Mesub's message as written | Do not translate or replace it |
 | 403 `wallet_mismatch` | Asks for another wallet | The routes name the customer by wallet, and the visitor picked a different one |

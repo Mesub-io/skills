@@ -24,8 +24,11 @@ No wallet and no chain: the fake accepts any signed transaction and lands it at 
 const created = await mesub.subscriptions.create({ plan: 'pro', wallet, external_id: 'user_42' });
 // created.subscription.status === 'pending'; created.transaction and created.terms.message are made up
 
+// the terms are signed first, then the app asks for the transaction the wallet signs
+const fresh = await mesub.subscriptions.transaction(created.subscription.id);
+
 const { subscription } = await mesub.subscriptions.submit(created.subscription.id, {
-    transaction: created.transaction,
+    transaction: fresh.transaction,
     terms_signature: 'signed-by-the-test',
 });
 // subscription.status === 'active'; the customer now has access by wallet, external_id and email
@@ -35,8 +38,25 @@ const { subscription } = await mesub.subscriptions.submit(created.subscription.i
 |---|---|---|
 | `create` | A `pending` subscription, a made-up `transaction`, zero `costs`, `terms` that expire in five minutes | 400 `invalid_request` without `plan` and `wallet`. 404 `plan_not_found`. 409 `plan_ended` once the plan's end date has passed. 409 `already_subscribed` when that wallet holds the plan (`active`, `cancelled`, `unpaid`) |
 | `create` again, same customer, wallet and plan | The same pending subscription | |
+| `transaction(id)` | For a `pending` subscription, what `create` answers: the subscription, a made-up `transaction`, `terms`, `costs` | `not_awaiting_signature` once it is no longer `pending`, `plan_ended`, `already_subscribed`, `subscription_not_found` for an unknown id |
 | `submit` | `active`, paid, a period of 30 days, and access granted under each name the subscription carries. On a plan that ends inside those 30 days: `access_until` at the plan's end and `next_charge_at` null | 409 `not_awaiting_signature` when it is not `pending` |
 | `retrieve`, `list` | What was added or created, newest first | 404 `subscription_not_found` |
+
+### A transaction that expired
+
+On Mesub a transaction lives about half a minute, and a submit that comes later answers 409 `transaction_expired`: the app must then ask `transaction(id)` again, under the same id, and never `create` a new subscription. The fake's transactions never expire, so a test sets the refusal itself:
+
+```ts
+fake.fail({ status: 409, code: 'transaction_expired' });
+// call the app's submit route: assert what it answers the page
+fake.fail(null);
+// call the app's fresh-transaction route, then submit again: the same subscription lands
+expect(fake.requests.filter((call) => call.method === 'POST' && call.path === '/v1/subscriptions')).toHaveLength(1);
+```
+
+`fail` applies to every call until `fail(null)`, the transaction call included: lift it before the app asks for the new one. The last line is the one that matters: one `create`, whatever the number of transactions.
+
+`subscriptions.transaction` and its route in the fake are newer than the rest: check the method in the installed `dist/index.d.ts` first. On a package without it, say so and leave the case untested rather than write the call by hand.
 
 `fake.endPlan(plan)` ends every subscription the fake holds on that plan, as it ends the access answers: `plan_ended` for an `active` or `unpaid` one, `cancelled` for a cancelled one. Giving a plan an end date: `fake-mesub.md` in this folder.
 

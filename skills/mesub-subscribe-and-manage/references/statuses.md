@@ -26,6 +26,30 @@ A plan can have an end date (`ends_at` on the plan, `null` otherwise). A subscri
 - Mesub ends it within a few minutes. For that long `status` can read `active` or `unpaid` with `access` false.
 - From its end on the plan takes nobody: `create` is refused with `plan_ended`.
 
+## When charges are blocked
+
+A charge can fail for a reason that is not the customer's: the plan's own setup, or Mesub itself. The subscription is then blocked, and no status says so. Two fields do, on a subscription and on an access answer alike:
+
+| `blocked_reason` | Whose cause | Who fixes it |
+|---|---|---|
+| `puller_not_allowed` | The merchant's: Mesub's puller was taken off the plan | The merchant, on the plan |
+| `receiver_not_allowed` | The merchant's: the receiving wallet is not among the plan's destinations | The merchant, on the plan |
+| `receiver_account_missing` | The merchant's: the receiving wallet has no account for the plan's token, and nobody else can be paid | The merchant |
+| `mint_gone` | The merchant's plan: its token no longer exists | Not the app, not the customer |
+| `mesub` | Mesub's, whatever it is | Nothing to fix on the merchant's side |
+| `null` | Not blocked | |
+
+`blocked_since` is the ISO date that block began, `null` with `blocked_reason`. Both are `null` on anything but an `active` or `unpaid` subscription, and on a parked seat.
+
+- **The status does not change.** It stays `active` (or `unpaid` if it was late already), and `payment_status` with it: a blocked customer is never `late` for it.
+- **Access has an end all the same: `access_until`.** `access` is never true past it on a blocked subscription. Under `mesub` that is the end of the period after the one paid for. Under a cause of the plan's setup it comes sooner: the time the plan gives a late payment for its retries, and minutes only when it gives none.
+- **Mesub keeps trying.** `next_charge_at`, or `next_retry_at` on one that was late already, is the next try. Access comes back with the first charge that goes through, or that the chain holds as paid, with nothing for the customer to sign.
+- **The customer did nothing wrong and can fix nothing.** Do not word it as a late payment, do not ask them to add funds or to subscribe again. Say the charge is on hold and until when they keep access (`access_until`).
+- **The fix is the merchant's.** For a cause of the plan's setup, tell the user of this skill which one it is: Mesub also mails the merchant once per plan. An agent cannot repair a plan from the app's code.
+- `blocked_reason` may gain values: keep a default branch.
+
+So `status: 'active'` with `access: false` is not only a plan past its end date: it is also a blocked subscription whose `access_until` has passed. One more reason to read `access`.
+
 ## The fields to read, rather than the status
 
 | Field | Read it for |
@@ -37,6 +61,7 @@ A plan can have an end date (`ends_at` on the plan, `null` otherwise). A subscri
 | `payment_status` | `paid`, `late` or `none` |
 | `late_reason` | On `unpaid`: `insufficient_balance` (adding funds fixes it), `approval_revoked` (adding funds does not), `authority_closed` (final), or `null` |
 | `end_reason` | On `ended`: `cancelled`, `plan_removed`, `plan_replaced`, `plan_ended`, `authority_closed` or `closed` |
+| `blocked_since`, `blocked_reason` | Since when its charges are blocked for a cause that is not the customer's, and whose cause. Both `null` otherwise: see above |
 | `paused` | A seat parked over the project's limit: nothing is charged while it is, and the status does not change |
 | `wallet` | The wallet that pays it, and the only one that can cancel, resume or close it |
 | `plan` | The plan's slug, or `null` |
@@ -50,4 +75,5 @@ On the server a subscription also carries `email` and `external_id`. Do not send
 - For a list drawn by the app in React, do not compute the action: `useSubscriptions()` gives `action` on each subscription (`cancel`, `resume`, `close` or `null`) and re-weighs it when a cancellation reaches its end.
 - On the server, without the widget, the table above is the rule. Mesub refuses anything else with a code (`subscription_not_active`, `close_too_early` and the others).
 - Do not map a status to access in the app's code: read `access`.
+- Before wording a missed charge, read `blocked_reason`: a blocked subscription is not a late one.
 - Word a late payment by its `late_reason`. Telling a customer to add funds when the wallet no longer lets Mesub charge it sends them in circles.

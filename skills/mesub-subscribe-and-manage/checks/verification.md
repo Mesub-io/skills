@@ -28,9 +28,10 @@ Read what you wrote:
 
 - no paid content is shown because `onSubscribed` fired or `state` is `subscribed`: those only trigger a fetch, and the server answers;
 - nothing is hidden or revoked because a subscription was cancelled: the server keeps asking Mesub;
+- nothing reads a blocked subscription (`blocked_reason` set) as a late payment, or tells the customer to pay;
 - no client file imports `@mesub/node`, and no value from the server's environment reaches a client file.
 
-Pass: all three.
+Pass: all four.
 
 ## 4. The routes answer as expected
 
@@ -66,6 +67,8 @@ Then read the code against these, one by one:
 
 - `create` gets `external_id` from the session;
 - the page shows `terms.message` and the costs before the wallet is asked;
+- the terms are signed first, then `subscriptions.transaction(id)` is asked and its transaction signed at once: the one of `create` is not kept for the wallet;
+- a `transaction_expired` on submit leads to a new `transaction(id)` under the same id, never to a new `create`;
 - subscribing asks the wallet to sign without sending; managing asks it to sign and send;
 - `submit` branches on `subscription.access`, a confirm on `reason`;
 - a `MesubSubmitError` leads to a read of the subscription, never to a new `create`;

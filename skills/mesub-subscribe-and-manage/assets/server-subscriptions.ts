@@ -36,27 +36,42 @@ async function theirs(userId: string, id: string): Promise<ServerSubscription> {
     return subscription;
 }
 
-/** Subscribe, step 1. `wallet` is the address the page's wallet connected: it signs and pays. */
+/** Subscribe: create. `wallet` is the address the page's wallet connected: it signs and pays. */
 export async function startSubscription(userId: string, wallet: string, email?: string) {
-    const { subscription, transaction, terms, costs } = await mesub.subscriptions.create({
+    const { subscription, terms, costs } = await mesub.subscriptions.create({
         plan: 'pro', // ADAPT: the plan's slug, chosen on the server from a list the app wrote
         wallet,
         external_id: userId, // how hasAccess finds this customer later, whichever wallet pays
         ...(email && { email }),
     });
     // The page shows `terms.message` and `costs`, then has the wallet sign the terms as a
-    // message and the transaction WITHOUT sending it, before `terms.expires_at`.
-    return { id: subscription.id, transaction, terms, costs };
+    // message, before `terms.expires_at`. The transaction to sign comes from freshTransaction.
+    return { id: subscription.id, terms, costs };
+}
+
+/**
+ * Subscribe: the fresh transaction, asked once the terms are signed and the wallet is ready. A transaction
+ * lives about half a minute: the page has it signed at once, WITHOUT sending it.
+ * Also the way out of `transaction_expired`: same id, never a new subscription.
+ */
+export async function freshTransaction(userId: string, id: string) {
+    await theirs(userId, id);
+    // ADAPT: on a @mesub/node without `subscriptions.transaction`, tell the user the package is behind.
+    const { transaction, terms } = await mesub.subscriptions.transaction(id);
+    // The page compares `terms.message` with the text the wallet signed: another text is new terms to sign.
+    return { id, transaction, terms };
 }
 
 export type Finished =
     | { outcome: 'subscribed'; subscription: ReturnType<typeof shown> }
-    // Nothing landed, and Mesub says why: start again from step 1.
+    // Nothing landed, and Mesub says why.
     | { outcome: 'not_landed'; reason: string | undefined }
+    // Signed too late, nothing sent, nothing charged: call freshTransaction and have the wallet sign again.
+    | { outcome: 'transaction_expired' }
     // No answer on what became of it. The wallet may have paid: poll subscriptionOf, do not start again.
     | { outcome: 'unknown' };
 
-/** Subscribe, step 3. `signed` is the transaction in base64 and the terms signature in base58. */
+/** Subscribe: submit, right after the wallet signed. `signed` is the transaction in base64 and the terms signature in base58. */
 export async function finishSubscription(userId: string, id: string, signed: SubmitParams): Promise<Finished> {
     await theirs(userId, id);
     try {
@@ -68,6 +83,7 @@ export async function finishSubscription(userId: string, id: string, signed: Sub
             : { outcome: 'not_landed', reason };
     } catch (error) {
         if (error instanceof MesubSubmitError) return { outcome: 'unknown' };
+        if (error instanceof MesubError && error.apiCode === 'transaction_expired') return { outcome: 'transaction_expired' };
         throw error; // a refusal such as terms_expired: see refusalOf
     }
 }

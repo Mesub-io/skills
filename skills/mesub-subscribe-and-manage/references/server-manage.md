@@ -108,6 +108,8 @@ for await (const attempt of mesub.subscriptions.allAttempts(id)) {
 | `retry`, `retry_number`, `retries_allowed` | Whether it was a retry, which one, out of how many. The two numbers are `null` when it is not a retry of the plan's |
 | `period_start` | The start of the period it was for, or `null` |
 
+When every charge is `blocked`, the subscription says so itself: `blocked_since` and `blocked_reason`, in the statuses reference.
+
 Never do arithmetic on `amount` as a JavaScript number: it is a string because it does not fit one. Keep a default branch on `outcome` and on `reason`. The full table of reasons is on the docs page for managing from the server.
 
 On a Mesub that does not serve this route yet, `attempts` throws a `not_found` whose `apiCode` is `null`. An id the project does not hold is a `not_found` whose `apiCode` is `subscription_not_found`.

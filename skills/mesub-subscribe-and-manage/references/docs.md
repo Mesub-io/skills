@@ -5,7 +5,8 @@ This skill holds what the wallet side and the server calls need. The docs hold t
 | Page | Read it for |
 |---|---|
 | [React widget](https://docs.mesub.io/docs/react) | The widget, written for a person: send the user there to follow along |
-| [Subscribe from your server](https://docs.mesub.io/docs/subscribe) | The three steps without the widget, with a full answer of `create` |
+| [Subscribe from your server](https://docs.mesub.io/docs/subscribe) | The steps without the widget, with a full answer of `create` |
+| [Fresh transaction](https://docs.mesub.io/reference/subscriptions/transaction) | `POST /v1/subscriptions/:id/transaction`: every answer and refusal |
 | [Manage from your server](https://docs.mesub.io/docs/manage) | Cancel, resume, close, and every reason an attempt can carry |
 
 - The docs site may not be reachable yet. If a page cannot be read, say so and work from the installed package: `node_modules/@mesub/react/README.md`, `node_modules/@mesub/node/README.md` and their type declarations. Do not guess what the page said.

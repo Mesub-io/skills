@@ -296,7 +296,7 @@ const created = first('create')
 const submitted = first('submit')
 const ACTIONS = [['cancel', 'confirmCancel'], ['resume', 'confirmResume'], ['close', 'confirmClose']]
 const built = ACTIONS.map(([build, confirm]) => ({ build, confirm, call: first(build) })).filter(({ call }) => call)
-const byId = /\bsubscriptions\s*\??\.\s*(submit|cancel|resume|close|confirmCancel|confirmResume|confirmClose|retrieve|attempts|allAttempts)\s*\(|\bsubscriptions\s*\[/
+const byId = /\bsubscriptions\s*\??\.\s*(submit|transaction|cancel|resume|close|confirmCancel|confirmResume|confirmClose|retrieve|attempts|allAttempts)\s*\(|\bsubscriptions\s*\[/
 
 if (!created && !submitted && built.length === 0 && !dynamic) {
   report('SKIP', 'the server-side checks: no mesub.subscriptions call that subscribes or manages (the widget routes do it)')

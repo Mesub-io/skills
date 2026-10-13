@@ -19,6 +19,7 @@
 | `payment_status` | `paid`, `late` or `none` |
 | `late_reason` | Why an `unpaid` one is late, or `null` |
 | `end_reason` | Why an `ended` one ended, or `null` |
+| `blocked_since`, `blocked_reason` | Since when its charges are blocked for a cause that is not the customer's, and whose cause. Both `null` otherwise: see below |
 | `paused` | `true` on a seat parked over the project's limit: nothing is charged, access runs to the end of the paid period |
 | `access_until` | When access ends unless a charge renews it, never later than the plan's end date. `null` while `access` is `false` |
 | `next_charge_at` | The next charge. `null` when a retry is pending instead, after a cancellation, and when the plan ends before it |
@@ -40,7 +41,7 @@ Dates are ISO 8601 strings.
 |---|---|---|
 | `none` | false | This customer never subscribed to this plan |
 | `pending` | false | Reserved, waiting for the wallet's transaction to land |
-| `active` | true, false once its plan has ended | Paid up |
+| `active` | true, false once its plan has ended, or once a block has outlasted `access_until` | Paid up |
 | `unpaid` | true, **false on the Free tier** and once its plan has ended | A charge missed. A retry is coming, unless the plan ends before it |
 | `cancelled` | true until `access_until` | The customer cancelled. The period already paid still runs |
 | `stopped` | false | The retries ran out. Nothing more is charged |
@@ -67,6 +68,15 @@ A plan can carry an end date: `ends_at` on what `mesub.plans.retrieve(slug)` ans
 - **Mesub ends it within a few minutes of the plan's end.** For that long `status` can read `active` or `unpaid` with `access: false`. It never reads `ended` with `access: true`.
 
 A gate that reads `access` needs no code for any of this. One that reads `status` lets everyone in for those minutes.
+
+## When charges are blocked
+
+A charge can fail for a cause that is not the customer's. The answer then carries `blocked_since` (an ISO date) and `blocked_reason`: `puller_not_allowed`, `receiver_not_allowed`, `receiver_account_missing` or `mint_gone` for the plan's own setup, which only the merchant can repair, and `mesub` for any cause on Mesub's side. Both are `null` otherwise.
+
+- **The status does not change.** It stays `active`, or `unpaid` if it was late already, and `payment_status` with it: the customer is never `late` for a block.
+- **Access ends on `access_until`.** `access` is never true past it on a blocked subscription: the end of the period after the one paid for under `mesub`, sooner under a cause of the plan's setup.
+- **Mesub keeps trying**, and access comes back with the first charge that goes through, with nothing for the customer to sign.
+- **A gate that reads `access` needs no code for it.** A screen does: a blocked customer has nothing to pay, so do not send them to "add funds" or "subscribe again". Keep a default branch on `blocked_reason`.
 
 ## Why a payment is late
 

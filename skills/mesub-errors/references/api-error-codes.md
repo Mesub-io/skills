@@ -77,9 +77,9 @@ Answered when the user creates a plan with an end date in the dashboard. No call
 | `invalid_terms_signature` | 403 | no | The signature is not the subscription's wallet's, over the terms Mesub handed out | Sign `terms.message` as it came, with the wallet given to `create` |
 | `terms_used` | 403 | no | The terms were already spent by another submit | Read the subscription back: an earlier submit may have landed |
 | `terms_changed` | 409 | no | Newer terms were handed out, or the plan changed since they were signed. Also when the terms name a second charge and the plan's end date has since come too close for it | Create again: the new terms say what is charged now, a single charge in that last case |
-| `not_our_transaction` | 400 | no | The transaction is not the one Mesub built, or the wallet's signature on it is missing or wrong | Send back the transaction of `create`, signed and not rebuilt |
+| `not_our_transaction` | 400 | no | The transaction is not the one Mesub built, or the wallet's signature on it is missing or wrong | Send back the last transaction Mesub handed out (`create`, or `subscriptions.transaction(id)` after it), signed and not rebuilt |
 | `transaction_not_built` | 409 | no | Submitted before any transaction was built | Call `create` first |
-| `transaction_expired` | 409 | no | The transaction can no longer land | Create again |
+| `transaction_expired` | 409 | no | The transaction was signed too late: it lives about half a minute. Nothing was sent | Ask for a new transaction with `subscriptions.transaction(id)`, have the wallet sign it at once, and the terms again if `terms.message` changed, then submit under the same id. Never create a new subscription for it |
 | `transaction_refused` | 409 | no | The network's simulation refused the transaction. Nothing was sent | Nothing was charged. Create again; if it repeats, give the user Mesub's `message` as written |
 | `not_awaiting_signature` | 409 | no | The subscription is no longer waiting for a signature: settled, expired or failed | Read it back: its `status` says which |
 
