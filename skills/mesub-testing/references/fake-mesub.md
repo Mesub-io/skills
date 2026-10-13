@@ -29,6 +29,15 @@ Always name `plans`. Without it a typo in a slug passes every test, and the widg
 
 A plan given as a slug is filled in: 9.99 USDC a month (`amount` `"9990000"`, `amount_display` `"9.99"`, `decimals` 6, `period_hours` 720), `status` `active`, `available` true, `ends_at` null.
 
+### A plan's token and dollar value
+
+A plan Mesub answers carries `token` (`symbol`, `name`, `logo_url`, `verified`) and `amount_usd`, a decimal string or null, and so does a plan of the fake. Both can be set when the plan is declared as an object, which is how to test a pricing page against the two cases that matter:
+
+- a token that is not `verified`: the page must say so and show the mint, and must not print a symbol that came `null`;
+- a plan whose `amount_usd` is `null`: the page shows the token amount alone, not `$0`.
+
+These are newer than the rest of this file. Before writing either case, check the plan type and the `plans` option in the installed `dist/index.d.ts` and `dist/testing.d.ts` for the exact names, and for what a plan given as a slug carries: do not write them from this file. On a package without them, say so and leave the case unwritten rather than casting the plan to another type.
+
 ## Properties
 
 - `fake.apiKey`, `fake.baseUrl`, `fake.webhookSecret`, `fake.fetch`: what a client of your own needs (below).

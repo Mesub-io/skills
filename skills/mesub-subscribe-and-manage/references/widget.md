@@ -100,6 +100,6 @@ Fields are as the server serves them: snake case, dates as ISO strings, `plan` i
 
 ## What is not exported
 
-- No hook reads a plan. For a pricing page, call `mesub.plans.retrieve(slug)` or `mesub.plans.list()` on the server, or fetch `GET <endpoint>/plans/<slug>`, which is public. Show the subscribe button only when the plan's `available` is true, and print `amount_display` with `symbol`, never a number computed from `amount`. `ends_at` is the plan's end date, `null` for a plan with no end: a pricing page that prints "per month" for a plan about to end promises charges the terms do not.
+- No hook reads a plan. For a pricing page, call `mesub.plans.retrieve(slug)` or `mesub.plans.list()` on the server, or fetch `GET <endpoint>/plans/<slug>`, which is public. Show the subscribe button only when the plan's `available` is true, and print `amount_display`, never a number computed from `amount`. Which token it is, how to mark an unverified one and what `amount_usd` means: `plan-token.md`. `ends_at` is the plan's end date, `null` for a plan with no end: a pricing page that prints "per month" for a plan about to end promises charges the terms do not.
 - The error class and the window's parts are internal. Do not import from a path inside the package.
 - One window at a time: a second `subscribe()` or `manage()` while one is open gets the first one's answer.

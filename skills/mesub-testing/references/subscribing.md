@@ -13,7 +13,7 @@ fake.setAttempts(subscription.id, [{}, { outcome: 'skipped', reason: 'insufficie
 
 - `addSubscription(fields)` needs `wallet` and `plan`. The rest defaults to an active, paid subscription with id `sub_fake_1` and up, `external_id` and `email` null. `retrieve` and `list` then answer it.
 - **It does not change the access answer.** A subscription added this way is not let through a guard until `fake.grant(...)` says so. The two are set apart on purpose.
-- `setAttempts(id, attempts)` gives it its charges. Each defaults to `outcome` `paid`, `amount` `"9990000"`, `reason` null, `retry` false. `subscriptions.attempts(id)` answers them newest first with `paid: { count, amount }` over all of them. It throws for an id the fake does not hold.
+- `setAttempts(id, attempts)` gives it its charges. Each defaults to `outcome` `paid`, `amount` `"9990000"`, `reason` null, `retry` false. An attempt Mesub answers also carries `amount_usd` (a decimal string, null until priced): check the installed types for whether the fake's attempts take it before setting it. `subscriptions.attempts(id)` answers them newest first with `paid: { count, amount }` over all of them. It throws for an id the fake does not hold.
 - Outcomes: `paid`, `skipped`, `rejected`, `blocked`.
 
 ## The whole subscribe flow
