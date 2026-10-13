@@ -62,12 +62,28 @@ const mesub = new Mesub({
 | `fake.setAccess(customer, plan, fields)` | The answer for a customer with nothing, plus `fields` |
 
 - `customer` is `{ external_id }`, `{ email }`, `{ wallet }` or a wallet string. **A customer is answered only as named**: one granted by wallet is not found by `external_id`. Grant under the name the app's `customer` function returns.
-- `fields` is any field of an access answer except `plan`: `status`, `payment_status`, `late_reason`, `end_reason`, `paused`, `cancelled_at`, `access_until`, `next_charge_at`, `next_retry_at`, `retry_deadline`, `current_period_end`, `subscribed_since`, `first_subscribed_at`, `wallet`, `attempts`, `revalidate_after`.
+- `fields` is any field of an access answer except `plan`: `status`, `payment_status`, `late_reason`, `end_reason`, `blocked_since`, `blocked_reason`, `paused`, `cancelled_at`, `access_until`, `next_charge_at`, `next_retry_at`, `retry_deadline`, `current_period_end`, `subscribed_since`, `first_subscribed_at`, `wallet`, `attempts`, `revalidate_after`.
 - A customer nobody set is answered `access` false, `status` `none`.
 - Statuses an answer can carry: `pending`, `active`, `cancelled`, `unpaid`, `stopped`, `ended`, `failed`, `superseded`, `none`.
 - `deny` always answers `access` false, whatever `fields` say. For a late payer who still has access, use `grant` with `{ status: 'unpaid', payment_status: 'late', late_reason: 'insufficient_balance' }`. Whether a late payer keeps access depends on the project's tier: ask the user which case is theirs rather than guess.
 - **`revalidate_after` is 0 by default**: the answer is stale at once, so a change shows on the next call, and the outage fallback still keeps it. Set it (seconds) only to test the cache itself.
 - All four return the answer they stored.
+
+## A blocked subscription
+
+On Mesub a charge can be blocked for a cause that is not the customer's: the status does not change, the answer carries `blocked_since` and `blocked_reason`, and access ends on `access_until`. In the fake both fields are `null` on every answer unless the test sets them, through `fields`:
+
+```ts
+const blocked = { blocked_since: new Date().toISOString(), blocked_reason: 'puller_not_allowed' } as const;
+const inThreeDays = new Date(Date.now() + 3 * 24 * 3600 * 1000).toISOString();
+
+// blocked, access still running
+fake.grant({ external_id: 'user_42' }, 'pro', { ...blocked, access_until: inThreeDays });
+// blocked, access over: the status still reads active
+fake.deny({ external_id: 'user_42' }, 'pro', { ...blocked, status: 'active', payment_status: 'paid' });
+```
+
+`blocked_reason` is `puller_not_allowed`, `receiver_not_allowed`, `receiver_account_missing`, `mint_gone`, `mesub` or `null`. The fake serves what the test gave and works nothing out: it does not end access when `access_until` passes, and never blocks or unblocks by itself. These fields are newer than the rest: check `blocked_since` in the installed `dist/testing.d.ts` or `dist/index.d.ts` before using them, and tell the user when the package is behind.
 
 ## A plan with an end date
 

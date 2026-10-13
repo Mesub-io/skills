@@ -15,6 +15,8 @@ What the guards and the widget routes of `@mesub/node` answer in each situation,
 | In the last period of a plan with an end date | `fake.grantLastPeriod(customer, 'pro', endsAt)`, `endsAt` ahead | 200: `answer.access_until` is the end, `answer.next_charge_at` is null |
 | The plan's end passed, Mesub has not ended the subscription yet | `fake.grantLastPeriod(customer, 'pro', aPastDate)` | 402, `status: 'active'`: only `access` says no |
 | The plan has ended | `fake.endPlan('pro')` after a grant | 402, `status: 'ended'` |
+| Charges blocked, access still running | `fake.grant(customer, 'pro', { blocked_since, blocked_reason: 'puller_not_allowed' })` | 200: `answer.blocked_reason` says whose cause, `answer.status` is still `active` |
+| Charges blocked, access over | `fake.deny(customer, 'pro', { status: 'active', blocked_since, blocked_reason: 'puller_not_allowed' })` | 402, `status: 'active'`: only `access` says no |
 | Mesub down, customer never seen | `fake.fail('outage')` | 503, header `Retry-After: 30`, `reason: 'unavailable'` |
 | Mesub rate-limits, customer never seen | `fake.fail({ status: 429, code: 'rate_limited' })` | 503, the same |
 | Mesub down, customer let through before | grant, one request, then `fake.fail('outage')` | 200, from the last answer |
@@ -24,6 +26,8 @@ What the guards and the widget routes of `@mesub/node` answer in each situation,
 | The slug is not a plan | `new FakeMesub({ plans: ['pro'] })` and a guard on another slug | An error, never a refusal (below) |
 
 The minimum for any paid route is the first four rows and the first outage row. A test that only checks the 200 passes on a route with no guard at all.
+
+The two rows about blocked charges are worth a test when the app shows a customer why they are out, or words a missed payment: a blocked customer is not late and has nothing to pay. The fields and their values: `fake-mesub.md` in this folder.
 
 The three rows about a plan's end are worth a test when the project has a plan with an end date, or when the app reads `status` or `next_charge_at` anywhere: the second one fails on any code that lets `status === 'active'` in. `assets/guard.test.ts` holds the last two.
 

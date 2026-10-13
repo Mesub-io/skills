@@ -23,9 +23,12 @@ Paths are under the mount point.
 | `GET /subscriptions` | The customer's subscriptions, newest first, the 500 newest at most | 200 `{ subscriptions, has_more }` |
 | `GET /subscriptions/:id` | One of them, with what is charged next and its latest payments | 200 `{ subscription, upcoming, payments, paid, payments_error }` |
 | `POST /subscriptions` | Prepares one: body `{ plan, wallet }` | 201 with the terms and a transaction |
+| `POST /subscriptions/:id/transaction` | A fresh transaction for one that is prepared and not yet signed, asked by the widget once the terms are signed. No body | What `POST /subscriptions` answers |
 | `POST /subscriptions/:id/submit` | Sends what the wallet signed: body `{ transaction, terms_signature }` | 201 `{ subscription, reason? }` |
 | `POST /subscriptions/:id/cancel`, `/resume`, `/close` | Builds the transaction the wallet signs and sends | 201 `{ transaction, last_valid_block_height }` |
 | `POST /subscriptions/:id/cancel/confirm`, and the two others | Confirms it: body `{ signature }` | 201 `{ subscription, reason? }` |
+
+The fresh-transaction route came after the others. A widget that asks for it against an older `@mesub/node` gets a 404 `not_found`: check both installed versions when a user reports it, and say which package is behind.
 
 What the routes guarantee, so the app does not add it on top:
 

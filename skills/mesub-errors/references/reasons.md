@@ -82,10 +82,28 @@ At the plan's end an `active` or `unpaid` subscription turns `ended` with `end_r
 | `stopped` | The retries ran out. Nothing more is charged; the customer can subscribe again |
 | `superseded` | Replaced by a newer subscription of the same wallet to the same plan. Read that one |
 | `cancelled` with `access: true` | Normal: the period already paid runs to `access_until` |
-| `active` with `access: false` and `paused: false` | The plan's end date has passed: see above |
+| `active` with `access: false` and `paused: false` | The plan's end date has passed: see above. Or its charges are blocked and `access_until` has passed: see below |
+| `active` or `unpaid` with `blocked_since` set | Its charges are blocked for a cause that is not the customer's: see below |
 | any status with `paused: true` | A seat parked over the project's limit: nothing is charged, access runs to the end of the paid period |
 
 Gate on `access`, never on `status`, and keep a default branch: a status may be added.
+
+## Charges that are blocked
+
+`blocked_since` and `blocked_reason`, on an access answer and on a subscription, say that every charge fails for a cause that is not the customer's. Its attempts read `blocked`. Both are `null` otherwise.
+
+| `blocked_reason` | Cause | Who acts |
+|---|---|---|
+| `puller_not_allowed` | Mesub's puller was taken off the plan | The user, on the plan |
+| `receiver_not_allowed` | The receiving wallet is not among the plan's destinations | The user, on the plan |
+| `receiver_account_missing` | The receiving wallet has no account for the plan's token | The user |
+| `mint_gone` | The plan's token no longer exists | Not the app, not the customer |
+| `mesub` | A cause on Mesub's side | Nobody: wait |
+
+- The status does not change and the customer is never `late` for it. Do not tell them to add funds.
+- Access ends on `access_until` all the same: the end of the period after the one paid for under `mesub`, sooner under a cause of the plan's setup.
+- Mesub keeps trying. Access comes back with the first charge that goes through, with nothing for the customer to sign.
+- Keep a default branch on `blocked_reason`.
 
 ## Wording it for the customer
 

@@ -9,6 +9,8 @@ A green test run against the fake proves the app's own code: who it asks about, 
 | Accepts any string as a wallet, an email or an id | Refuses a wallet that is not an address |
 | Accepts any `transaction` and any `terms_signature` on submit, any non-empty `signature` on a confirm | Checks them against what the wallet really signed |
 | Lands a submit or a confirm at once | Waits for the network, and may answer late or not at all |
+| Hands out a transaction that never expires | Lets a transaction live about half a minute, then refuses its submit with `transaction_expired` |
+| Serves `blocked_since` and `blocked_reason` as the test set them, and null otherwise | Blocks a subscription when its charges cannot be made, ends its access on `access_until`, and unblocks it by itself |
 | Never moves by itself: no renewal, no retry, no status change, no event sent | Charges every period, retries, stops, and sends the events |
 | On a plan with an end date, refuses access once the date has passed, and ends nothing until `endPlan` is called | Ends each subscription within a few minutes of the plan's end, and sends `subscription.ended` |
 | Serves a charge or a retry dated any time before a plan's end | Serves none due in the last two minutes before the end either |
