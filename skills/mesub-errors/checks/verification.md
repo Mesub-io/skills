@@ -7,8 +7,9 @@ Go through every check before saying the work is done. Say which ones you could 
 Write down, before any fix, what was actually observed:
 
 - the layer that answered (a guard, the widget routes, a thrown error, a subscription read back);
-- the status, and the code: `apiCode` and `code` of a `MesubError`, or `error.code` of a refusal body;
-- for a payment: the subscription's `status`, `late_reason` or `end_reason`, and the newest attempts with their `outcome` and `reason`.
+- the status, and the code: `apiCode` and `code` of a `MesubError`, or `error.code` of a refusal body, with its `request_id` when Mesub answered;
+- for a submit or a confirm: its `reason_code`;
+- for a payment: the subscription's `status`, `late_reason`, `stop_reason` or `end_reason`, and the newest attempts with their `outcome` and `reason`.
 
 Pass: each of these was read from a response, a log line or a call, not inferred from a screen or from the user's summary. If the user only gave a summary, ask for the failing request's status and body, or the server log line. Never ask for the API key.
 
@@ -33,13 +34,14 @@ Pass: no `FAIL` line. Open every `WARN` line and either fix it or say why it is 
 Read it against these, one by one:
 
 - it branches on `apiCode` or `code`, never on `message`, and has a default branch that rethrows or reports;
+- after a submit or a confirm it branches on `reason_code`, never on `reason`, and a `transaction_expired` asks a fresh transaction rather than reporting a failed payment;
 - nothing loops on a `retryable` error, and nothing sleeps a `retryAfter` inside a request a browser waits on;
 - `retryAfter` is used as milliseconds on the server, and turned into seconds for a `Retry-After` header;
 - a `MesubSubmitError` leads to a `retrieve`, never straight to a new `create`;
 - no `catch` turns a failed access check into `false`, and none answers the browser 401 for a refused API key;
-- nothing logs the client, its options, the request headers or the environment.
+- nothing logs the client, its options, the request headers or the environment, and an error's log line carries its `request_id`.
 
-Pass: all six.
+Pass: all seven.
 
 ## 5. It compiles
 
@@ -71,4 +73,4 @@ For each of these, tell the user exactly what to look at and what a good result 
 - The cause, in one sentence, and whose it is: the code, the customer's wallet, the plan, or Mesub.
 - What was changed, file by file, or that nothing in the code was wrong.
 - Each check above as passed, failed or not run, with the reason for any not run.
-- What the user or the customer must still do, and what only time will show.
+- What the user or the customer must still do, and what only time will show. When Mesub support must look, the `request_id` to quote.

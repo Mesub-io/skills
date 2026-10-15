@@ -5,14 +5,16 @@ The lookup table. Find the code, read what it means and what to do.
 - **API code**: the `code` of Mesub's error body. In `@mesub/node` it is `error.apiCode`; in a refusal of the widget routes it is `error.code` of the JSON body.
 - **SDK code**: the coarser `error.code` of a `MesubError`. It follows the status: 400 `invalid_request`, 401 `unauthorized`, 403 `forbidden`, 404 `not_found` (`plan_not_found` keeps its own), 409 `conflict`, 429 `rate_limited`, 500 and above `unavailable`, anything else `unexpected`.
 - **Wait**: "yes" means `retryable` is true: the same request, unchanged, may succeed later. Everything else is final until something changes.
+- **`request_id`**: every error body carries it (`req_` and 24 letters or digits), and every answer, errors included, carries it in the `Mesub-Request-Id` header. Log it beside the code, and quote it to Mesub support: it finds the request in Mesub's logs. It names the HTTP request, nothing else.
 
-New codes are added. None is renamed, save `plan_deleted` and `plan_rebuilt`, which the table gives under both names: an unknown code is handled by its status and its `retryable`, never as a crash.
+New codes are added. None is renamed, save two before the first integrator: `plan_deleted` became `plan_removed` and `plan_rebuilt` became `plan_replaced`. Mesub no longer answers the old names, so a branch on them never matches. An unknown code is handled by its status and its `retryable`, never as a crash.
 
 ## General
 
 | API code | Status | Wait | What it means | What to do |
 |---|---|---|---|---|
 | `invalid_request` | 400 | no | A parameter is missing, malformed, or not one the route knows | Read `message` (a validation error lists every fault; the SDK joins them with `; `) and fix the call |
+| `unsupported_version` | 400 | no | `Mesub-Version` names a version the API does not serve. The message lists the ones it does | Send a version the message lists, or no header at all |
 | `missing_api_key` | 401 | no | No `Authorization: Bearer` header carried a key | Only seen with raw HTTP: the SDK refuses to build a client without a key. Send the header |
 | `invalid_api_key` | 401 | no | Not a key Mesub issued, or one rotated since | The user checks the key in the dashboard and the server's environment. Never show it as "signed out" |
 | `forbidden` | 403 | no | The request is understood and refused | Treat as a broken integration, not as the customer's doing |
@@ -30,12 +32,13 @@ New codes are added. None is renamed, save `plan_deleted` and `plan_rebuilt`, wh
 |---|---|---|---|---|
 | `plan_not_found` | 404 | no | No plan of the project under that slug | Fix the slug, or the key is another project's. A broken integration, never "not subscribed" |
 | `plan_not_on_chain` | 409 | no | The plan was never published: still a draft | The user publishes it in the dashboard |
-| `plan_deleted` or `plan_removed` | 409 | no | The plan is gone, or was rebuilt since the subscription was signed (resume). `plan_deleted` is being renamed `plan_removed`: compare with both | Nothing to resume: the customer subscribes to a plan that exists |
+| `plan_removed` | 409 | no | The plan is gone from the chain (was `plan_deleted`) | Nothing to resume: the customer subscribes to a plan that exists |
 | `plan_sunset` | 409 | no | The plan takes no new subscribers | Stop offering it: show "Subscribe" only when the plan's `available` is true |
 | `plan_ended` | 409 | no | The plan is past its end date. With an API key, the answer of `create` | Stop offering it, as for `plan_sunset`. Its subscriptions ended with it: `end_reason` `plan_ended` in `reasons.md`. The dashboard answers the same code elsewhere: see below |
-| `plan_rebuilt` or `plan_replaced` | 409 | no | Another plan now stands at its address. `plan_rebuilt` is being renamed `plan_replaced`: compare with both | The user checks the plan in the dashboard |
+| `plan_replaced` | 409 | no | Another plan now stands at its address, not the one a subscription was signed for (was `plan_rebuilt`) | The user checks the plan in the dashboard |
 | `plan_mismatch` | 409 | no | The plan on chain is not the one Mesub recorded | The user checks the plan in the dashboard |
 | `receiver_account_missing` | 409 | no | Nobody the plan pays has an account for its token | The user opens a token account for the receiving wallet |
+| `receiver_account_frozen` | 409 | no | The account the plan pays for its token is frozen, so the first charge would fail | The user, with whoever froze it. Nothing the customer can do |
 | `mint_not_on_chain` | 400 | no | The plan's token does not exist on chain | The user fixes the plan's token |
 
 `plan_ended` in the dashboard: the same code refuses closing that plan to new subscribers, changing its names, and retrying one of its payments by hand. Nothing can be charged on it any more, so none of the three is to be tried again.
@@ -91,9 +94,15 @@ Answered when the user creates a plan with an end date in the dashboard. No call
 | `subscription_not_active` | 409 | no | Cancel: it is not `active`, `unpaid` or `stopped` | Read its `status`: there is nothing to cancel |
 | `subscription_not_cancelled` | 409 | no | Resume or close: nothing cancelled it | Cancel first, or do nothing |
 | `subscription_ended` | 409 | no | Resume: the paid period is over | Too late to resume: subscribe again |
-| `close_too_early` | 409 | no | Close: its end has not passed yet | Wait until `access_until` has passed |
+| `close_too_early` | 409 | no | Close: its end has not passed yet | Offer Close only when the subscription's `closable` is true; `closable_from` says from when |
 | `subscription_not_on_chain` | 409 | no | It is closed already, or gone from the chain | Nothing left to do |
 | `nothing_to_confirm` | 400 | no | A confirm before any transaction was built | Call `cancel`, `resume` or `close` first, and confirm with the signature of that transaction |
 | `retry_deadline_passed` | 409 | no | A retry by hand after the deadline, on the Free tier | Raised by a retry fired by hand from the dashboard, not by app code. Past the deadline the subscription turns `stopped` |
+
+## Events (`GET /v1/events/{id}`)
+
+| API code | Status | Wait | What it means | What to do |
+|---|---|---|---|---|
+| `event_not_found` | 404 | no | No event of the project under that id in the last 30 days, or one from before `available_since` | Nothing to catch up on that id: read the subscription for its state now |
 
 A code that is not in this file: fall back on its status and on `retryable`, and read the errors page named in `docs.md`.

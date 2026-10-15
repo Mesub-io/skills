@@ -11,9 +11,19 @@ Every failed call to Mesub, after the SDK's own retries.
 | `apiCode` | Mesub's own finer code (`already_subscribed`, `close_too_early`, ...), or `null` when no Mesub error came back |
 | `retryable` | Whether the same call, unchanged, may succeed later. Mesub's flag when it sent one, otherwise true for 408, 429, 5xx and when nothing answered |
 | `retryAfter` | **Milliseconds** Mesub asked to wait, from `Retry-After`, or `null` |
-| `body` | What Mesub answered, parsed when it is JSON; `undefined` when nothing came back |
+| `body` | What Mesub answered, parsed when it is JSON; `undefined` when nothing came back. Mesub's error body carries `request_id` |
 | `message` | Mesub's sentence, for a person. It may be reworded: never branch on it |
 | `cause` | The underlying error, when there is one |
+
+### `request_id`: what to quote to Mesub support
+
+Every error body carries `request_id` (`req_` and 24 letters or digits), the id Mesub gave that request, also in the `Mesub-Request-Id` header of every answer. Log it with the error, and quote it when asking Mesub support: it finds the request in Mesub's logs. A package whose types name no `request_id` field still holds it in the body:
+
+```ts
+const requestId = (error.body as { request_id?: unknown } | undefined)?.request_id ?? null;
+```
+
+It is `null` when nothing answered: there is no request on Mesub's side to find. It has nothing to do with the `requestId` of an agent's consent flow.
 
 `code` tells the kind of failure, `apiCode` tells the cause within it. Two wallets refused for different reasons are both `conflict`: branch on `apiCode` to tell them apart, and keep a default branch on both.
 

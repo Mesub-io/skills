@@ -1,19 +1,42 @@
-# `reason`, `late_reason` and `end_reason`
+# `reason_code`, `late_reason`, `stop_reason` and `end_reason`
 
-Three fields that say why, on three different objects. They are not error codes: nothing was thrown.
+The fields that say why, on different objects. They are not error codes: nothing was thrown.
 
-## `reason` of a submit or a confirm
+## `reason` and `reason_code` of a submit or a confirm
 
-`subscriptions.submit`, `confirmCancel`, `confirmResume` and `confirmClose` answer `{ subscription, reason? }`.
+`subscriptions.submit`, `confirmCancel`, `confirmResume` and `confirmClose` answer `{ subscription, reason?, reason_code? }`.
 
-- `reason` is **absent** when the action settled.
-- `reason` is **present** when nothing was settled, or when what landed is not what Mesub built. It is a sentence for a person, for instance "The transaction expired before it landed.". It is Mesub's own, never written by the SDK, and it may be reworded.
+- Both are **absent** when the action settled.
+- Both are **present** when nothing was settled, or when what landed is not what Mesub built. One never comes without the other.
+- `reason` is a sentence for a person, for instance "The transaction expired before it landed.". Mesub may reword it: show it, never compare it.
+- `reason_code` is the same cause for a program: snake case, never reworded. **Branch on it.** It is an open family: Mesub adds codes without a new version, so keep a default branch.
 
-So test for its presence and read the subscription, never compare its text:
+An installed `@mesub/node` whose types do not name `reason_code` still hands it back: the SDK checks the answer and returns the body as Mesub sent it. Read it as `(result as { reason_code?: string }).reason_code` until the package types it.
+
+| `reason_code` | On | What happened | What to do |
+|---|---|---|---|
+| `transaction_expired` | submit, confirms | Its blockhash ran out before it landed: it never will | **Not a failed payment**, nothing was charged. Ask for a fresh transaction (`subscriptions.transaction(id)` on a checkout, `cancel`, `resume` or `close` again on the others), sign it at once, send it again |
+| `nothing_landed` | submit | No subscription stands at its address yet: it stays `pending` | Not a failure either. Read it back later: Mesub settles a `pending` one within the hour. Never create anew until it reads `expired` |
+| `transaction_failed` | submit, confirms | It landed and the chain refused it: nothing it held happened | Nothing was charged. Show `reason` and build again |
+| `not_our_transaction` | submit, confirms | The signature is not of a transaction Mesub built for this subscription | Send the signature of the transaction Mesub handed out, not rebuilt |
+| `subscription_mismatch` | submit | What landed names another wallet, plan, amount or period: it is now `failed` | Create again. Never retry the same transaction |
+| `subscription_remade` | submit | It landed, and the subscription was closed and made again without Mesub since: now `failed` | Read the customer's subscriptions back |
+| `dev_not_running` | submit | Mesub's own Dev plan landed cancelled or part paid: now `failed` | Concerns Mesub's own plan only |
+| `earlier_subscription_running` | submit | A comeback paid while the subscription it came back over ran again | Nothing: Mesub was told and sorts it out |
+| `cancellation_not_landed` | confirmCancel | It stands on chain with no cancellation | Build again with `cancel` |
+| `resume_not_landed` | confirmResume | It stands on chain still cancelled | Build again with `resume` |
+| `close_not_landed` | confirmClose | It still stands on chain | Build again with `close` |
+| `subscription_not_on_chain` | confirmCancel, confirmResume | It no longer exists on chain | Read it back: nothing left to change |
+| `subscription_changed` | confirmCancel | It moved on while the cancellation was read, and was left as it is | Read it back and decide from its `status` |
+| `subscription_not_cancelled` | confirmResume | It is no longer cancelled: nothing to resume | Read it back |
+| `cancelled_subscription_remade`, `resume_unverified` | confirmResume | The cancelled one cannot be told to be the one on chain: it stays `cancelled` | Read it back. To ask Mesub support, quote the answer's `Mesub-Request-Id` header |
+| any other | | A code newer than this file | Show `reason`, read the subscription, and decide from its `status` |
+
+Never compare `reason`'s text, and read the subscription too:
 
 | Call | Settled when | With a `reason` |
 |---|---|---|
-| `submit` | `subscription.access` is true (`active`, or `cancelled` if the wallet set an end) | `pending`: nothing landed, it may still. `failed`: what landed is not what Mesub reserved. Create again once it is `expired` or `failed` |
+| `submit` | `subscription.access` is true (`active`, or `cancelled` if the wallet set an end) | `pending`: nothing landed, it may still (`transaction_expired`: ask a fresh transaction under the same id). `failed`: what landed is not what Mesub reserved. Create again once it is `expired` or `failed` |
 | `confirmCancel` | `reason === undefined`: `cancelled`, and `access_until` says when access ends | Nothing changed. Build a new transaction with `cancel` to try again |
 | `confirmResume` | `reason === undefined`: `active` again | Nothing changed. Build again with `resume` |
 | `confirmClose` | `reason === undefined`: `ended` with `end_reason: 'closed'` | Nothing changed. Build again with `close` |
@@ -24,13 +47,13 @@ A submit that throws instead of answering is a refusal (a `MesubError`) or an un
 
 ## `late_reason`: why a payment is late
 
-Set only while `status` is `unpaid`, on an access answer and on a subscription. Null on every other status, and when Mesub cannot name the cause.
+Set while `status` is `unpaid`, and on a `stopped` one for the payment it stopped on, on an access answer and on a subscription. Null on every other status, and when Mesub cannot name the cause.
 
 | `late_reason` | What happened | What fixes it |
 |---|---|---|
 | `insufficient_balance` | The wallet holds less than the price | The customer adds funds. Nothing to sign: the next retry pays |
 | `approval_revoked` | The wallet no longer lets Mesub charge it: revoked in the wallet, or replaced when another app was approved on the same token | **Not** adding funds, and no Mesub route restores the approval: every retry fails. The customer can only cancel |
-| `authority_closed` | The wallet closed its authorisation, for good | Nothing: no retry can succeed. The customer cancels, then closes it once its period ended to subscribe again |
+| `authority_closed` | The wallet closed its authorisation, for good | Nothing: no retry can succeed. It stops with `stop_reason` `authority_closed`, and the customer can close it at once to get the deposit back |
 
 Read `late_reason` before telling a customer to top up: on two of the three it does not help.
 
@@ -38,10 +61,22 @@ A null `late_reason` on an `unpaid` subscription means the wallet refused the pa
 
 What happens next depends on the project's tier:
 
-- **Dev and Business**: Mesub retries by itself, 3 times by default, each after a quarter of the period and a day at most. Access stays on while retries run. `next_retry_at` says when, `next_retry_number` and `retries_allowed` which one, and `access_until` is the date of the last retry. When that one fails too the subscription turns `stopped`.
-- **Free**: no automatic retry, and an `unpaid` subscription grants no access. The user retries by hand from the dashboard, up to 3 times, until `retry_deadline`. Past it the subscription turns `stopped`.
+- **Dev and Business**: Mesub retries by itself, 3 times by default, each after a quarter of the period and a day at most. Access stays on while retries run. `next_retry_at` says when, `next_retry_number` and `retries_allowed` which one, and `access_until` is the date of the last retry. When that one fails too the subscription turns `stopped`, `stop_reason` `out_of_retries`.
+- **Free**: no automatic retry, and an `unpaid` subscription grants no access. The user retries by hand from the dashboard, up to 3 times, until `retry_deadline`. Past it the subscription turns `stopped`, `stop_reason` `retry_deadline_passed`.
 
 So "a paying customer is locked out" on Free is the documented behaviour of an `unpaid` subscription, not a bug in the gate.
+
+## `stop_reason`: why a subscription stopped
+
+Set only when `status` is `stopped`. Null on every other status, and on one that stopped before Mesub recorded why. Keep a default branch: values are added.
+
+| `stop_reason` | What happened | What the customer can do |
+|---|---|---|
+| `out_of_retries` | Every retry of the missed payment failed | Come back by subscribing again, or cancel it and close it once the period ends |
+| `retry_deadline_passed` | On Free, the last day to pay the missed payment passed | The same |
+| `authority_closed` | The wallet closed the account that lets Mesub charge it, for good | Nobody can charge it again and it cannot come back. Close it now (`closable` is true) to get the deposit back |
+
+The webhook `subscription.stopped` carries the last charge's reason in its `detail.reason`; `data.stop_reason` is the one to branch on.
 
 ## `end_reason`: why a subscription ended
 
@@ -51,12 +86,24 @@ Set only when `status` is `ended`. It may be null on one that ended before Mesub
 |---|---|---|
 | `cancelled` | The customer cancelled and the paid period ran out | The customer |
 | `closed` | The customer closed the subscription through Mesub | The customer |
-| `authority_closed` | The wallet closed its authorisation outside Mesub | The customer |
+| `closed_elsewhere` | The subscription account was closed outside Mesub | The customer |
 | `plan_ended` | The plan reached its own end date. Its last period was charged in full, and access stopped at that date | The user |
 | `plan_removed` | The user deleted the plan | The user |
 | `plan_replaced` | Another plan now stands at its address | The user |
 
 `ended` is final. To have access again the customer subscribes again, to a plan that still exists.
+
+`authority_closed` was the `end_reason` of a subscription account closed outside Mesub: it is `closed_elsewhere` now, and `authority_closed` only names the authorisation closed for good, as `late_reason` and `stop_reason` do. Code comparing `end_reason` with `authority_closed` never matches.
+
+## Whether it can be closed: `closable` and `closable_from`
+
+Closing a subscription on chain returns its deposit to the wallet. Every subscription and every access answer says whether that is possible now: never work it out from `status`.
+
+- `closable: true`: the customer can close it now. A cancellation whose end has passed, one that ended with its plan, or one stopped with `stop_reason` `authority_closed`.
+- `closable: false` with `closable_from` set: from that date, the end of the period a cancellation set.
+- `closable: false` with `closable_from: null`: no date is known yet. A running subscription, or one stopped with `out_of_retries`, must be cancelled first.
+
+Both are as Mesub last read the chain: the close reads it again and may still be refused (`close_too_early`, `subscription_not_on_chain`).
 
 ## A plan with an end date
 
@@ -79,7 +126,7 @@ At the plan's end an `active` or `unpaid` subscription turns `ended` with `end_r
 | `pending` | Reserved, waiting for the wallet's transaction. Settled by Mesub within the hour |
 | `expired` | A checkout nobody signed. Never in an access answer, only when read by id |
 | `failed` | What landed on chain is not what Mesub reserved, so it is not billed. Rare and final |
-| `stopped` | The retries ran out. Nothing more is charged; the customer can subscribe again |
+| `stopped` | Nothing more is charged. `stop_reason` says why: on `out_of_retries` and `retry_deadline_passed` the customer can subscribe again, on `authority_closed` only close it |
 | `superseded` | Replaced by a newer subscription of the same wallet to the same plan. Read that one |
 | `cancelled` with `access: true` | Normal: the period already paid runs to `access_until` |
 | `active` with `access: false` and `paused: false` | The plan's end date has passed: see above. Or its charges are blocked and `access_until` has passed: see below |

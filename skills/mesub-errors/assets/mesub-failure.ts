@@ -61,3 +61,11 @@ export function browserAnswer(error: unknown): {
         },
     };
 }
+
+// The id Mesub gave the request (`req_...`), for the app's log and for Mesub support. Null when
+// nothing answered. It sits in the error body whether or not the installed package types it.
+export function mesubRequestId(error: unknown): string | null {
+    if (!(error instanceof MesubError)) return null;
+    const id = (error.body as { request_id?: unknown } | undefined)?.request_id;
+    return typeof id === 'string' ? id : null;
+}

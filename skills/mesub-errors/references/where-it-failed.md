@@ -9,7 +9,7 @@ A refusal, not an error. The body is `{ access: false, reason }`.
 | Status | `reason` | What it means | What to check |
 |---|---|---|---|
 | 401 | `unauthenticated` | `customer` returned nothing | The session does not reach the guard, or nobody is signed in |
-| 402 | `no_access` | Mesub said this customer has no access. The body also carries `status` | Read `status`, then `late_reason` or `end_reason` in `reasons.md`. Check the customer is named the same way as when subscribing. A `status` of `active` here is a plan past its end date, or a parked seat whose paid period is over, not a bug in the guard |
+| 402 | `no_access` | Mesub said this customer has no access. The body also carries `status` | Read `status`, then `late_reason`, `stop_reason` or `end_reason` in `reasons.md`. Check the customer is named the same way as when subscribing. A `status` of `active` here is a plan past its end date, or a parked seat whose paid period is over, not a bug in the guard |
 | 503 | `unavailable` | Mesub could not answer about a customer it never saw. `Retry-After: 30` | An outage or a rate limit, not a no. A customer already seen is served the last answer known |
 | 500, or under Express 401 or 404 with no JSON body of the guard's | none | The guard threw: a refused API key or an unknown plan | Read the server log. It is a `MesubError` `unauthorized` or `plan_not_found` |
 
