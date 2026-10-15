@@ -8,7 +8,7 @@ Each action is two calls from the server with the wallet in between. `assets/ser
 |---|---|---|---|
 | Stop the renewals of a running subscription | `cancel(id)` | `confirmCancel(id, { signature })` | `cancelled` |
 | Take a cancellation back before its end | `resume(id)` | `confirmResume(id, { signature })` | `active` |
-| Close one that is over, and return its deposit | `close(id)` | `confirmClose(id, { signature })` | `ended`, `end_reason: "closed"` |
+| Close one that is over, and return its deposit | `close(id)` | `confirmClose(id, { signature })` | `ended`, `end_reason: "closed"`. Only while `closable` is true |
 
 All six are methods of `mesub.subscriptions`.
 
@@ -22,7 +22,7 @@ The same for the three actions. Here with `cancel`.
 const { transaction } = await mesub.subscriptions.cancel(subscriptionId);
 ```
 
-Find the customer's subscription with `subscriptions.list`, and check the id is theirs before building. Send `transaction` (base64) to the page. **Nothing is cancelled yet.** A build is sent once and never retried by the SDK. A transaction built and never sent changes nothing.
+Find the customer's subscription with `subscriptions.list`, or take `subscription_id` from their access answer, and check the id is theirs before building. Send `transaction` (base64) to the page. **Nothing is cancelled yet.** A build is sent once and never retried by the SDK. A transaction built and never sent changes nothing. It lives about half a minute: `transaction_expires_at` estimates when, and past it the server builds a new one rather than letting the wallet send a dead one.
 
 ### 2. Sign and send, in the browser
 
@@ -42,18 +42,22 @@ Send `signature` (base58) back to the server.
 ### 3. Confirm, on the server
 
 ```ts
-const { subscription, reason } = await mesub.subscriptions.confirmCancel(subscriptionId, { signature });
+const result = await mesub.subscriptions.confirmCancel(subscriptionId, { signature });
+// An older package's types do not name reason_code: it is in the answer all the same.
+const reasonCode = (result as { reason_code?: string }).reason_code;
 
-if (reason === undefined) {
-    // cancelled: subscription.access_until says when access ends
+if (reasonCode === undefined) {
+    // cancelled: result.subscription.access_until says when access ends
+} else if (reasonCode === 'transaction_expired' || reasonCode === 'cancellation_not_landed') {
+    // nothing changed and nothing failed: build a new transaction and have it sent again
 } else {
-    // nothing changed, and reason says why: build a new one to try again
+    // nothing changed: show result.reason, a sentence that may be reworded. Keep this default branch
 }
 ```
 
 Mesub waits for the chain, up to 90 seconds (`{ timeout }` in milliseconds as a third argument lowers it), and answers the subscription as it now stands.
 
-- **Branch on `reason`, not on the absence of an error.** A confirm that returns with a `reason` changed nothing.
+- **Branch on `reason_code`, not on the absence of an error, nor on the words of `reason`.** A confirm that returns with one changed nothing. `transaction_expired` is no failure of the customer's: the transaction ran out before it landed, build another. Keep a default branch: codes are added.
 - **A confirm that timed out changed nothing by itself: send it again with the same signature.** The same confirm is answered the same. Do not build a new transaction for it.
 - **Do not skip the confirm.** It is what says whether the transaction landed and what the subscription became. Settled without a `reason`, it also makes the SDK drop the cached access answers of that customer on that plan, so an access check right after asks Mesub again.
 
@@ -62,11 +66,23 @@ Mesub waits for the chain, up to 90 seconds (`{ timeout }` in milliseconds as a 
 A cancellation is not an immediate stop.
 
 - A subscription that is paid up **keeps its access until the end of the period it paid for** (`access_until`), and can be resumed until then. Do not lock the customer out when they cancel: keep asking Mesub, which answers yes until that date.
-- Once the date has passed it reads `ended`, and closing it returns the deposit the wallet paid when subscribing.
+- Once the date has passed it reads `ended`, and closing it returns the deposit the wallet paid when subscribing. Until then `closable` is false and `closable_from` holds that date.
 - A subscription cancelled while `unpaid` or `stopped` has no access, and its missed period is never collected.
 - On a plan with an end date, access never runs past the plan's end, cancelled or not, and the last period is charged in full even when the plan ends inside it: the terms the customer signed say so. In that last period `next_charge_at` is `null`, and resuming a cancellation brings no charge back: it runs to `access_until`, then ends.
 
 Say this to the customer before they sign: what they keep, until when, and that closing returns the deposit.
+
+## When to offer Close
+
+Never work it out from `status`: read `closable` and `closable_from`, served on every subscription and every access answer.
+
+| `closable` | `closable_from` | Offer |
+|---|---|---|
+| `true` | `null` | Close, now. A cancellation whose end has passed, one that ended with its plan, or one stopped with `stop_reason` `authority_closed` |
+| `false` | a date | "Close from" that date: the end of the period a cancellation set |
+| `false` | `null` | No Close. A running subscription, or one stopped with `out_of_retries`, must be cancelled first |
+
+Both are as Mesub last read the chain: `close` reads it again and may still refuse (`close_too_early`, `subscription_not_on_chain`). A stopped subscription with `stop_reason` `authority_closed` can never be charged again nor come back: Close is the one thing left, and it returns the deposit.
 
 ## Refusals
 
@@ -79,12 +95,12 @@ Thrown as a `MesubError`. `apiCode` says which. Keep a default branch: codes get
 | `subscription_cancelled` | `cancel`: it was cancelled already |
 | `subscription_not_cancelled` | `resume` or `close`: nothing cancelled it |
 | `subscription_ended` | `resume`: the paid period is over. Subscribe again |
-| `plan_deleted` or `plan_removed` | `resume`: its plan is gone. `plan_deleted` is being renamed `plan_removed`: compare with both |
-| `close_too_early` | `close`: its end has not passed yet |
+| `plan_removed` | `resume`: its plan is gone (was `plan_deleted`, which Mesub no longer answers) |
+| `close_too_early` | `close`: its end has not passed yet. Offer Close only when `closable` is true |
 | `subscription_not_on_chain` | It is closed already |
 | `nothing_to_confirm` | A confirm before any transaction was built |
 
-These six calls are limited to 60 a minute per API key. Offer only the action the subscription allows now (see the statuses reference) rather than trying one and catching the refusal.
+These six calls are limited to 60 a minute per API key. Offer only the action the subscription allows now (see the statuses reference, and `closable` above) rather than trying one and catching the refusal. A refusal carries `request_id` in its body: log it, and quote it to Mesub support.
 
 ## Its payments
 
