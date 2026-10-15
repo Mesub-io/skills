@@ -11,7 +11,8 @@ Fixture: [next-mesub](fixtures/next-mesub/README.md).
 - [ ] Reads `package.json` and `node_modules/@mesub/*/package.json` before writing a call.
 - [ ] Finds the existing provider and routes and reuses them.
 - [ ] Uses the widget's manage component or `useSubscriptions`, in a client component under the provider.
-- [ ] Reads the `action` each subscription allows instead of computing it from the status.
+- [ ] Reads the `action` each subscription allows instead of computing it from the status, and offers Close only while `closable` is true ("Close from" `closable_from` otherwise).
+- [ ] Words a stopped subscription from its `stop_reason`.
 - [ ] Keeps access as it is after a cancel: nothing revokes it in the app.
 - [ ] Says a real cancellation needs the paying wallet and was not tested.
 

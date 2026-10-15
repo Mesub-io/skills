@@ -1,6 +1,6 @@
 ---
 name: mesub-errors
-description: Use this skill when a Mesub call, route or payment fails and the cause must be found and fixed, even if the user just says "subscribe throws a 409" or "why was this customer not charged". Covers MesubError (code, apiCode, retryable, retryAfter), MesubSubmitError, every API error code, the reason of a submit or confirm, late_reason, end_reason, an attempt's outcome and reason.
+description: Use this skill when a Mesub call, route or payment fails and the cause must be found and fixed, even if the user just says "subscribe throws a 409" or "why was this customer not charged". Covers MesubError (code, apiCode, retryable, retryAfter), MesubSubmitError, every API error code, request_id, the reason_code of a submit or confirm, late_reason, stop_reason, end_reason, closable, an attempt's outcome and reason.
 compatibility: A project that already uses @mesub/node. Check what is installed in node_modules/@mesub/node/package.json.
 license: Apache-2.0
 ---
@@ -34,8 +34,8 @@ The same status means different things depending on who answered. Get the raw fa
 | `{ access: false, reason }` | A guard refusing, not an error | `references/where-it-failed.md` |
 | `{ error: { code, message } }` | The widget routes refusing | same |
 | A thrown `MesubError`, or a 500 with one in the log | A call to Mesub that failed | `references/sdk-errors.md`, `references/api-error-codes.md` |
-| `{ subscription, reason }` | A submit or a confirm that settled nothing | `references/reasons.md` |
-| No access, and nothing threw | A status, a `late_reason` or an `end_reason` | `references/reasons.md` |
+| `{ subscription, reason, reason_code }` | A submit or a confirm that settled nothing | `references/reasons.md` |
+| No access, and nothing threw | A status, a `late_reason`, `stop_reason` or `end_reason` | `references/reasons.md` |
 | A customer not charged, or charged late | An attempt's `outcome` and `reason` | `references/attempts.md` |
 
 ### Reading a `MesubError`
@@ -57,7 +57,7 @@ try {
 
 ### Rules
 
-- **Branch on `apiCode`, then on `code`. Never on `message`.** Why: codes are only added, never renamed (save two, before the first integrator: `plan_deleted` becomes `plan_removed`, `plan_rebuilt` becomes `plan_replaced`); a message is a sentence for a person and may be reworded. The `reason` of a submit or a confirm is such a sentence too: test that it is set, then read `subscription.status`.
+- **Branch on `apiCode`, then on `code`. Never on `message`.** Why: codes are only added (save `plan_deleted` and `plan_rebuilt`, now `plan_removed` and `plan_replaced`); a message may be reworded. Likewise branch on the `reason_code` of a submit or a confirm, never its `reason`: `transaction_expired` is no failed payment, ask a fresh transaction.
 - **Always keep a default branch**, on codes, statuses, outcomes and reasons. Why: new ones are added. Handle an unknown one by `retryable` and the status.
 - **`retryable` means later, not now.** The SDK already retried what is safe. Do not wrap a call in a loop. Why: a loop feeds a rate limit, and a wait can be most of an hour (`pending_cap_reached`): tell the customer, do not hold the request.
 - **A 409 is Mesub's word on the state, never a race to retry.** Read the subscription back and decide from it.
@@ -65,8 +65,8 @@ try {
 - **Never turn a failed call into "not subscribed".** A refused API key or an unknown slug throws on purpose. Why: read as `false`, it locks every paying customer out and hides a broken integration.
 - **Never answer the browser 401 for Mesub refusing the API key.** Let it throw. Why: the widget reads 401 as "nobody is signed in".
 - **Hand the browser Mesub's `message` only when `apiCode` is set**, a fixed sentence otherwise. Why: the SDK's own messages can name the base URL.
-- **Never log the client, its options or request headers**, and never ask for the API key. Log a `MesubError`'s `status`, `code`, `apiCode` and `message`.
-- **Mind the spellings.** An attempt's `reason`, `late_reason` and `end_reason` use underscores (`insufficient_balance`, `program_4`), the status is `cancelled`. An older Mesub hyphenates the `reason` (`insufficient-balance`, `program:4`): turn `-` and `:` into `_` before comparing. A wrong one never matches and nothing warns.
+- **Never log the client, its options or request headers**, and never ask for the API key. Log a `MesubError`'s `status`, `code`, `apiCode`, `message` and `request_id` (in `body`): quote it to Mesub support.
+- **Mind the spellings.** Reasons use underscores (`insufficient_balance`, `program_4`), the status is `cancelled`, an account closed outside Mesub ends `closed_elsewhere`. An older Mesub hyphenates the `reason` (`insufficient-balance`, `program:4`): turn `-` and `:` into `_` before comparing. A wrong one never matches and nothing warns.
 - **Read `late_reason` before telling a customer to top up.** On two of its three values adding funds fixes nothing.
 - **Only a `rejected` attempt counts against the customer.** `blocked` and `skipped` spend no retry.
 - **Before using a field this skill does not show, read it in the installed package** (`node_modules/@mesub/node/README.md` and its types). The packages are early 0.x: never assume a version or write a call from memory.
@@ -96,8 +96,8 @@ For a task outside this skill, find its owner in `references/kit-directory.md` (
 
 - `references/where-it-failed.md`: what a guard, the widget routes and the widget each answer.
 - `references/sdk-errors.md`: `MesubError` and `MesubSubmitError` field by field, and what the SDK already retried.
-- `references/api-error-codes.md`: every API error code, its status, whether to wait, the fix.
-- `references/reasons.md`: the `reason` of a submit or confirm, `late_reason`, `end_reason`, the statuses that are not failures.
+- `references/api-error-codes.md`: every API error code, `request_id`, whether to wait, the fix.
+- `references/reasons.md`: `reason_code`, `late_reason`, `stop_reason`, `end_reason`, `closable`, the statuses that are not failures.
 - `references/attempts.md`: an attempt's `outcome` and every `reason`, by whose doing it is.
 - `references/docs.md`: the docs pages behind this skill.
 - `references/kit-directory.md`: every skill of the kit, how to install each one alone, and its docs fallback.
@@ -105,7 +105,7 @@ For a task outside this skill, find its owner in `references/kit-directory.md` (
 ## Assets
 
 - `assets/mesub-failure.ts`: sorts a thrown value into wait, refused or broken integration, and builds a safe answer for the browser. Adapt the line marked `ADAPT`.
-- `assets/settle-submit.ts`: a submit that says landed, not landed or unknown, and the read that follows.
+- `assets/settle-submit.ts`: a submit that says landed, expired, not landed or unknown, and the read that follows.
 - `assets/read-attempt.ts`: whose doing an attempt is, and whether it spent a retry.
 
 ## Scripts

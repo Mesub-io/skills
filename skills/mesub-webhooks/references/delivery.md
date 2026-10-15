@@ -14,9 +14,9 @@ So the route must:
 
 ## Retries
 
-When the answer is not a 2xx, the same event is tried again after 1 minute, 5 minutes, 30 minutes, 2 hours, then every 12 hours, for about three days in all. Each try carries the same `event.id` and a new `webhook-timestamp`.
+When the answer is not a 2xx, the same event is tried again after 1 minute, 5 minutes, 30 minutes, 2 hours, then every 12 hours, for about three days in all. Each try carries the same bytes (the event's `id` among them), the same `webhook-id` header and a new `webhook-timestamp`.
 
-An endpoint that fails for three days with no success in between is **disabled**. Nothing is sent to it until the user enables it again in the dashboard, under Developers, then Webhooks. A handler that answers 500 to one kind of event it cannot handle will, after three days, stop receiving every event: acknowledge what you do not handle.
+An endpoint that fails for three days with no success in between is **disabled**. Nothing is sent to it until the user enables it again in the dashboard, under Developers, then Webhooks. What it missed meanwhile is not sent again: catch up with `GET /v1/events` (below). A handler that answers 500 to one kind of event it cannot handle will, after three days, stop receiving every event: acknowledge what you do not handle.
 
 What to answer:
 
@@ -30,19 +30,26 @@ What to answer:
 
 ## Duplicates
 
-The same event can arrive more than once: a retry after a slow answer that had in fact succeeded, or two tries close together. Deduplicate on `event.id`.
+The same event can arrive more than once: a retry after a slow answer that had in fact succeeded, or two tries close together. Deduplicate on an id that stays the same across them. Two do:
+
+| Id | Where | Same on every retry | Same on every endpoint | In `GET /v1/events` |
+|---|---|---|---|---|
+| The event's `id` | The body | Yes | Yes | Yes |
+| `webhook-id` | The header | Yes | No: one per endpoint | No |
+
+Prefer the event's `id`: one table then covers every endpoint and the catch-up below. A body written before `available_since` has no `id`: fall back on `webhook-id` for it. What `event.id` holds after `verify` depends on the installed package (`events.md`, "What the installed package hands back"): an older one puts `webhook-id` there, which still deduplicates one endpoint.
 
 - **One atomic write.** Insert the id under a unique key and let the database refuse the second insert. A read ("have I seen it?") followed by a write lets two deliveries arriving together both pass.
 - **Release the id when the handling fails**, or do the handling and the insert in one database transaction. Otherwise the retry is dropped as a repeat and the event is lost for good.
 - **Not in memory.** A set in the process is emptied by a restart and is not shared between two instances.
-- **The id is per endpoint.** Two endpoints of one project receive the same event under different ids. If both feed the same code, deduplicate on what the event means as well.
+- **`webhook-id` is per endpoint.** Two endpoints of one project receive the same event under two `webhook-id`s and one event `id`. If both feed the same code, deduplicate on the event's `id`.
 - Keep the ids well past the three days of retries before pruning them: a delivery sent again later carries the same id.
 
 A deduplication table is small:
 
 ```sql
 CREATE TABLE mesub_events (
-    id          text PRIMARY KEY,   -- event.id
+    id          text PRIMARY KEY,   -- the event's id, or webhook-id for a body without one
     received_at timestamptz NOT NULL DEFAULT now()
 );
 -- claim: true when a row was inserted
@@ -56,10 +63,33 @@ Make the effects themselves safe to repeat where you can (set a value rather tha
 Order is not guaranteed. A retry of an old event can land after a newer one: `subscription.payment_failed` after the `subscription.renewed` that fixed it.
 
 - **Before granting or revoking anything, ask `hasAccess`**, rather than trusting the last event seen. An event says something changed. Mesub says what is true now.
-- `event.data` is the subscription as it was when the delivery was first tried, so it can already be newer than the event. It is still a copy: on a retry hours later it is hours old.
+- `event.data` is the subscription as it stood right after the change that raised the event, however late the delivery: on a retry hours later it is hours old. (A body written before `available_since` carries it as it was at the delivery's first attempt instead.)
 - Do not keep "is subscribed" in the app's database from events. Besides the order, a cancellation reaching its end sends no event at all.
 - Compare `event.created_at` if the app keeps a history, and never let an older event overwrite a newer state.
 
 `mesub.webhooks.verify` helps here: once the event is verified, the client drops every answer it had cached for that subscription's customer, so the next `hasAccess` in that process asks Mesub again. The bare `verifyWebhook` function has no client and drops nothing. Where the same process gates routes, prefer the client's method.
 
 Who to ask about: the subscription names its customer three ways, `data.external_id` (the app's own id, null when none was given at checkout), `data.wallet` and `data.email`. Use the one the app's paid routes already use, and the plan's slug from `data.plan`.
+
+## Catching up: `GET /v1/events`
+
+Mesub keeps every event of the project for 30 days and serves the very bodies its webhooks carry, byte for byte once parsed, with the same `id`. Read it after an outage, after the endpoint was disabled, or to backfill an endpoint added late.
+
+```ts
+// ADAPT: with a package that has no events call, the same GET with the API key as a bearer token.
+const page = await fetch('https://api.mesub.io/v1/events?limit=100', {
+    headers: { Authorization: `Bearer ${process.env.MESUB_API_KEY}`, 'Mesub-Version': '2026-10-02' },
+}).then((response) => response.json());
+// page: { data: Event[], has_more, available_since }
+```
+
+- **Newest first**, 25 a page by default, `limit` 1 to 100. The next page: `starting_after` set to the `id` of the last event of this one, while `has_more` is true.
+- **Filters**: `type` (one event name) and `subscription` (one subscription's id).
+- **Feed each body to the same handler**, deduplicated on the same event `id`: what was already handled by a delivery is skipped.
+- **Polling for what is new: do not stop at the first id you know.** An event's `created_at` is set a moment before it becomes visible, so one can appear below an event already read. Page on until `created_at` is a minute older than the newest you held, and skip the ids already seen.
+- **30 days, counted from each call.** Events before `available_since` are not served at all, whatever the window: their deliveries carried the older shape.
+- An event whose capture failed is missing until Mesub recovers it: Mesub is alerted and never serves it with a later state.
+- `GET /v1/events/{id}` reads one, by the `id` its body carries; `event_not_found` (404) past the 30 days or before `available_since`.
+- A read route of the API, counted in the 1,000 a minute per API key. A catch-up loop pages, it does not hammer.
+
+Before writing it, look in `node_modules/@mesub/node` for an events call (`mesub.events`): a package that has one does the paging and checks the bodies. Never put the API key in a URL, a log or client code.

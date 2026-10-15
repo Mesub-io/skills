@@ -14,7 +14,7 @@ export type AttemptReading = {
 // The program's error numbers for a plan the user changed while the charge was on its way.
 const PLAN_CHANGED = new Set(['130', '501', '506', '516', '519']);
 
-// Snake case, the spelling Mesub serves. Each word Mesub is renaming is listed under both names.
+// Snake case, the spelling Mesub serves. Each word Mesub renamed is listed under both names: an old row may hold the first.
 const CUSTOMER = new Set([
     'insufficient_balance',
     'token_account_reassigned',

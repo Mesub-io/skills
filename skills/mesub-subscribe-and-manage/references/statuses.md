@@ -7,14 +7,27 @@ The same nine statuses on the server (`ServerSubscription` of `@mesub/node`) and
 | `pending` | A checkout prepared, nothing landed yet. Mesub settles it within the hour | No | Nothing |
 | `active` | Running and paid. In the last period of a plan with an end date it has no `next_charge_at` | Yes | Cancel |
 | `unpaid` | A payment is late. `late_reason` and `next_retry_at` say more | Yes, as "Payment late" | Cancel |
-| `stopped` | Stopped after missed payments. Nothing more is charged | Yes | Cancel |
+| `stopped` | Stopped after missed payments. Nothing more is charged. `stop_reason` says why | Yes | Cancel; Close at once when `stop_reason` is `authority_closed` |
 | `cancelled` | Cancelled, with the paid period still running | Yes | Resume, until `access_until` |
-| `ended` | Over. `end_reason` says why: `plan_ended` when its plan reached its end date | Yes | Close, unless `end_reason` is `closed` or `authority_closed` |
+| `ended` | Over. `end_reason` says why: `plan_ended` when its plan reached its end date | Yes | Close while `closable` is true |
 | `failed` | A checkout that did not become a subscription: what landed is not Mesub's. Comes with a `reason` on submit | No | Nothing |
 | `expired` | A checkout nobody signed in time | No | Nothing |
 | `superseded` | A stopped one the wallet came back over: a newer one holds the subscription | No | Nothing |
 
 A `cancelled` subscription reads `ended` once its end date has passed, with `end_reason: "cancelled"`. Between that moment and the next read, the widget already offers Close instead of Resume.
+
+**Close is decided by `closable`, never by the status.** `closable: true`: offer Close now. `closable: false` with `closable_from`: say "Close from" that date. Both `false` and `null`: no Close yet; a running subscription, or one stopped with `out_of_retries`, must be cancelled first. Both are as Mesub last read the chain, so a close may still be refused.
+
+## Why it stopped: `stop_reason`
+
+Set only on a `stopped` subscription, `null` otherwise and on one that stopped before Mesub recorded why. Word it for the customer from this, not from the status:
+
+| `stop_reason` | Say | What they can do |
+|---|---|---|
+| `out_of_retries` | "Every retry of the missed payment failed" | Subscribe again, or cancel and close once the period ends |
+| `retry_deadline_passed` | "The last day to pay the missed payment passed" | The same |
+| `authority_closed` | "Your wallet closed the authorisation that let us charge it" | It cannot come back: close it now to get the deposit back, then subscribe anew if they want |
+| `null`, or another | "Payments stopped" | Keep a default branch: values are added |
 
 ## On a plan with an end date
 
@@ -59,8 +72,10 @@ So `status: 'active'` with `access: false` is not only a plan past its end date:
 | `next_charge_at` | The next charge of a running one. `null` in the last period of a plan with an end date: show `access_until` instead |
 | `next_retry_at` | The next try of a late one. Never set together with `next_charge_at`. `null` when the plan ends before the retry |
 | `payment_status` | `paid`, `late` or `none` |
-| `late_reason` | On `unpaid`: `insufficient_balance` (adding funds fixes it), `approval_revoked` (adding funds does not), `authority_closed` (final), or `null` |
-| `end_reason` | On `ended`: `cancelled`, `plan_removed`, `plan_replaced`, `plan_ended`, `authority_closed` or `closed` |
+| `late_reason` | On `unpaid`, and on `stopped` for the payment it stopped on: `insufficient_balance` (adding funds fixes it), `approval_revoked` (adding funds does not), `authority_closed` (final), or `null` |
+| `stop_reason` | On `stopped`: `out_of_retries`, `retry_deadline_passed` or `authority_closed`, see above |
+| `end_reason` | On `ended`: `cancelled`, `plan_removed`, `plan_replaced`, `plan_ended`, `closed_elsewhere` (the subscription account closed outside Mesub) or `closed` |
+| `closable`, `closable_from` | Whether the wallet can close it now and get its deposit back, and from when if not: see above |
 | `blocked_since`, `blocked_reason` | Since when its charges are blocked for a cause that is not the customer's, and whose cause. Both `null` otherwise: see above |
 | `paused` | A seat parked over the project's limit: nothing is charged while it is, and the status does not change |
 | `wallet` | The wallet that pays it, and the only one that can cancel, resume or close it |

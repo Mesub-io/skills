@@ -37,28 +37,29 @@ Read `package.json`, the lockfile and `node_modules/@mesub/*/package.json` for t
 | React, no wallet UI of its own | The widget | `references/widget.md` |
 | Not React, or it owns its wallet step | `mesub.subscriptions.*` | `references/server-subscribe.md`, `references/server-manage.md` |
 
-Prefer the widget when both fit: it handles the fresh transaction, expired terms and unknown outcomes. Copy an asset, then adapt its `ADAPT` lines.
+Prefer the widget when both fit: it handles the fresh transaction, expired terms and unknown outcomes. Copy an asset, adapt its `ADAPT` lines.
 
 ### Rules for the widget
 
 - **Access is decided on the server.** `onSubscribed`, `state === 'subscribed'` and `onChanged` are signals to fetch again, never a grant. Why: client state is the visitor's to edit.
-- **Do not lock a customer out when they cancel.** A paid-up subscription keeps access until `access_until`, never later than its plan's end date. Keep asking Mesub.
+- **Do not lock a customer out when they cancel.** A paid-up subscription keeps access until `access_until`. Keep asking Mesub.
 - **Read `action`, do not compute it.** `useSubscriptions()` says what each subscription allows now. Keep a default branch on `status`: `references/statuses.md`.
 - **A blocked subscription is not a late one.** `blocked_reason` is never the customer's doing: the status stays, access ends on `access_until`.
 - **Do not rebuild or wrap the window's screens**, and add no wallet library. Every failure has its screen and says whether anything was charged: `references/widget-screens.md`.
 - **`manageUrl` is a path starting with one `/`, an http(s) URL or `null`.** Any other string is ignored silently.
 - **Theme through `--mesub-*` properties only.** The widget has no class names: `references/theming.md`.
-- **A file that calls a hook or hands the widget a function is a client component**, under the provider. `@mesub/node` is never imported there.
-- **Check the provider's `chain` against the plan's network** before a real subscription, and ask the user: `references/widget.md`.
+- **A file that calls a hook or hands the widget a function is a client component**, under the provider, never importing `@mesub/node`.
+- **Check the provider's `chain` against the plan's network** before a real subscription: `references/widget.md`.
 
 ### Rules for the server path
 
 - **Subscribing: the wallet signs and does not send. Managing: the wallet signs and sends.** Swapping them fails silently.
 - **Identity comes from the session.** `external_id` is the verified user's id, never a value the page sent. Before any call by subscription id, check whose it is: the API key reaches every subscription of the project.
-- **Terms first, transaction last.** A transaction lives half a minute. Once the terms are signed, ask `subscriptions.transaction(id)`, have it signed at once, submit. On `transaction_expired` ask again, never `create` anew.
-- **Branch on the result, not on the absence of an error**: `subscription.access` after `submit`, `reason === undefined` after a confirm.
+- **Terms first, transaction last.** A transaction lives half a minute (`transaction_expires_at`). Once the terms are signed, ask `subscriptions.transaction(id)`, have it signed at once, submit. Expired: ask again, never `create` anew.
+- **Branch on the result, not on the absence of an error**: `subscription.access`, then `reason_code`, never the words of `reason`.
+- **Offer Close only while `closable`** ("Close from" `closable_from`), and word a stop by `stop_reason`.
 - **An unknown outcome is not a failure.** On `MesubSubmitError` read the subscription back and never create anew until it reads `expired`. A confirm that timed out is sent again with the same signature.
-- **Only the paying wallet can cancel, resume or close.** No server call does it alone: say so if asked for one.
+- **Only the paying wallet can cancel, resume or close.** No server call does it alone: say so if asked.
 - **`submit` waits up to 130 s and a confirm 90 s**, in the widget's routes too: `references/routes.md` for hosts that cut sooner.
 - **Show `terms.message` as written and the costs before the wallet is asked**, and Mesub's refusal messages as written. On a plan with an end date the terms say what a page must not reword: `references/server-subscribe.md`.
 
@@ -72,7 +73,7 @@ node "<skill-dir>/scripts/check-wallet-side.mjs"
 
 `<skill-dir>` is the absolute path of the folder that holds this `SKILL.md`. Do not change into it.
 
-**A real subscription or cancellation needs a person with a wallet.** Report the work as wired and checked up to the wallet, never as tested end to end, and say what the user must click.
+**A real subscription or cancellation needs a person with a wallet.** Report it as wired and checked up to the wallet, never as tested end to end, and say what the user must click.
 
 ## Related skills
 
@@ -87,12 +88,12 @@ For a task outside this skill, find its owner in `references/kit-directory.md` (
 
 - `references/widget.md`: every component, hook and provider prop, what is not exported.
 - `references/widget-screens.md`: what the window does in each case, its timings.
-- `references/theming.md`: the stylesheet, custom properties, dark mode, attributes.
-- `references/routes.md`: the widget's routes, their options, answers, refusals, timings.
+- `references/theming.md`: the stylesheet, custom properties, dark mode.
+- `references/routes.md`: the widget's routes, options, answers, refusals, timings.
 - `references/server-subscribe.md`: create, the fresh transaction, submit, `transaction_expired`, unknown outcomes.
-- `references/server-manage.md`: cancel, resume, close, their refusals, a subscription's payments.
+- `references/server-manage.md`: cancel, resume, close (`closable`), refusals, payments.
 - `references/plan-token.md`: a plan's token (an unverified one marked, its mint shown), `amount_usd`.
-- `references/statuses.md`: the nine statuses, what each allows, blocked charges, fields to read.
+- `references/statuses.md`: the statuses, what each allows, `stop_reason`, blocked charges.
 - `references/docs.md`: the docs pages behind this skill, where they differ from the packages.
 - `references/kit-directory.md`: every skill of the kit, how to install each one alone, and its docs fallback.
 

@@ -9,7 +9,7 @@ If the app is React and has no reason to own the wallet step, use the widget ins
 | What | Lives | So |
 |---|---|---|
 | The terms | Five minutes today: read `terms.expires_at` | The customer has time to read them |
-| A transaction | 150 blocks from the moment it is built, about half a minute | It is asked for last, and signed at once |
+| A transaction | 150 blocks from the moment it is built, about half a minute: `transaction_expires_at` estimates when | It is asked for last, and signed at once |
 
 `create` builds both together, so the time the customer spends reading the terms is taken off its transaction. That is why the order is: terms signed first, then a fresh transaction, signed at once, then submit.
 
@@ -36,7 +36,8 @@ What it answers:
 |---|---|
 | `subscription` | `{ id, status }`, `pending` at this point |
 | `transaction` | Base64, signed by nobody. Good for about half a minute |
-| `last_valid_block_height` | A string |
+| `last_valid_block_height` | A string: the block height after which the transaction can no longer land |
+| `transaction_expires_at` | ISO date: when that height is expected to pass, about half a minute after the answer. An estimate that errs early. Use it for a countdown, or to ask a fresh transaction before it runs out |
 | `terms.message` | Plain text, one fact per line: the amount, the period, who is paid, how to cancel, and when the plan ends if it has an end date (below) |
 | `terms.expires_at` | ISO date, five minutes after `create` today. Read the field, do not hard-code the delay |
 | `costs` | In lamports, as strings. `rent` is a deposit returned when the subscription is closed, `fee` is spent. `rent.authority` is `null` when the customer already has one for that token |
@@ -86,7 +87,7 @@ Once the terms are signed and the wallet is ready, the page asks the app's serve
 
 ```ts
 const fresh = await mesub.subscriptions.transaction(subscriptionId);
-// what create answers: { subscription, transaction, last_valid_block_height, terms, costs }
+// what create answers: { subscription, transaction, last_valid_block_height, transaction_expires_at, terms, costs }
 ```
 
 Check the id belongs to the signed-in user first (the asset does). The call takes the id and nothing else: the wallet, the plan and the customer are the subscription's own, and nothing new is reserved. Its half minute starts here, so the page has the wallet sign `fresh.transaction` **at once, without sending it**:
@@ -104,6 +105,7 @@ const signedTransaction = btoa(String.fromCharCode(...signed.serialize()));
 - **Compare `fresh.terms.message` with the message the wallet signed.** The message carries the nonce and the expiry of the terms, so the comparison is exact. The same text: the same terms, submit with the signature already made. Another text: new terms, so show them and have the wallet sign that message before the transaction. The old signature is refused with `invalid_terms_signature`.
 - The terms come back unchanged while they have more than two minutes left before `terms.expires_at`. New ones come after that, after a submit that spent them, or when the plan changed.
 - Put nothing between the call and the signature: no confirmation screen, no extra click.
+- **Ask again before it runs out, not after.** When the wallet is not ready by `transaction_expires_at` (a wallet popup left open, a slow hardware wallet), call `transaction(id)` again and have the new one signed. Do not trust the date over the chain: a transaction refused as expired is rebuilt whatever the time says. An installed package whose types do not name `transaction_expires_at` still hands it back: read it as `(fresh as { transaction_expires_at?: string }).transaction_expires_at`.
 
 It is refused like `create` (the plan stopped taking subscribers, `insufficient_balance`, `already_subscribed`), with `subscription_not_found`, and with `not_awaiting_signature` (409) when the subscription is no longer `pending`: signed already, expired or ended. For one that expired, `create` again.
 
@@ -112,19 +114,25 @@ It is refused like `create` (the plan stopped taking subscribers, `insufficient_
 ## 4. Submit, on the server
 
 ```ts
-const { subscription, reason } = await mesub.subscriptions.submit(subscriptionId, {
+const result = await mesub.subscriptions.submit(subscriptionId, {
     transaction: signedTransaction,
     terms_signature,
 });
+// An older package's types do not name reason_code: it is in the answer all the same.
+const reasonCode = (result as { reason_code?: string }).reason_code;
 
-if (subscription.access) {
+if (result.subscription.access) {
     // it landed
+} else if (reasonCode === 'transaction_expired') {
+    // not a failed payment: nothing was charged. Ask transaction(id) again, as in step 3
+} else if (reasonCode === 'nothing_landed') {
+    // still pending: it may land. Read it back later, never create anew
 } else {
-    // it did not land, and `reason` says why
+    // it did not land: show `reason`, a sentence that may be reworded, and keep this default branch
 }
 ```
 
-Check the id belongs to the signed-in user before submitting (the asset does). Branch on `subscription.access`, not on the absence of an error. A subscription returned with access makes the SDK drop the cached "no" for that customer, so an access check right after asks Mesub again.
+Check the id belongs to the signed-in user before submitting (the asset does). Branch on `subscription.access`, then on `reason_code`, never on the words of `reason` nor on the absence of an error. A subscription returned with access makes the SDK drop the cached "no" for that customer, so an access check right after asks Mesub again.
 
 ## How long submit takes
 

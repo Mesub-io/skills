@@ -70,7 +70,8 @@ Then read the code against these, one by one:
 - the terms are signed first, then `subscriptions.transaction(id)` is asked and its transaction signed at once: the one of `create` is not kept for the wallet;
 - a `transaction_expired` on submit leads to a new `transaction(id)` under the same id, never to a new `create`;
 - subscribing asks the wallet to sign without sending; managing asks it to sign and send;
-- `submit` branches on `subscription.access`, a confirm on `reason`;
+- `submit` branches on `subscription.access`, then on `reason_code`, a confirm on `reason_code`, never on the words of `reason`; a `reason_code` `transaction_expired` asks for a fresh transaction, not a new subscription;
+- close is offered only while `closable` is true ("Close from" `closable_from` otherwise), and a stop is worded by `stop_reason`;
 - a `MesubSubmitError` leads to a read of the subscription, never to a new `create`;
 - a timed-out confirm is sent again with the same signature;
 - the route that submits may run as long as the timeout it was given, on this host.

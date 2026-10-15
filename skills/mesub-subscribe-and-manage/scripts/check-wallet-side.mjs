@@ -312,8 +312,8 @@ if (!created && !submitted && built.length === 0 && !dynamic) {
   if (submitted) {
     if (names('MesubSubmitError')) report('PASS', 'an unknown outcome of submit is handled (MesubSubmitError)')
     else report('WARN', `${at(submitted.file, submitted.index)} submits and nothing handles MesubSubmitError: when its outcome is unknown the wallet may have paid, so the subscription must be read back before creating anew`)
-    if (!/\.access\b|\breason\b/.test(submitted.file.text)) {
-      report('WARN', `${at(submitted.file, submitted.index)} never reads subscription.access nor reason: a submit that returns is not always a subscription that landed`)
+    if (!/\.access\b|\breason(_code)?\b/.test(submitted.file.text)) {
+      report('WARN', `${at(submitted.file, submitted.index)} never reads subscription.access nor reason_code: a submit that returns is not always a subscription that landed`)
     }
   }
 
@@ -323,8 +323,8 @@ if (!created && !submitted && built.length === 0 && !dynamic) {
   }
   for (const [, confirm] of ACTIONS) {
     const call = first(confirm)
-    if (call && !/\breason\b/.test(call.file.text)) {
-      report('WARN', `${at(call.file, call.index)} calls ${confirm} and never reads reason: with a reason, nothing changed`)
+    if (call && !/\breason(_code)?\b/.test(call.file.text)) {
+      report('WARN', `${at(call.file, call.index)} calls ${confirm} and never reads reason_code: with one, nothing changed`)
     }
   }
   if (dynamic && built.length === 0) {

@@ -41,8 +41,11 @@ describe('POST /webhooks/mesub', () => {
         expect(received).toHaveLength(1);
         expect(received[0]).toMatchObject({
             type: 'subscription.renewed',
-            data: { external_id: 'user_42', plan: 'pro', detail: { amount: '9990000' } },
+            data: { external_id: 'user_42', plan: 'pro' },
         });
+        // `detail` sits at the top of today's body, under `data` in an older package's fake.
+        const event = received[0] as { detail?: { amount?: string }; data: { detail?: { amount?: string } } };
+        expect((event.detail ?? event.data.detail)?.amount).toBe('9990000');
     });
 
     it('answers 400 to a body changed after it was signed', async () => {

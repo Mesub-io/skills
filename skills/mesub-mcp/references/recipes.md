@@ -7,15 +7,15 @@ Before the first one in a conversation, call `get_project` and say which project
 ## "Why does this customer have no access?"
 
 1. **`check_access`**, naming the customer by exactly one of their wallet, the merchant's own id for them (`external_id`) or their email, with the plan's slug when the merchant named a plan. Ask for the last charges (`attempts`) when the question is about a payment.
-2. Read the answer before anything else:
+2. Read the answer before anything else. **`access` decides; the rest explains it.** Never conclude from `status` alone: a subscription can read `active` with `access` false (a plan past its end date, charges blocked past `access_until`).
 
 | Answer | It means | Say |
 |---|---|---|
 | `status` `none`, or no plan at all | No subscription under that identity. If the customer did subscribe, the app names them differently now than when they subscribed | Ask how the app names its customers, and try the wallet. The fix is in the app's code, not on the project |
 | `unpaid` with a `late_reason` | A payment is late, and why | See the next table |
 | `unpaid` with `access` false | On the Free tier a late subscription has no access, and nothing retries by itself | That is the tier's behaviour, not a fault in the gate |
-| `stopped` | The retries ran out: Mesub no longer charges it | The customer subscribes again |
-| `ended` with an `end_reason` | It is over, for that reason. `plan_ended`: the plan reached its own end date | Final. The customer subscribes again, to a plan that still exists |
+| `stopped` | Mesub no longer charges it. `stop_reason` says why: `out_of_retries` (every retry failed), `retry_deadline_passed` (Free: the last day to pay passed), `authority_closed` (the wallet closed what lets Mesub charge it, for good) | On the first two the customer subscribes again. On `authority_closed` it cannot come back: the customer closes it to get the deposit back, then subscribes anew. Null or another value: say the cause is not recorded |
+| `ended` with an `end_reason` | It is over, for that reason. `plan_ended`: the plan reached its own end date. `closed_elsewhere`: the subscription account was closed outside Mesub | Final. The customer subscribes again, to a plan that still exists |
 | `cancelled` with `access` true | The customer cancelled and keeps access until `access_until` | Nothing is wrong |
 | `access` true | Mesub grants access | The refusal comes from the app: its gate, its cache, or how it names the customer |
 
@@ -23,20 +23,21 @@ Before the first one in a conversation, call `get_project` and say which project
 |---|---|---|
 | `insufficient_balance` | Fixes it | The customer adds funds. The next retry, or one the merchant fires by hand, collects |
 | `approval_revoked` | Does not help | Every retry fails. The customer must cancel and subscribe again |
-| `authority_closed` | Does not help | The same: the customer subscribes again |
+| `authority_closed` | Does not help | Final: it stops with `stop_reason` `authority_closed`. The customer closes it, then subscribes again |
 
 On the Free tier nothing retries by itself: the merchant fires each retry, by hand. On a tier that retries, the plan's policy does. The overview's `retries_automatic` field, when the server returns it, says which case the project is in.
 
-3. Do not stop at `check_access`: its attempts carry raw amounts, with no display value, and it returns no subscription id. Go on to **`list_subscriptions`** with `q` set to the wallet the answer named. Its row carries the price as a display value (the one to quote; `get_plan` has it too), `late_reason` and `retry_available_at` (whether and when a retry is allowed). **`get_subscription`**, with the id of that row, is for what only it has: every charge with why it failed, what was paid in all, and `parked_at` (the seat is over the tier's cap and not charged).
+3. Do not stop at `check_access`: its attempts carry raw amounts, with no display value. When its answer carries `subscription_id` (the subscription the answer is about), go straight to **`get_subscription`** with it; a server that does not return it yet needs **`list_subscriptions`** with `q` set to the wallet the answer named, and never a guess among several rows. Its row carries the price as a display value (the one to quote; `get_plan` has it too), `late_reason` and `retry_available_at` (whether and when a retry is allowed). **`get_subscription`**, with the id of that row, is for what only it has: every charge with why it failed, what was paid in all, and `parked_at` (the seat is over the tier's cap and not charged).
 4. A failed charge carries a `reason`, a short code, and beside it a `reason_label`, the same thing in words. Show the label to a person, never the code. When the label is null, or the server does not return one yet, say the reason is not known: do not guess what a code means.
-5. Stop there. Report the cause and whose it is. Do not retry a charge nobody asked for, and do not suggest a way round the gate.
+5. When the merchant asks whether the customer can get their deposit back: `closable` true means they can close it now, `closable_from` from which date, both false and null that it must be cancelled first. Only the customer's wallet closes it, from the app.
+6. Stop there. Report the cause and whose it is. Do not retry a charge nobody asked for, and do not suggest a way round the gate.
 
 When the cause is in the app (an identity that does not match, a gate that refuses what Mesub grants), the work continues in the codebase: access gating is owned by the `mesub-gate-access` skill (`references/kit-directory.md`).
 
 ## "What failed this week, and why?"
 
 1. **`get_overview`** with 7 days: what was collected against the week before, what failed, what the retries won back, what is still owed, and `collection.causes`, the reasons with whose side each is on (`subscriber` or `mesub`).
-2. For the charges behind a figure: **`list_events`** without `day`, over 7 days, with `group` `payments`. It returns the days that had anything. Then once per day worth reading, with `day` set.
+2. For the charges behind a figure: **`list_events`** without `day`, over 7 days, with `group` `payments`. It returns the days that had anything. Then once per day worth reading, with `day` set. This is the project's activity as the dashboard shows it, not the webhook bodies: an app that missed webhooks catches up on them from its own server with the API's `GET /v1/events`, which is the `mesub-webhooks` skill's work.
 3. A failed charge is `REJECTED` (refused on the subscriber's side: their wallet) or `BLOCKED` (on Mesub's side, and it spends none of the subscriber's retries).
 
 Quote the dollar strings as they are. When `unpriced` is above zero, say the dollar sums are partial. A `reason` is a short code: give the person the `reason_label` beside it. When the label is null or absent, say the reason is not known, or look the code up with `search_docs` or with the `mesub-errors` skill (`references/kit-directory.md`), rather than guessing it.
@@ -88,7 +89,7 @@ To change or remove an endpoint later: state the old and the new value, or the U
 4. **`retry_charge`**, once. The answer says the charge was queued, not that it was paid.
 5. **`get_subscription`** again a moment later: the newest attempt is the outcome. Report it as it is.
 
-A refusal means nothing was charged. It states the wait when there is one ("Try again in N minutes"): give it to the merchant and stop. Never call again to see, never loop over the late subscribers, never retry a charge to "fix" a customer's access on your own. On the Free tier a missed period has three retries by hand.
+A refusal means nothing was charged. When it carries a `request_id`, give it to the merchant: it is what Mesub support asks for. It states the wait when there is one ("Try again in N minutes"): give it to the merchant and stop. Never call again to see, never loop over the late subscribers, never retry a charge to "fix" a customer's access on your own. On the Free tier a missed period has three retries by hand.
 
 ## "Create a plan"
 

@@ -57,15 +57,18 @@ export async function startSubscription(userId: string, wallet: string, email?: 
 export async function freshTransaction(userId: string, id: string) {
     await theirs(userId, id);
     // ADAPT: on a @mesub/node without `subscriptions.transaction`, tell the user the package is behind.
-    const { transaction, terms } = await mesub.subscriptions.transaction(id);
+    const fresh = await mesub.subscriptions.transaction(id);
+    // When it is expected to run out (an estimate that errs early): past it, the page asks again.
+    // An older package's types do not name it: it is in the answer all the same.
+    const expiresAt = (fresh as { transaction_expires_at?: string }).transaction_expires_at ?? null;
     // The page compares `terms.message` with the text the wallet signed: another text is new terms to sign.
-    return { id, transaction, terms };
+    return { id, transaction: fresh.transaction, terms: fresh.terms, expiresAt };
 }
 
 export type Finished =
     | { outcome: 'subscribed'; subscription: ReturnType<typeof shown> }
-    // Nothing landed, and Mesub says why.
-    | { outcome: 'not_landed'; reason: string | undefined }
+    // Nothing landed. `reasonCode` is what to branch on, `reason` a sentence to show.
+    | { outcome: 'not_landed'; reasonCode: string | undefined; reason: string | undefined }
     // Signed too late, nothing sent, nothing charged: call freshTransaction and have the wallet sign again.
     | { outcome: 'transaction_expired' }
     // No answer on what became of it. The wallet may have paid: poll subscriptionOf, do not start again.
@@ -77,10 +80,14 @@ export async function finishSubscription(userId: string, id: string, signed: Sub
     try {
         // Waits for the chain: up to 130 s in all by default.
         // ADAPT: on a host that cuts requests sooner, pass { timeout, budget } in ms as a third argument.
-        const { subscription, reason } = await mesub.subscriptions.submit(id, signed);
-        return subscription.access
-            ? { outcome: 'subscribed', subscription: shown(subscription) }
-            : { outcome: 'not_landed', reason };
+        const result = await mesub.subscriptions.submit(id, signed);
+        const { subscription, reason } = result;
+        const reasonCode = (result as { reason_code?: string }).reason_code;
+        if (subscription.access) return { outcome: 'subscribed', subscription: shown(subscription) };
+        // Ran out before it landed: not a failed payment, nothing was charged.
+        if (reasonCode === 'transaction_expired') return { outcome: 'transaction_expired' };
+        // nothing_landed: still pending, it may land. The others: keep a default branch.
+        return { outcome: 'not_landed', reasonCode, reason };
     } catch (error) {
         if (error instanceof MesubSubmitError) return { outcome: 'unknown' };
         if (error instanceof MesubError && error.apiCode === 'transaction_expired') return { outcome: 'transaction_expired' };
@@ -111,9 +118,12 @@ const CONFIRM = { cancel: 'confirmCancel', resume: 'confirmResume', close: 'conf
 export async function confirmAction(userId: string, id: string, action: ManageAction, signature: string) {
     await theirs(userId, id);
     // Waits for the chain, up to 90 s. Cut short, it changed nothing: call it again with the same signature.
-    const { subscription, reason } = await mesub.subscriptions[CONFIRM[action]](id, { signature });
-    // No `reason`: it moved. With one, nothing changed: build a new transaction to try again.
-    return { changed: reason === undefined, reason, subscription: shown(subscription) };
+    const result = await mesub.subscriptions[CONFIRM[action]](id, { signature });
+    const { subscription, reason } = result;
+    // No `reason_code`: it moved. With one, nothing changed: branch on the code, show `reason`.
+    // `transaction_expired` and `*_not_landed`: build a new transaction (buildAction) and have it sent again.
+    const reasonCode = (result as { reason_code?: string }).reason_code;
+    return { changed: reason === undefined, reasonCode, reason, subscription: shown(subscription) };
 }
 
 /**

@@ -69,7 +69,7 @@ try {
 }
 ```
 
-A `MesubError` carries `code`, `status` (the HTTP status, or `null` when no response came back), `apiCode` (Mesub's own finer code), `retryable`, `retryAfter` (milliseconds, or `null`) and `body`. Mesub may add codes: keep a default branch.
+A `MesubError` carries `code`, `status` (the HTTP status, or `null` when no response came back), `apiCode` (Mesub's own finer code), `retryable`, `retryAfter` (milliseconds, or `null`) and `body`. Mesub may add codes: keep a default branch. Log `body.request_id` with it when Mesub answered (`req_` and 24 letters or digits, also in the `Mesub-Request-Id` header): it is what to quote to Mesub support.
 
 ## The front's side
 

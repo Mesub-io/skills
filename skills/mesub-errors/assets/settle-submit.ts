@@ -5,19 +5,26 @@ import { type Mesub, MesubSubmitError, type ServerSubscription, type SubmitParam
 export type Settled =
     // It landed: `subscription.access` is true.
     | { state: 'landed'; subscription: ServerSubscription }
-    // Mesub answered and nothing landed. `reason` is a sentence for a person, not a code.
-    | { state: 'not-landed'; subscription: ServerSubscription; reason: string | null }
+    // The transaction ran out before it landed: nothing was charged. Ask a fresh one under the same id.
+    | { state: 'expired'; subscription: ServerSubscription }
+    // Mesub answered and nothing landed. Branch on `reasonCode`; `reason` is a sentence to show.
+    | { state: 'not-landed'; subscription: ServerSubscription; reasonCode: string | null; reason: string | null }
     // No answer said what became of it. The wallet may have paid: never create anew here.
     | { state: 'unknown'; subscription: ServerSubscription | null; retryAfterMs: number | null };
 
 export async function settleSubmit(mesub: Mesub, id: string, signed: SubmitParams): Promise<Settled> {
     try {
         // ADAPT: on a host that cuts a request early, pass { timeout, budget } as a third argument.
-        const { subscription, reason } = await mesub.subscriptions.submit(id, signed);
+        const result = await mesub.subscriptions.submit(id, signed);
+        const { subscription, reason } = result;
+        // An older package's types do not name reason_code: it is in the answer all the same.
+        const reasonCode = (result as { reason_code?: string }).reason_code ?? null;
 
-        // Branch on the subscription, never on the words of `reason`.
+        // Branch on the subscription and on reason_code, never on the words of `reason`.
         if (subscription.access) return { state: 'landed', subscription };
-        return { state: 'not-landed', subscription, reason: reason ?? null };
+        if (reasonCode === 'transaction_expired') return { state: 'expired', subscription };
+        // nothing_landed: still pending, it may land. Others: read references/reasons.md, keep a default.
+        return { state: 'not-landed', subscription, reasonCode, reason: reason ?? null };
     } catch (error) {
         // A refusal (terms_expired, transaction_expired, ...) is a plain MesubError: left to the caller.
         if (!(error instanceof MesubSubmitError)) throw error;
