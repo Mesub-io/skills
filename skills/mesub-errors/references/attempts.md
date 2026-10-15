@@ -35,7 +35,9 @@ Null on a `paid` attempt, a short stable string in snake case on every other.
 |---|---|---|---|
 | `insufficient_balance` | `rejected` | The wallet holds less than the period owes, or has no token account | The customer adds funds |
 | `token_account_reassigned` | `rejected` | The wallet's token account now belongs to someone else | Adding funds does not fix it |
-| `program_<code>` | `rejected` | The program refused the transfer. `<code>` is its error number | `program_4`: the wallet no longer lets Mesub charge it. `program_103`, `program_136`: the wallet closed its authorisation. Adding funds fixes neither |
+| `token_account_frozen` | `rejected` | The wallet's own token account is frozen | Adding funds does not fix it |
+| `authority_closed` | `rejected` | The wallet closed its authorisation for good, found before sending. The subscription stops | Nothing brings it back: the customer subscribes again |
+| `program_<code>` | `rejected` | The program refused the transfer for a reason of the wallet's. `<code>` is its error number: 1, 4, 103, 136 or 508 | `program_1`: the wallet holds, or approved, less than the period owes. `program_4`: the wallet no longer lets Mesub charge it. `program_103`, `program_136`: the wallet closed its authorisation for good, and the subscription stops. `program_508`: cancelled on chain. Adding funds fixes only `program_1` |
 | `subscription_cancelled` or `cancelled` | `skipped` | Cancelled on chain, and the period already paid is over | Nothing: it ended as asked |
 | `delegation_gone` or `closed_elsewhere` | `skipped` | The subscription no longer exists on chain. It ends, `authority_closed` | Nothing |
 
@@ -48,7 +50,9 @@ Null on a `paid` attempt, a short stable string in snake case on every other.
 | `plan_ended` | `skipped` | The plan's end date has passed. It ends, `plan_ended` | Same |
 | `receiver_not_allowed` | `blocked` | The plan's receiver is not among the destinations it allows | The user fixes the plan's receiver in the dashboard |
 | `receiver_account_missing` | `blocked` | Neither the receiver nor the user's wallet has an account for that token | The user opens one |
+| `receiver_account_frozen` | `blocked` | The account that receives the payments is frozen | The user checks the receiving account in the dashboard |
 | `puller_not_allowed` | `blocked` | Mesub's puller was taken off the plan | The user puts Mesub's puller back on the plan |
+| `mint_gone` | `blocked` | The plan's token no longer exists on chain, read twice | The user checks the plan's token in the dashboard |
 | `program_130`, `program_501`, `program_506`, `program_516`, `program_519` | `blocked` | One of the changes above, made while the charge was on its way | As above |
 
 ### Mesub or the network
@@ -59,15 +63,14 @@ Null on a `paid` attempt, a short stable string in snake case on every other.
 | `period_missed` | `skipped` | A whole period went by before Mesub charged it. It is never collected | Nothing |
 | `terms_missing` | `blocked` | No terms were signed through Mesub. Never charged, and not tried again | Nothing is charged on it. A subscription made with `create` and `submit` carries its terms |
 | `puller_missing` | `blocked` | Mesub's own record of the plan is incomplete | Not the app's to fix: report it to Mesub |
-| `mint_gone` | `blocked` | The token could not be read | Wait: Mesub tries again |
 | `gone_unconfirmed` | `blocked` | The plan or the subscription read as gone once. Mesub reads it again | Wait |
 | `send_unconfirmed` | `blocked` | A transfer is being sent, or its send was cut short | Wait |
 | `landing_unknown` | `blocked` | An earlier transfer may have landed. Mesub waits for the chain to say | Wait: a `paid` attempt is recorded if it landed |
-| `program_400` | `blocked` | The program says the period is charged already: its clock is behind | Wait |
+| `program_<code>`, any other number | `blocked` | The program refused for a reason that is not the wallet's. `program_400`: its clock is behind and it holds the period as charged. `program_17`: a token account froze after Mesub read it. A `program_103` or `program_136` that Mesub's own read does not confirm. Or a number Mesub has not placed | Wait |
 | `solana_<code>` | `blocked` | Any other error of the chain, with its number | Wait |
 | `transport` | `blocked` | The network did not answer, or not in time | Wait |
 
-`program_<code>` is the one reason that comes under two outcomes: `blocked` for the six numbers named above, `rejected` for every other. Both lists grow, and `<code>` is any number the chain answers: keep a default branch on `reason` and on `outcome`.
+`program_<code>` is the one reason that comes under two outcomes: `rejected` for the wallet's five numbers (1, 4, 103, 136, 508), `blocked` for every other. A `rejected` one is the customer's doing, a `blocked` one never is. `<code>` is any number the chain answers: keep a default branch on `reason` and on `outcome`.
 
 `assets/read-attempt.ts` is this table as a function: whose doing an attempt is, whether it spent a retry, whether Mesub tries again.
 

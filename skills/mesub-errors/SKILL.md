@@ -57,7 +57,7 @@ try {
 
 ### Rules
 
-- **Branch on `apiCode`, then on `code`. Never on `message`.** Why: a code is never renamed; a message is a sentence for a person and may be reworded. The `reason` of a submit or a confirm is such a sentence too: test that it is set, then read `subscription.status`.
+- **Branch on `apiCode`, then on `code`. Never on `message`.** Why: codes are only added, never renamed (save two, before the first integrator: `plan_deleted` becomes `plan_removed`, `plan_rebuilt` becomes `plan_replaced`); a message is a sentence for a person and may be reworded. The `reason` of a submit or a confirm is such a sentence too: test that it is set, then read `subscription.status`.
 - **Always keep a default branch**, on codes, statuses, outcomes and reasons. Why: new ones are added. Handle an unknown one by `retryable` and the status.
 - **`retryable` means later, not now.** The SDK already retried what is safe. Do not wrap a call in a loop. Why: a loop feeds a rate limit, and a wait can be most of an hour (`pending_cap_reached`): tell the customer, do not hold the request.
 - **A 409 is Mesub's word on the state, never a race to retry.** Read the subscription back and decide from it.
