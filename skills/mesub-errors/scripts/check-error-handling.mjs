@@ -3,8 +3,9 @@
 //
 // Reads the project in the current directory and reports the ways its handling
 // of Mesub's errors is silently broken: a code that can never match, a reason
-// spelt the way another field spells it, a branch on a message, a wait counted
-// in the wrong unit. Run it from the project root.
+// spelt the way another field spells it or an older Mesub spelt it, a branch on
+// a message or on the sentence of a `reason`, a wait counted in the wrong unit.
+// Run it from the project root.
 //
 // It only reads the files that import @mesub/node or @mesub/react. No write, no
 // install, no network. It prints file names, line numbers and the names of
@@ -42,11 +43,11 @@ const SDK_CODES = new Set([
 ])
 // Mesub's own codes: what `error.apiCode` can be. See references/api-error-codes.md.
 const API_CODES = new Set([
-  'invalid_request', 'missing_api_key', 'invalid_api_key', 'forbidden', 'not_found', 'conflict',
-  'payload_too_large', 'rate_limited', 'internal_error', 'unavailable', 'network_unavailable',
-  'plan_not_found', 'plan_not_on_chain', 'plan_deleted', 'plan_sunset', 'plan_ended', 'plan_rebuilt',
-  'plan_removed', 'plan_replaced',
-  'plan_mismatch', 'receiver_account_missing', 'mint_not_on_chain',
+  'invalid_request', 'unsupported_version', 'missing_api_key', 'invalid_api_key', 'forbidden',
+  'not_found', 'conflict', 'payload_too_large', 'rate_limited', 'internal_error', 'unavailable',
+  'network_unavailable',
+  'plan_not_found', 'plan_not_on_chain', 'plan_sunset', 'plan_ended', 'plan_removed', 'plan_replaced',
+  'plan_mismatch', 'receiver_account_missing', 'receiver_account_frozen', 'mint_not_on_chain',
   'already_subscribed', 'insufficient_balance', 'seat_cap_reached', 'pending_cap_reached',
   'wallet_mismatch', 'payment_pending', 'subscription_cancelled', 'subscription_stopped',
   'subscription_terms_changed', 'comeback_in_flight', 'comeback_landed', 'comeback_period_rolling',
@@ -55,23 +56,41 @@ const API_CODES = new Set([
   'not_awaiting_signature', 'subscription_changed',
   'subscription_not_found', 'subscription_not_active', 'subscription_not_cancelled',
   'subscription_ended', 'close_too_early', 'subscription_not_on_chain', 'nothing_to_confirm',
-  'retry_deadline_passed', 'end_date_too_soon', 'end_date_too_far', 'end_date_stale',
+  'retry_deadline_passed', 'retry_too_soon', 'retries_spent', 'retry_cannot_succeed',
+  'subscription_not_late', 'subscription_paused', 'pull_running', 'event_not_found',
+  'end_date_too_soon', 'end_date_too_far', 'end_date_stale',
 ])
+// Two codes renamed before the first integrator: Mesub no longer answers the old names.
+const RENAMED_CODES = { plan_deleted: 'plan_removed', plan_rebuilt: 'plan_replaced' }
 const LATE_REASONS = new Set(['insufficient_balance', 'approval_revoked', 'authority_closed'])
 const END_REASONS = new Set([
-  'cancelled', 'plan_removed', 'plan_replaced', 'plan_ended', 'authority_closed', 'closed',
+  'cancelled', 'plan_removed', 'plan_replaced', 'plan_ended', 'closed_elsewhere', 'closed',
 ])
+// An end_reason renamed: the subscription account closed outside Mesub was `authority_closed`.
+const RENAMED_END_REASONS = { authority_closed: 'closed_elsewhere' }
+const STOP_REASONS = new Set(['out_of_retries', 'retry_deadline_passed', 'authority_closed'])
 const OUTCOMES = new Set(['paid', 'skipped', 'rejected', 'blocked'])
-// An attempt's reasons, in snake case, and the three a guard gives for a refusal. The four
-// Mesub is renaming are listed under both names: plan_removed, plan_replaced, closed_elsewhere,
-// cancelled.
+// An attempt's reasons, in snake case, and the three a guard gives for a refusal.
 const REASONS = new Set([
-  'insufficient_balance', 'token_account_reassigned', 'subscription_cancelled', 'cancelled',
-  'delegation_gone', 'closed_elsewhere', 'plan_gone', 'plan_removed', 'plan_replaced', 'plan_ended',
-  'receiver_not_allowed', 'receiver_account_missing', 'puller_not_allowed', 'period_already_paid',
-  'period_missed', 'terms_missing', 'puller_missing', 'mint_gone', 'gone_unconfirmed',
-  'send_unconfirmed', 'landing_unknown', 'transport',
+  'insufficient_balance', 'token_account_reassigned', 'token_account_frozen', 'authority_closed',
+  'cancelled', 'closed_elsewhere', 'plan_removed', 'plan_replaced', 'plan_ended',
+  'receiver_not_allowed', 'receiver_account_missing', 'receiver_account_frozen', 'puller_not_allowed',
+  'period_already_paid', 'period_missed', 'terms_missing', 'puller_missing', 'mint_gone',
+  'gone_unconfirmed', 'send_unconfirmed', 'landing_unknown', 'transport', 'retry_deadline_passed',
   'unauthenticated', 'no_access', 'unavailable',
+])
+// An attempt's reasons as Mesub named them before it gave each fact one word.
+const RENAMED_REASONS = {
+  plan_gone: 'plan_removed', delegation_gone: 'closed_elsewhere', subscription_cancelled: 'cancelled',
+  grace_ended: 'retry_deadline_passed',
+}
+// The reason_code of a submit or a confirm: an open family, these known today.
+const REASON_CODES = new Set([
+  'not_our_transaction', 'transaction_failed', 'transaction_expired', 'nothing_landed',
+  'subscription_not_on_chain', 'subscription_mismatch', 'dev_not_running',
+  'earlier_subscription_running', 'subscription_remade', 'cancellation_not_landed',
+  'resume_not_landed', 'close_not_landed', 'subscription_changed', 'subscription_not_cancelled',
+  'cancelled_subscription_remade', 'resume_unverified',
 ])
 
 const root = process.cwd()
@@ -116,7 +135,7 @@ function read(path) {
 }
 
 const USES_MESUB = /(from\s+|require\(\s*|import\(\s*)['"]@mesub\/(node|react)/
-const FIELDS = 'apiCode|code|late_reason|end_reason|outcome|reason|status'
+const FIELDS = 'apiCode|code|late_reason|end_reason|stop_reason|outcome|reason_code|reason|status'
 // `x.apiCode === 'literal'`, either way round.
 const COMPARED = new RegExp(
   `(?:\\b(${FIELDS})\\s*(?:===|!==|==|!=)\\s*(['"\`])([^'"\`]*)\\2)|(?:(['"\`])([^'"\`]*)\\4\\s*(?:===|!==|==|!=)\\s*[\\w.?]*?\\b(${FIELDS})\\b(?!\\s*\\())`,
@@ -141,6 +160,10 @@ function judge(field, value, file, line, raw) {
   if (value === '') return
   if (field === 'apiCode') {
     if (API_CODES.has(value)) return
+    if (Object.hasOwn(RENAMED_CODES, value)) {
+      find('WARN', 'codes', file, line, `apiCode '${value}' was renamed '${RENAMED_CODES[value]}' and Mesub no longer answers it: compare with '${RENAMED_CODES[value]}'`)
+      return
+    }
     find('WARN', 'codes', file, line, `apiCode is compared with '${value}', which is no code this skill knows: a typo never matches, a newer code needs the installed package's word`)
   } else if (field === 'code') {
     // `code` is every library's word: only Mesub's own codes are judged.
@@ -153,15 +176,34 @@ function judge(field, value, file, line, raw) {
     find('FAIL', 'reasons', file, line, `late_reason is never '${value}'${hint}`)
   } else if (field === 'end_reason') {
     if (END_REASONS.has(value)) return
-    const hint = END_REASONS.has(snake(value)) ? `: it is spelt '${snake(value)}', with underscores` : ''
+    const renamed = RENAMED_END_REASONS[snake(value)]
+    const hint = renamed
+      ? `: a subscription account closed outside Mesub ends with '${renamed}' now (authority_closed is a late_reason and a stop_reason)`
+      : END_REASONS.has(snake(value)) ? `: it is spelt '${snake(value)}', with underscores` : ''
     find('FAIL', 'reasons', file, line, `end_reason is never '${value}'${hint}`)
+  } else if (field === 'stop_reason') {
+    if (STOP_REASONS.has(value)) return
+    const now = RENAMED_REASONS[snake(value)] ?? snake(value)
+    const hint = STOP_REASONS.has(now) ? `: it is spelt '${now}'` : ': it is out_of_retries, retry_deadline_passed or authority_closed'
+    find('FAIL', 'reasons', file, line, `stop_reason is never '${value}'${hint}`)
+  } else if (field === 'reason_code') {
+    if (REASON_CODES.has(value)) return
+    if (REASON_CODES.has(snake(value))) {
+      find('FAIL', 'reasons', file, line, `reason_code is never '${value}': it is spelt '${snake(value)}', with underscores`)
+    } else {
+      find('WARN', 'reasons', file, line, `reason_code is compared with '${value}', which is no code this skill knows: a typo never matches, a newer code needs the installed package's word`)
+    }
   } else if (field === 'outcome') {
     if (OUTCOMES.has(value)) return
     find('WARN', 'reasons', file, line, `outcome is compared with '${value}': an attempt's outcome is paid, skipped, rejected or blocked`)
   } else if (field === 'reason') {
     if (REASONS.has(value) || /^(program|solana)_\d+$/.test(value)) return
     if (/\s/.test(value)) {
-      find('WARN', 'reasons', file, line, 'reason is compared with a sentence: the reason of a submit or a confirm is reworded, test that it is set and read the subscription')
+      find('WARN', 'reasons', file, line, 'reason is compared with a sentence: the reason of a submit or a confirm is reworded, branch on its reason_code and read the subscription')
+    } else if (REASON_CODES.has(snake(value))) {
+      find('WARN', 'reasons', file, line, `'${snake(value)}' is a reason_code: the reason of a submit or a confirm is a sentence, compare reason_code`)
+    } else if (Object.hasOwn(RENAMED_REASONS, served(value))) {
+      find('WARN', 'reasons', file, line, `an attempt's reason reads '${RENAMED_REASONS[served(value)]}' now, not '${value}' (the word an older Mesub used): compare with both while old rows may be read`)
     } else if (value !== served(value) && (REASONS.has(served(value)) || /^(program|solana)_\d+$/.test(served(value)))) {
       find('WARN', 'reasons', file, line, `an attempt's reason is spelt '${served(value)}' now, not '${value}' (an older Mesub's spelling): compare after turning - and : into _`)
     }
@@ -211,7 +253,7 @@ for (const file of files) {
 
 const CHECKS = [
   ['codes', 'every code compared with code or apiCode is one that field can hold'],
-  ['reasons', 'every outcome, reason, late_reason and end_reason is spelt as Mesub serves it'],
+  ['reasons', 'every outcome, reason, reason_code, late_reason, stop_reason and end_reason is spelt as Mesub serves it'],
   ['message', 'no branch on an error message'],
   ['wait', 'retryAfter is read in milliseconds'],
 ]
