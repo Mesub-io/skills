@@ -26,7 +26,7 @@ What `fields` may set:
 | `id` | a new `msg_fake_...` each time | The `webhook-id` header, which the SDK gives the handler as `event.id` |
 | `timestamp` | now | The `webhook-timestamp` header, in Unix seconds |
 
-Default details: `subscription.renewed` carries `amount` `"9990000"`, `mint`, `period_start`, `period_end`, `signature`. `subscription.payment_failed` carries `reason` `insufficient-balance`, `amount`, `mint`, the period, `next_retry_at` a day later, `retry_deadline` null, `retries_left` 1, `retry_mode` `scheduled`. `subscription.stopped` carries `reason`. The others carry an empty detail.
+Default details: `subscription.renewed` carries `amount` `"9990000"`, `mint`, `period_start`, `period_end`, `signature`. `subscription.payment_failed` carries `reason` `insufficient_balance`, `amount`, `mint`, the period, `next_retry_at` a day later, `retry_deadline` null, `retries_left` 1, `retry_mode` `scheduled`. `subscription.stopped` carries `reason`. The others carry an empty detail.
 
 **Set what the handler reads.** The default subscription names no customer: a handler that looks the user up by `event.data.external_id` needs `subscription: { external_id }` in the test.
 

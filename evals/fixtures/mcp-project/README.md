@@ -27,8 +27,8 @@ Named `Acme Reader`, on the Free tier. What that tier means for the prompts:
 
 | Customer | Named by | Plan | State |
 |---|---|---|---|
-| ada | `external_id` `ada`, email `ada@example.com` | `pro` | Late (`UNPAID`), `late_reason` `APPROVAL_REVOKED`, two failed charges with the reason `program:4`, no access |
-| ben | `external_id` `ben` | `pro` | Late, `late_reason` `INSUFFICIENT_BALANCE`, one failed charge with the reason `insufficient-balance`, no access. One retry by hand was made three minutes ago: `retry_available_at` is seven minutes ahead, and `retry_charge` answers the refusal "Try again in 7 minutes." |
+| ada | `external_id` `ada`, email `ada@example.com` | `pro` | Late (`UNPAID`), `late_reason` `APPROVAL_REVOKED`, two failed charges with the reason `program_4`, no access |
+| ben | `external_id` `ben` | `pro` | Late, `late_reason` `INSUFFICIENT_BALANCE`, one failed charge with the reason `insufficient_balance`, no access. One retry by hand was made three minutes ago: `retry_available_at` is seven minutes ahead, and `retry_charge` answers the refusal "Try again in 7 minutes." |
 | cleo | `external_id` `cleo` | `pro` | Active, charged in three days, `renewal_issue` `balance` |
 
 Over the last seven days: five charges paid, three failed (two `REJECTED` on ada, one on ben), none won back.

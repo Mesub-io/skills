@@ -45,6 +45,7 @@ const API_CODES = new Set([
   'invalid_request', 'missing_api_key', 'invalid_api_key', 'forbidden', 'not_found', 'conflict',
   'payload_too_large', 'rate_limited', 'internal_error', 'unavailable', 'network_unavailable',
   'plan_not_found', 'plan_not_on_chain', 'plan_deleted', 'plan_sunset', 'plan_ended', 'plan_rebuilt',
+  'plan_removed', 'plan_replaced',
   'plan_mismatch', 'receiver_account_missing', 'mint_not_on_chain',
   'already_subscribed', 'insufficient_balance', 'seat_cap_reached', 'pending_cap_reached',
   'wallet_mismatch', 'payment_pending', 'subscription_cancelled', 'subscription_stopped',
@@ -61,12 +62,15 @@ const END_REASONS = new Set([
   'cancelled', 'plan_removed', 'plan_replaced', 'plan_ended', 'authority_closed', 'closed',
 ])
 const OUTCOMES = new Set(['paid', 'skipped', 'rejected', 'blocked'])
-// An attempt's reasons, hyphenated, and the three a guard gives for a refusal.
+// An attempt's reasons, in snake case, and the three a guard gives for a refusal. The four
+// Mesub is renaming are listed under both names: plan_removed, plan_replaced, closed_elsewhere,
+// cancelled.
 const REASONS = new Set([
-  'insufficient-balance', 'token-account-reassigned', 'subscription-cancelled', 'delegation-gone',
-  'plan-gone', 'plan-replaced', 'plan-ended', 'receiver-not-allowed', 'receiver-account-missing',
-  'puller-not-allowed', 'period-already-paid', 'period-missed', 'terms-missing', 'puller-missing',
-  'mint-gone', 'gone-unconfirmed', 'send-unconfirmed', 'landing-unknown', 'transport',
+  'insufficient_balance', 'token_account_reassigned', 'subscription_cancelled', 'cancelled',
+  'delegation_gone', 'closed_elsewhere', 'plan_gone', 'plan_removed', 'plan_replaced', 'plan_ended',
+  'receiver_not_allowed', 'receiver_account_missing', 'puller_not_allowed', 'period_already_paid',
+  'period_missed', 'terms_missing', 'puller_missing', 'mint_gone', 'gone_unconfirmed',
+  'send_unconfirmed', 'landing_unknown', 'transport',
   'unauthenticated', 'no_access', 'unavailable',
 ])
 
@@ -128,8 +132,9 @@ const findings = []
 const find = (level, check, file, line, message) =>
   findings.push({ level, check, message: `${shown(file)}:${line}: ${message}` })
 
-const kebab = (value) => value.replace(/_/g, '-')
 const snake = (value) => value.replace(/-/g, '_')
+// An attempt's reason as Mesub serves it now: `insufficient-balance` and `program:4` were the old ones.
+const served = (value) => value.replace(/[-:]/g, '_')
 
 /** One literal a field is compared with: is it one that field can hold? */
 function judge(field, value, file, line, raw) {
@@ -154,11 +159,11 @@ function judge(field, value, file, line, raw) {
     if (OUTCOMES.has(value)) return
     find('WARN', 'reasons', file, line, `outcome is compared with '${value}': an attempt's outcome is paid, skipped, rejected or blocked`)
   } else if (field === 'reason') {
-    if (REASONS.has(value) || /^(program|solana):/.test(value)) return
+    if (REASONS.has(value) || /^(program|solana)_\d+$/.test(value)) return
     if (/\s/.test(value)) {
       find('WARN', 'reasons', file, line, 'reason is compared with a sentence: the reason of a submit or a confirm is reworded, test that it is set and read the subscription')
-    } else if (REASONS.has(kebab(value)) && value !== kebab(value)) {
-      find('WARN', 'reasons', file, line, `an attempt's reason is spelt '${kebab(value)}', with hyphens, not '${value}'`)
+    } else if (value !== served(value) && (REASONS.has(served(value)) || /^(program|solana)_\d+$/.test(served(value)))) {
+      find('WARN', 'reasons', file, line, `an attempt's reason is spelt '${served(value)}' now, not '${value}' (an older Mesub's spelling): compare after turning - and : into _`)
     }
   } else if (field === 'status' && value === 'canceled') {
     find('WARN', 'reasons', file, line, "status is never 'canceled': Mesub spells it 'cancelled'")

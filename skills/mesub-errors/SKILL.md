@@ -66,7 +66,7 @@ try {
 - **Never answer the browser 401 for Mesub refusing the API key.** Let it throw. Why: the widget reads 401 as "nobody is signed in".
 - **Hand the browser Mesub's `message` only when `apiCode` is set**, a fixed sentence otherwise. Why: the SDK's own messages can name the base URL.
 - **Never log the client, its options or request headers**, and never ask for the API key. Log a `MesubError`'s `status`, `code`, `apiCode` and `message`.
-- **Mind the spellings.** An attempt's `reason` is hyphenated (`insufficient-balance`), `late_reason` and `end_reason` use underscores, the status is `cancelled`. A wrong one never matches and nothing warns.
+- **Mind the spellings.** An attempt's `reason`, `late_reason` and `end_reason` use underscores (`insufficient_balance`, `program_4`), the status is `cancelled`. An older Mesub hyphenates the `reason` (`insufficient-balance`, `program:4`): turn `-` and `:` into `_` before comparing. A wrong one never matches and nothing warns.
 - **Read `late_reason` before telling a customer to top up.** On two of its three values adding funds fixes nothing.
 - **Only a `rejected` attempt counts against the customer.** `blocked` and `skipped` spend no retry.
 - **Before using a field this skill does not show, read it in the installed package** (`node_modules/@mesub/node/README.md` and its types). The packages are early 0.x: never assume a version or write a call from memory.

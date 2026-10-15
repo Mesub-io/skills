@@ -6,7 +6,7 @@ The lookup table. Find the code, read what it means and what to do.
 - **SDK code**: the coarser `error.code` of a `MesubError`. It follows the status: 400 `invalid_request`, 401 `unauthorized`, 403 `forbidden`, 404 `not_found` (`plan_not_found` keeps its own), 409 `conflict`, 429 `rate_limited`, 500 and above `unavailable`, anything else `unexpected`.
 - **Wait**: "yes" means `retryable` is true: the same request, unchanged, may succeed later. Everything else is final until something changes.
 
-New codes are added and none is renamed: an unknown code is handled by its status and its `retryable`, never as a crash.
+New codes are added. None is renamed, save `plan_deleted` and `plan_rebuilt`, which the table gives under both names: an unknown code is handled by its status and its `retryable`, never as a crash.
 
 ## General
 
@@ -30,10 +30,10 @@ New codes are added and none is renamed: an unknown code is handled by its statu
 |---|---|---|---|---|
 | `plan_not_found` | 404 | no | No plan of the project under that slug | Fix the slug, or the key is another project's. A broken integration, never "not subscribed" |
 | `plan_not_on_chain` | 409 | no | The plan was never published: still a draft | The user publishes it in the dashboard |
-| `plan_deleted` | 409 | no | The plan is gone, or was rebuilt since the subscription was signed (resume) | Nothing to resume: the customer subscribes to a plan that exists |
+| `plan_deleted` or `plan_removed` | 409 | no | The plan is gone, or was rebuilt since the subscription was signed (resume). `plan_deleted` is being renamed `plan_removed`: compare with both | Nothing to resume: the customer subscribes to a plan that exists |
 | `plan_sunset` | 409 | no | The plan takes no new subscribers | Stop offering it: show "Subscribe" only when the plan's `available` is true |
 | `plan_ended` | 409 | no | The plan is past its end date. With an API key, the answer of `create` | Stop offering it, as for `plan_sunset`. Its subscriptions ended with it: `end_reason` `plan_ended` in `reasons.md`. The dashboard answers the same code elsewhere: see below |
-| `plan_rebuilt` | 409 | no | Another plan now stands at its address | The user checks the plan in the dashboard |
+| `plan_rebuilt` or `plan_replaced` | 409 | no | Another plan now stands at its address. `plan_rebuilt` is being renamed `plan_replaced`: compare with both | The user checks the plan in the dashboard |
 | `plan_mismatch` | 409 | no | The plan on chain is not the one Mesub recorded | The user checks the plan in the dashboard |
 | `receiver_account_missing` | 409 | no | Nobody the plan pays has an account for its token | The user opens a token account for the receiving wallet |
 | `mint_not_on_chain` | 400 | no | The plan's token does not exist on chain | The user fixes the plan's token |
