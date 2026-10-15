@@ -16,9 +16,12 @@
 |---|---|
 | `access` | Whether to let them in. The only field a gate reads. False from the plan's end date on |
 | `status` | Where the subscription stands: see below |
+| `subscription_id` | The subscription this answer is about: the one whose `status`, `access` and dates these are. Hand it to cancel, resume, close or retry without listing the customer's subscriptions first. `null` with `status` `none` |
 | `payment_status` | `paid`, `late` or `none` |
-| `late_reason` | Why an `unpaid` one is late, or `null` |
+| `late_reason` | Why an `unpaid` one is late, and on a `stopped` one the payment it stopped on, or `null` |
+| `stop_reason` | Why a `stopped` one stopped, or `null`: see below |
 | `end_reason` | Why an `ended` one ended, or `null` |
+| `closable`, `closable_from` | Whether the customer can close it on chain now and get its deposit back, and from when if not. Never derive Close from `status` |
 | `blocked_since`, `blocked_reason` | Since when its charges are blocked for a cause that is not the customer's, and whose cause. Both `null` otherwise: see below |
 | `paused` | `true` on a seat parked over the project's limit: nothing is charged, access runs to the end of the paid period |
 | `access_until` | When access ends unless a charge renews it, never later than the plan's end date. `null` while `access` is `false` |
@@ -44,7 +47,7 @@ Dates are ISO 8601 strings.
 | `active` | true, false once its plan has ended, or once a block has outlasted `access_until` | Paid up |
 | `unpaid` | true, **false on the Free tier** and once its plan has ended | A charge missed. A retry is coming, unless the plan ends before it |
 | `cancelled` | true until `access_until` | The customer cancelled. The period already paid still runs |
-| `stopped` | false | The retries ran out. Nothing more is charged |
+| `stopped` | false | Nothing more is charged. `stop_reason` says why |
 | `ended` | false | Over. `end_reason` says why |
 | `failed` | false | What landed on chain is not what Mesub reserved, so it is not billed. Rare |
 | `superseded` | false | Replaced by a newer subscription of the same wallet to the same plan |
@@ -89,9 +92,22 @@ A charge can fail for a cause that is not the customer's. The answer then carrie
 
 Read it before telling a customer to top up.
 
+## Why a subscription stopped
+
+`stop_reason` on a `stopped` one. Keep a default branch: values are added.
+
+| `stop_reason` | What happened | What the customer can do |
+|---|---|---|
+| `out_of_retries` | Every retry of the missed payment failed | Subscribe again |
+| `retry_deadline_passed` | On the Free tier, the last day to pay the missed payment passed | Subscribe again |
+| `authority_closed` | The wallet closed the account that lets Mesub charge it, for good | Not come back on it. Close it now (`closable` is true) to get the deposit back |
+| `null` | Stopped before Mesub recorded why | |
+
+A gate needs none of this: `access` is false. A screen words the 402 from it.
+
 ## Why a subscription ended
 
-`end_reason` on an `ended` one: `cancelled` (the paid period ran out after a cancellation), `plan_ended`, `plan_removed`, `plan_replaced`, `authority_closed` (the wallet closed its authorisation outside Mesub) or `closed` (the customer closed it through Mesub). It may be `null` on an old one.
+`end_reason` on an `ended` one: `cancelled` (the paid period ran out after a cancellation), `plan_ended`, `plan_removed`, `plan_replaced`, `closed_elsewhere` (the subscription account was closed outside Mesub) or `closed` (the customer closed it through Mesub). It may be `null` on an old one. `authority_closed` is no `end_reason` any more: it was the word for `closed_elsewhere`.
 
 ## The words to show
 
