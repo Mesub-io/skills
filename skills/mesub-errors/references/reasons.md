@@ -37,9 +37,9 @@ Never compare `reason`'s text, and read the subscription too:
 | Call | Settled when | With a `reason` |
 |---|---|---|
 | `submit` | `subscription.access` is true (`active`, or `cancelled` if the wallet set an end) | `pending`: nothing landed, it may still (`transaction_expired`: ask a fresh transaction under the same id). `failed`: what landed is not what Mesub reserved. Create again once it is `expired` or `failed` |
-| `confirmCancel` | `reason === undefined`: `cancelled`, and `access_until` says when access ends | Nothing changed. Build a new transaction with `cancel` to try again |
-| `confirmResume` | `reason === undefined`: `active` again | Nothing changed. Build again with `resume` |
-| `confirmClose` | `reason === undefined`: `ended` with `end_reason: 'closed'` | Nothing changed. Build again with `close` |
+| `confirmCancel` | No `reason_code`: `cancelled`, and `access_until` says when access ends | Nothing changed. Build a new transaction with `cancel` to try again |
+| `confirmResume` | No `reason_code`: `active` again | Nothing changed. Build again with `resume` |
+| `confirmClose` | No `reason_code`: `ended` with `end_reason: 'closed'` | Nothing changed. Build again with `close` |
 
 A confirm that timed out changed nothing by itself: send it again with the same signature. A transaction built and never sent changes nothing either.
 

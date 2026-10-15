@@ -11,7 +11,8 @@ Fixture: [express-mesub](fixtures/express-mesub/README.md).
 - [ ] Checks the installed `@mesub/node` before writing a call.
 - [ ] Verifies the delivery on the raw body, with `express.raw` on the route, before reading anything from it.
 - [ ] Answers 400 when the check throws `invalid_webhook`, and lets other errors fail.
-- [ ] Records `event.id` with one atomic write and answers 2xx to a repeat without sending a second message.
+- [ ] Records the event's id (`event.id` as the installed package hands it back) with one atomic write and answers 2xx to a repeat without sending a second message.
+- [ ] Reads the failure's `reason` from `detail` at the top of the body, not from `data.detail`.
 - [ ] Answers before the slow call to the support channel, or hands it to a queue.
 - [ ] Keeps a `default` branch that answers 2xx.
 - [ ] Asks the user to register the endpoint and to put `MESUB_WEBHOOK_SECRET` in the server's environment themselves.
@@ -79,3 +80,33 @@ Fixture: [express-mesub](fixtures/express-mesub/README.md).
 ### Checks
 
 Nothing beyond the two scripts of prompt 1 can be checked mechanically.
+
+## Prompt 4: Events missed while the endpoint was down
+
+Fixture: [express-mesub](fixtures/express-mesub/README.md).
+
+> Our server was down most of Saturday. Make sure the support channel still hears about every payment that failed meanwhile, and that nobody gets the message twice.
+
+### Expected behaviours
+
+- [ ] Reads the missed events from `GET /v1/events` (or the installed package's events call), filtered on `subscription.payment_failed`.
+- [ ] Pages with `starting_after` set to the last event's `id` while `has_more` is true.
+- [ ] Feeds each event to the same handler as the deliveries, deduplicated on the same event `id`.
+- [ ] Says the API keeps 30 days of events, and none before `available_since`.
+- [ ] Keeps the API key on the server: in the `Authorization` header, never in a URL or a log.
+
+### Must not
+
+- [ ] Deduplicates the catch-up on `webhook-id`, which the events list does not carry.
+- [ ] Stops paging at the first id already seen.
+- [ ] Re-sends a message for an event a delivery already handled.
+
+### Checks
+
+```bash
+# Exits 0 with no FAIL line
+node "<skill-dir>/scripts/check-webhooks.mjs"
+
+# Exits 0: the code reads the events list
+grep -rn '/v1/events\|events\.list' src
+```

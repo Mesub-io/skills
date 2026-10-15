@@ -39,10 +39,12 @@ Fixture: [express-mesub](fixtures/express-mesub/README.md).
 - [ ] Keeps a default branch that rethrows.
 - [ ] Treats `retryable` as later: no loop around the call, and `retryAfter` read as milliseconds.
 - [ ] After an unknown outcome on submit, reads the subscription back before creating again.
+- [ ] Branches on the `reason_code` of a submit that returns, and treats `transaction_expired` as a transaction to ask again, not a failed payment.
+- [ ] Logs Mesub's `request_id` with the error.
 
 ### Must not
 
-- [ ] Compares `error.message` or a `reason` to a string.
+- [ ] Compares `error.message` or a `reason` to a string, or branches on `reason` instead of `reason_code`.
 - [ ] Wraps the call in a retry loop.
 - [ ] Answers the browser 401 when Mesub refused the API key.
 - [ ] Logs the client, its options or the request headers.
