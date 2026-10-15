@@ -44,14 +44,14 @@ node --env-file=.env "<skill-dir>/scripts/send-test-delivery.mjs" http://localho
 Pass:
 
 - the three deliveries that are not Mesub's (unsigned, another secret, an hour old) are refused with a 4xx. A 2xx on any of them means anyone can post events: stop and fix it.
-- the delivery signed correctly is answered 2xx. A 500 or a 400 here means the body was parsed before the check, or the server runs with another secret. A 3xx, 401 or 403 means the route is behind the app's login.
+- the delivery signed correctly is answered 2xx. A 500 or a 400 here means the body was parsed before the check, or the server runs with another secret. A 500 whose log names a webhook "this SDK cannot read" is an `@mesub/node` older than the body with `detail` at the top: the package needs updating (`references/events.md`). A 3xx, 401 or 403 means the route is behind the app's login.
 - the same delivery again is answered 2xx.
 
 ## 5. One event, one effect
 
 The script cannot see this. Read the handler, or run it in the project's tests with two deliveries carrying the same id (`references/local-testing.md`):
 
-- the id is recorded by one atomic write, in a store that survives a restart and is shared by every instance;
+- the id is recorded by one atomic write, in a store that survives a restart and is shared by every instance. It is the event's `id` (or what the installed package puts in `event.id`), and a body without one falls back on `webhook-id`;
 - a second delivery with the same id is answered 2xx and does nothing;
 - when the handling throws, the id is released (or the write was in the same transaction), and the answer is a 5xx.
 
@@ -63,8 +63,9 @@ Pass: all three, each shown in the code or by a test. If the store is a stub or 
 - A type the code does not handle is answered 2xx, by a `default` branch.
 - A test delivery (`"test": true`, `sub_test`) has no side effect.
 - No branch grants or revokes access from the event alone.
+- The event's own fields are read from `detail` at the top of the body (with `data.detail` only as the fallback for an older body), and a stop is read from `data.stop_reason`.
 
-Pass: all four, read in the code.
+Pass: all five, read in the code.
 
 ## 7. A real delivery, by the user
 
@@ -90,3 +91,4 @@ Pass: the user confirms step 4. Until then, report the handler as written and ch
 - The files you created or changed, the route's path, and where event ids are stored.
 - Each check above as passed, failed or not run, with the reason for any not run.
 - What the user must still do: checks 7 and, in production, the endpoint, its events and its secret.
+- Whether the app needs to catch up on events missed while the endpoint was down (`GET /v1/events`, 30 days), and whether that was written.

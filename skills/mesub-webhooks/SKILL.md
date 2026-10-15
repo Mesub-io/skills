@@ -1,6 +1,6 @@
 ---
 name: mesub-webhooks
-description: Use this skill when a server must receive Mesub's events and react to a renewal, a missed payment or a cancellation, even if the user just says "tell me when someone stops paying" or "my webhook says bad signature". Covers MESUB_WEBHOOK_SECRET (whsec_), verifyWebhook and mesub.webhooks.verify on the raw body, invalid_webhook, the event types (subscription.renewal_upcoming), deduplication on event.id, retries and order, with @mesub/node.
+description: Use this skill when a server must receive Mesub's events and react to a renewal, a missed payment or a cancellation, even if the user just says "tell me when someone stops paying" or "my webhook says bad signature". Covers MESUB_WEBHOOK_SECRET (whsec_), verifyWebhook and mesub.webhooks.verify on the raw body, invalid_webhook, the event body (id, detail), event types (subscription.renewal_upcoming), deduplication, retries, order, GET /v1/events, with @mesub/node.
 compatibility: Node 22 or later, with @mesub/node installed (check node_modules/@mesub/node/package.json). Express 4 or 5, Next.js App Router or NestJS on Express. A public HTTPS URL for the endpoint.
 license: Apache-2.0
 ---
@@ -9,7 +9,7 @@ license: Apache-2.0
 
 ## Overview
 
-This skill makes an agent write a webhook handler that cannot be forged, does not act twice on one event and survives retries and reordering: the endpoint and its signing secret, the check on the raw body, every event and how Mesub delivers them.
+This skill makes an agent write a webhook handler that cannot be forged, does not act twice on one event and survives retries and reordering: the endpoint, its secret, the check on the raw body, every event, its delivery and catch-up.
 
 ## When to use this skill
 
@@ -46,13 +46,15 @@ This skill makes an agent write a webhook handler that cannot be forged, does no
 - **Trust only the event the check returns.** Never read the request body any other way. Why: an unverified body is whatever a stranger typed, and it can name any subscriber.
 - **Answer 400 on `invalid_webhook` only, and let every other error fail.** A catch-all that answers 200 turns the check off. A `TypeError` is a fault of the server (a parsed body, a missing secret), not a bad delivery.
 - **Never ask for the signing secret in the conversation, never write its value, never log it** nor the `webhook-signature` header. No browser prefix. A secret seen in a chat or a commit is leaked: the user replaces it in the dashboard.
-- **Deduplicate on `event.id`** with one atomic write, and release the id when the handling fails. Why: an event can arrive twice, and an id kept after a failure makes the retry vanish. The id is the `webhook-id` header, not in the body.
+- **Deduplicate on the event's `id`** with one atomic write, released when the handling fails. Why: an event can arrive twice; an id kept after a failure drops the retry. `webhook-id` names a delivery, one per endpoint; the body's `id` is the event's.
 - **Answer a 2xx within 10 seconds, before slow work.** Anything else, a redirect included, is a failure. Mesub retries for about three days, then disables the endpoint.
-- **Do not trust the order.** A retry can land after a newer event. Before granting or revoking, ask `hasAccess`. Do not keep "is subscribed" from events: a cancellation reaching its end sends no event at all, and a plan's end date cuts access minutes before `subscription.ended`.
+- **Do not trust the order.** A retry can land after a newer event. Before granting or revoking, ask `hasAccess`. Do not keep "is subscribed" from events: a cancellation reaching its end sends no event at all.
+- **`detail` sits at the top of the body, not in `data`.** An older `@mesub/node` throws `unexpected` on it: the package needs updating. `references/events.md`.
+- **Catch up with `GET /v1/events`** after an outage or a disabled endpoint: the same bodies, 30 days. `references/delivery.md`.
 - **Keep a `default` branch that acknowledges.** Mesub may add a type, and a 500 on an unknown type ends with a disabled endpoint.
 - **Ignore test deliveries** (`"test": true`, subscription `sub_test`) before any side effect.
-- **Leave the route out of the app's login, CSRF check and redirects.** Mesub sends no session.
-- **`subscription.renewal_upcoming` is a reading, not a promise**, is never sent for the last period of a plan with an end date, and an older copy's types do not name it: `references/events.md` before writing its branch.
+- **Keep the route out of the app's login, CSRF check and redirects.** Mesub has no session.
+- **`subscription.renewal_upcoming` is a reading, not a promise**, never sent for a plan's last period: `references/events.md` before its branch.
 
 ### The checks
 
@@ -76,8 +78,8 @@ For a task outside this skill, find its owner in `references/kit-directory.md` (
 
 ## References
 
-- `references/events.md`: every event type, the event object, each detail, `subscription.renewal_upcoming` and test deliveries.
-- `references/delivery.md`: what counts as received, retries, the disabled endpoint, deduplication, order.
+- `references/events.md`: the event body, event id and `webhook-id`, every type, each detail, `stop_reason`, test deliveries.
+- `references/delivery.md`: what counts as received, retries, deduplication, order, catching up with `GET /v1/events`.
 - `references/frameworks.md`: the raw body on Express, Next.js and NestJS, the two ways to call the check, what it throws.
 - `references/local-testing.md`: signed deliveries in tests, the local script, a tunnel and a test from the dashboard.
 - `references/docs.md`: the docs pages behind this skill.

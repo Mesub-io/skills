@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Usage: node --env-file=.env "<skill-dir>/scripts/send-test-delivery.mjs" <url> [--help]
+// Usage: node --env-file=.env "<skill-dir>/scripts/send-test-delivery.mjs" <url> [--network <cluster>] [--help]
 //
 // Posts five made-up deliveries to a webhook handler running on THIS machine
 // and reports how it answers: one unsigned, one signed with another secret,
@@ -9,13 +9,13 @@
 // It reads MESUB_WEBHOOK_SECRET from the environment to sign, the way Mesub
 // does, and never shows it. It writes no file. Every delivery is a `test`
 // event with "test": true and the subscription sub_test, which a handler
-// must ignore.
+// must ignore, in the body Mesub sends since api_version 2026-10-02.
 //
 // Exit 0: no FAIL. Exit 1: at least one FAIL. Exit 2: arguments not understood,
 // no secret, or the server cannot be reached.
 import { createHmac, randomBytes, randomUUID } from 'node:crypto'
 
-const HELP = `Usage: node --env-file=.env "<skill-dir>/scripts/send-test-delivery.mjs" <url> [--help]
+const HELP = `Usage: node --env-file=.env "<skill-dir>/scripts/send-test-delivery.mjs" <url> [--network <cluster>] [--help]
 
 Posts five made-up Mesub deliveries to a handler on this machine and reports
 how it answers. <url> is the handler's, on localhost:
@@ -25,7 +25,9 @@ It signs with MESUB_WEBHOOK_SECRET, read from the environment and never shown:
 load the file the server itself reads with --env-file, as above.
 Each delivery is a "test" event about the subscription sub_test.
 
-  --help          show this text
+  --network <cluster>  the body's "network": the Solana cluster the project
+                       runs on, as Solana names it. Left out, the body has none.
+  --help               show this text
 
 Each line is PASS, FAIL or WARN. Exit 0 when nothing FAILs, 1 otherwise.`
 
@@ -37,6 +39,13 @@ if (args.includes('--help') || args.includes('-h')) {
 const stop = (message) => {
   process.stderr.write(`${message}\n\n${HELP}\n`)
   process.exit(2)
+}
+let network = null
+const at = args.indexOf('--network')
+if (at !== -1) {
+  network = args[at + 1]
+  if (!network || network.startsWith('-')) stop('--network needs a value.')
+  args.splice(at, 2)
 }
 if (args.length !== 1 || args[0].startsWith('-')) stop(args.length === 0 ? 'Missing the handler URL.' : `Unknown argument: ${args.find((arg) => arg.startsWith('-')) ?? args[1]}`)
 
@@ -56,18 +65,26 @@ if (!secret.startsWith('whsec_')) stop('MESUB_WEBHOOK_SECRET does not start with
 
 // What the dashboard's "Send test" posts, spaced the way no JSON writer would
 // write it again: a handler that parses then serializes fails the signature.
+// `detail` sits at the top of the body, beside `data`, not inside it.
 const body = JSON.stringify(
   {
+    id: 'evt_test',
+    object: 'event',
     type: 'test',
     created_at: new Date().toISOString(),
+    ...(network === null ? {} : { network }),
+    api_version: '2026-10-02',
     data: {
       id: 'sub_test',
       status: 'active',
       paused: false,
       end_reason: null,
       late_reason: null,
+      stop_reason: null,
       access: true,
       payment_status: 'paid',
+      blocked_since: null,
+      blocked_reason: null,
       plan: 'pro',
       wallet: '11111111111111111111111111111111',
       email: 'subscriber@example.com',
@@ -80,10 +97,12 @@ const body = JSON.stringify(
       next_retry_number: null,
       retries_allowed: null,
       access_until: '2026-01-31T00:00:00.000Z',
+      closable: false,
+      closable_from: null,
       created_at: '2026-01-01T00:00:00.000Z',
       confirmed_at: '2026-01-01T00:00:00.000Z',
-      detail: {},
     },
+    detail: {},
     test: true,
   },
   null,
@@ -145,7 +164,7 @@ try {
   } else if (first.status === 404 || first.status === 405) {
     report('FAIL', `signed correctly: answered ${first.status}. No POST route at ${url.pathname}`)
   } else {
-    report('FAIL', `signed correctly: answered ${first.status}. The body was parsed before the check, or the server runs with another signing secret than this environment`)
+    report('FAIL', `signed correctly: answered ${first.status}. The body was parsed before the check, the server runs with another signing secret than this environment, or the installed @mesub/node predates the body with detail at the top (its log says it cannot read the webhook)`)
   }
 
   if (ok(first.status)) {
@@ -159,6 +178,7 @@ try {
   process.exit(2)
 }
 
+if (network === null) report('WARN', 'the body carried no "network": pass --network with the project\'s cluster if the handler or the package reads it')
 for (const { level, message } of results) process.stdout.write(`${level.padEnd(4)}  ${message}\n`)
 const count = (level) => results.filter((result) => result.level === level).length
 process.stdout.write(`\n${count('PASS')} passed, ${count('FAIL')} failed, ${count('WARN')} to look at\n`)

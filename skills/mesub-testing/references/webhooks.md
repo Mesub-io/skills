@@ -21,12 +21,14 @@ What `fields` may set:
 | Field | Default | What it is |
 |---|---|---|
 | `subscription` | active, paid, on `pro`, a made-up wallet, `external_id` and `email` null, id `sub_fake_1` and up | Any field of the subscription the event carries (`event.data`) |
-| `detail` | a plausible one for the type | `event.data.detail` |
+| `detail` | a plausible one for the type | The event's own fields: at the top of the body in Mesub's deliveries since `api_version` `2026-10-02`, under `data` in an older package's fake |
 | `created_at` | now | When the event happened |
-| `id` | a new `msg_fake_...` each time | The `webhook-id` header, which the SDK gives the handler as `event.id` |
+| `id` | a new `msg_fake_...` each time | The `webhook-id` header, the delivery's id. What `event.id` holds after verification depends on the installed package: see below |
 | `timestamp` | now | The `webhook-timestamp` header, in Unix seconds |
 
 Default details: `subscription.renewed` carries `amount` `"9990000"`, `mint`, `period_start`, `period_end`, `signature`. `subscription.payment_failed` carries `reason` `insufficient_balance`, `amount`, `mint`, the period, `next_retry_at` a day later, `retry_deadline` null, `retries_left` 1, `retry_mode` `scheduled`. `subscription.stopped` carries `reason`. The others carry an empty detail.
+
+**Which body the fake builds follows the installed package.** Mesub's deliveries carry `{ id, object, type, created_at, network, api_version, data, detail }`: `id` is the event's (the `webhook-id` header names the delivery), and `detail` sits at the top, not in `data`. A copy of `@mesub/node` older than that body builds `{ type, created_at, data }` with `detail` inside `data`, gives the handler the `webhook-id` header as `event.id`, and cannot read a real delivery of today. Read `node_modules/@mesub/node/dist` (the `testing` and `webhooks` types) before writing a test that reads `detail` or `event.id`, and say which body the tests cover. With an older package a signed body of today's shape fails verification as a webhook it cannot read: that is the package to update, not the test to bend.
 
 **Set what the handler reads.** The default subscription names no customer: a handler that looks the user up by `event.data.external_id` needs `subscription: { external_id }` in the test.
 

@@ -12,7 +12,7 @@ export interface EventStore {
     release(id: string): Promise<void>;
 }
 
-/** `data.detail` of subscription.renewal_upcoming, as the docs give it. */
+/** `detail` of subscription.renewal_upcoming, as the docs give it. */
 export interface RenewalUpcomingDetail {
     can_pay: boolean;
     renewal_issue: 'balance' | 'authority' | null;
@@ -26,11 +26,18 @@ function isTest(event: WebhookEvent): boolean {
     return (event as { test?: unknown }).test === true || event.data.id === 'sub_test';
 }
 
+// The event's own fields: at the top of the body since api_version 2026-10-02, under `data` in a
+// body written before `available_since` and in an older package's types. Read by hand, it works with both.
+function detailOf(event: WebhookEvent): Record<string, unknown> {
+    const detail = (event as { detail?: unknown }).detail ?? (event.data as { detail?: unknown }).detail;
+    return typeof detail === 'object' && detail !== null ? (detail as Record<string, unknown>) : {};
+}
+
 // An older copy of the SDK neither names this event nor checks its detail: read by hand, it works with both.
 function renewalUpcomingOf(event: WebhookEvent): RenewalUpcomingDetail | null {
     if ((event.type as string) !== 'subscription.renewal_upcoming') return null;
 
-    const detail = event.data.detail as Partial<RenewalUpcomingDetail>;
+    const detail = detailOf(event) as Partial<RenewalUpcomingDetail>;
     return typeof detail.can_pay === 'boolean' ? (detail as RenewalUpcomingDetail) : null;
 }
 
@@ -40,7 +47,8 @@ function renewalUpcomingOf(event: WebhookEvent): RenewalUpcomingDetail | null {
  */
 export async function receiveEvent(event: WebhookEvent, store: EventStore): Promise<void> {
     if (isTest(event)) return;
-    // event.id is the webhook-id header, the same on every retry of this delivery.
+    // The same on every retry. The event's id with a package written for the 2026-10-02 body (also
+    // what GET /v1/events serves); the webhook-id header with an older one. See references/delivery.md.
     if (!(await store.claim(event.id))) return;
 
     try {
@@ -67,13 +75,15 @@ async function react(event: WebhookEvent): Promise<void> {
             // The first payment landed. event.data is the subscription.
             break;
         case 'subscription.renewed':
-            // event.data.detail: amount, mint, period_start, period_end, signature
+            // detailOf(event): amount, mint, period_start, period_end, signature
             break;
         case 'subscription.payment_failed':
-            // event.data.detail: reason, retries_left, next_retry_at, retry_mode
+            // detailOf(event): reason, retries_left, next_retry_at, retry_mode
             break;
         case 'subscription.stopped':
-            // Mesub stopped charging. event.data.detail.reason says why.
+            // Mesub stopped charging. Branch on event.data.stop_reason, not on detailOf(event).reason:
+            // 'authority_closed' cannot come back and can be closed now (event.data.closable);
+            // 'out_of_retries' and 'retry_deadline_passed' can subscribe again. Keep a default.
             break;
         case 'subscription.cancelled':
             // Access runs until event.data.access_until: do not cut it now.
@@ -81,7 +91,7 @@ async function react(event: WebhookEvent): Promise<void> {
         case 'subscription.resumed':
             break;
         case 'subscription.ended':
-            // event.data.end_reason says why.
+            // event.data.end_reason says why: 'cancelled', 'closed', 'closed_elsewhere', 'plan_ended', ...
             break;
         case 'subscription.expired':
             break;
