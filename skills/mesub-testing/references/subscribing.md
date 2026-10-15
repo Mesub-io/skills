@@ -8,7 +8,7 @@ How the fake answers `mesub.subscriptions` and what a test can set: for an app t
 const wallet = 'wallet-of-user-42'; // any string: the fake does not check addresses
 
 const subscription = fake.addSubscription({ wallet, plan: 'pro', external_id: 'user_42' });
-fake.setAttempts(subscription.id, [{}, { outcome: 'skipped', reason: 'insufficient-balance' }]);
+fake.setAttempts(subscription.id, [{}, { outcome: 'skipped', reason: 'insufficient_balance' }]);
 ```
 
 - `addSubscription(fields)` needs `wallet` and `plan`. The rest defaults to an active, paid subscription with id `sub_fake_1` and up, `external_id` and `email` null. `retrieve` and `list` then answer it.

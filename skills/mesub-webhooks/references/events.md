@@ -60,7 +60,7 @@ Amounts are strings, in the token's smallest unit: never read them as floats. Da
 
 | Field | What it holds |
 |---|---|
-| `reason` | Why, for example `insufficient-balance` |
+| `reason` | Why, for example `insufficient_balance` (`insufficient-balance` from an older Mesub) |
 | `amount`, `mint` | What was due |
 | `period_start`, `period_end` | The period it was for, null when unknown |
 | `next_retry_at` | When Mesub retries. Null when it will not (the plan ends before the retry, among others), or when retries are by hand |
@@ -68,7 +68,7 @@ Amounts are strings, in the token's smallest unit: never read them as floats. Da
 | `retries_left` | Charges still to come before the subscription stops, the next one included. 0 with `next_retry_at` null when the plan ends before any |
 | `retry_mode` | `scheduled` (Mesub retries), `manual` (you retry by hand) or null once none is left |
 
-`subscription.stopped`: `reason`, for example `insufficient-balance` or `grace-ended`.
+`subscription.stopped`: `reason`, for example `insufficient_balance` or `retry_deadline_passed`. An older Mesub hyphenates the first and says `grace-ended` for the second.
 
 A missed charge does not end access at once: read `data.access` and `data.access_until`, or ask `hasAccess`.
 

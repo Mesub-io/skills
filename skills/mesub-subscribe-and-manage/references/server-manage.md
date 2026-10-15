@@ -79,7 +79,7 @@ Thrown as a `MesubError`. `apiCode` says which. Keep a default branch: codes get
 | `subscription_cancelled` | `cancel`: it was cancelled already |
 | `subscription_not_cancelled` | `resume` or `close`: nothing cancelled it |
 | `subscription_ended` | `resume`: the paid period is over. Subscribe again |
-| `plan_deleted` | `resume`: its plan is gone |
+| `plan_deleted` or `plan_removed` | `resume`: its plan is gone. `plan_deleted` is being renamed `plan_removed`: compare with both |
 | `close_too_early` | `close`: its end has not passed yet |
 | `subscription_not_on_chain` | It is closed already |
 | `nothing_to_confirm` | A confirm before any transaction was built |

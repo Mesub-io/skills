@@ -57,7 +57,7 @@ try {
 
 ### Rules
 
-- **Branch on `apiCode`, then on `code`. Never on `message`.** Why: a code is never renamed; a message is a sentence for a person and may be reworded. The `reason` of a submit or a confirm is such a sentence too: test that it is set, then read `subscription.status`.
+- **Branch on `apiCode`, then on `code`. Never on `message`.** Why: codes are only added, never renamed (save two, before the first integrator: `plan_deleted` becomes `plan_removed`, `plan_rebuilt` becomes `plan_replaced`); a message is a sentence for a person and may be reworded. The `reason` of a submit or a confirm is such a sentence too: test that it is set, then read `subscription.status`.
 - **Always keep a default branch**, on codes, statuses, outcomes and reasons. Why: new ones are added. Handle an unknown one by `retryable` and the status.
 - **`retryable` means later, not now.** The SDK already retried what is safe. Do not wrap a call in a loop. Why: a loop feeds a rate limit, and a wait can be most of an hour (`pending_cap_reached`): tell the customer, do not hold the request.
 - **A 409 is Mesub's word on the state, never a race to retry.** Read the subscription back and decide from it.
@@ -66,7 +66,7 @@ try {
 - **Never answer the browser 401 for Mesub refusing the API key.** Let it throw. Why: the widget reads 401 as "nobody is signed in".
 - **Hand the browser Mesub's `message` only when `apiCode` is set**, a fixed sentence otherwise. Why: the SDK's own messages can name the base URL.
 - **Never log the client, its options or request headers**, and never ask for the API key. Log a `MesubError`'s `status`, `code`, `apiCode` and `message`.
-- **Mind the spellings.** An attempt's `reason` is hyphenated (`insufficient-balance`), `late_reason` and `end_reason` use underscores, the status is `cancelled`. A wrong one never matches and nothing warns.
+- **Mind the spellings.** An attempt's `reason`, `late_reason` and `end_reason` use underscores (`insufficient_balance`, `program_4`), the status is `cancelled`. An older Mesub hyphenates the `reason` (`insufficient-balance`, `program:4`): turn `-` and `:` into `_` before comparing. A wrong one never matches and nothing warns.
 - **Read `late_reason` before telling a customer to top up.** On two of its three values adding funds fixes nothing.
 - **Only a `rejected` attempt counts against the customer.** `blocked` and `skipped` spend no retry.
 - **Before using a field this skill does not show, read it in the installed package** (`node_modules/@mesub/node/README.md` and its types). The packages are early 0.x: never assume a version or write a call from memory.

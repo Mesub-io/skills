@@ -11,43 +11,64 @@ export type AttemptReading = {
     mesubTriesAgain: boolean;
 };
 
-// The program's error numbers that are not the customer's doing.
+// The program's error numbers for a plan the user changed while the charge was on its way.
 const PLAN_CHANGED = new Set(['130', '501', '506', '516', '519']);
 
+// Snake case, the spelling Mesub serves. Each word Mesub is renaming is listed under both names.
 const CUSTOMER = new Set([
-    'insufficient-balance',
-    'token-account-reassigned',
-    'subscription-cancelled',
-    'delegation-gone',
+    'insufficient_balance',
+    'token_account_reassigned',
+    'token_account_frozen',
+    'authority_closed',
+    'subscription_cancelled',
+    'cancelled',
+    'delegation_gone',
+    'closed_elsewhere',
 ]);
 const MERCHANT = new Set([
-    'plan-gone',
-    'plan-replaced',
-    'plan-ended',
-    'receiver-not-allowed',
-    'receiver-account-missing',
-    'puller-not-allowed',
+    'plan_gone',
+    'plan_removed',
+    'plan_replaced',
+    'plan_ended',
+    'receiver_not_allowed',
+    'receiver_account_missing',
+    'receiver_account_frozen',
+    'puller_not_allowed',
+    'mint_gone',
+]);
+const MESUB = new Set([
+    'period_missed',
+    'terms_missing',
+    'puller_missing',
+    'gone_unconfirmed',
+    'send_unconfirmed',
+    'landing_unknown',
+    'transport',
 ]);
 
+// An older Mesub hyphenates (`insufficient-balance`, `program:4`): read it the same.
+const snake = (reason: string) => reason.replace(/[-:]/g, '_');
+
 export function readAttempt(attempt: SubscriptionAttempt): AttemptReading {
-    const { outcome, reason } = attempt;
+    const { outcome } = attempt;
     const outcomes: string = outcome;
+    const reason = attempt.reason === null ? null : snake(attempt.reason);
     const reading = (whose: AttemptReading['whose']): AttemptReading => ({
         whose,
         spendsRetry: outcomes === 'rejected',
-        mesubTriesAgain: outcomes === 'blocked' && reason !== 'terms-missing',
+        mesubTriesAgain: outcomes === 'blocked' && reason !== 'terms_missing',
     });
 
-    if (outcome === 'paid' || reason === 'period-already-paid') return reading('nobody');
+    if (outcome === 'paid' || reason === 'period_already_paid') return reading('nobody');
     if (reason === null) return reading('unknown');
     if (CUSTOMER.has(reason)) return reading('customer');
     if (MERCHANT.has(reason)) return reading('merchant');
+    if (MESUB.has(reason) || reason.startsWith('solana_')) return reading('mesub');
 
-    if (reason.startsWith('program:')) {
-        const code = reason.slice('program:'.length);
-        if (PLAN_CHANGED.has(code)) return reading('merchant');
-        // 400: the program's clock is behind. Every other number is the customer's wallet.
-        return reading(code === '400' ? 'mesub' : 'customer');
+    if (reason.startsWith('program_')) {
+        if (PLAN_CHANGED.has(reason.slice('program_'.length))) return reading('merchant');
+        // Mesub rejects only on the customer's numbers (1, 4, 103, 136, 508). Any other is blocked: Mesub's.
+        return reading(outcomes === 'rejected' ? 'customer' : 'mesub');
     }
 
     // The list grows: an outcome or a reason newer than this file is not guessed at.
