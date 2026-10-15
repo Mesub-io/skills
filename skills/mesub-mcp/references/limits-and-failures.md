@@ -31,7 +31,7 @@ A failed call is a tool error whose text is `Mesub error <code>: <message>`, fol
 | "Not allowed for this project as it stands" | The tier or the state forbids it: a retry policy on a tier that does not retry, a project at its plan limit | The same call gives the same answer. Report it: the way out is in the dashboard |
 | "Refused in the current state, and nothing was changed" | A conflict: a subscriber who is not late, a retry too soon, an endpoint already on that URL, a test still pending, a plan name already taken | Read the current state with the matching read tool, report it, and let the merchant decide |
 | `unavailable`, "Temporary" | Mesub or the chain did not answer in time | `ping` tells an outage from a mistake. **If the call was a change, read the current state before anything else: it may have gone through** |
-| `internal_error`, `unexpected` | The server failed, or the API answered something it does not recognise | Do not repeat a change. Report it with the tool's name |
+| `internal_error`, `unexpected` | The server failed, or the API answered something it does not recognise | Do not repeat a change. Report it with the tool's name, and the `request_id` when the error carries one (`req_` and 24 letters or digits): Mesub support finds the request by it |
 | `result_too_large` | The answer would not fit | Ask for less: a smaller `limit`, a narrower filter |
 
 Codes are added over time. For one this table does not hold, follow the advice sentence, and treat a change as not safe to repeat.
