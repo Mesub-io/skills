@@ -81,7 +81,7 @@ node "<skill-dir>/scripts/check-gates.mjs"
 
 <!-- related:start -->
 <!-- Rendered from catalog.yaml by `pnpm render`. Do not edit. -->
-This skill works alone: never assume another is installed. A task outside it: name its owner, from `references/kit-directory.md`. Owner not installed and not installable: stop and say so. Going on without it is the user's call, keeping its rule:
+This skill works alone: never assume another is installed. A task outside it: name its owner, from `references/kit-directory.md`. Not installed: install it only on the user's yes, else stop and say so. Going on without it is the user's call, keeping its rule:
 
 - `mesub-quickstart`: never ask for the API key; `customer` from the verified session.
 - `mesub-subscribe-and-manage`: the widget subscribes; never hand-make that flow.

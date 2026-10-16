@@ -5,7 +5,8 @@
 // the subscribe and manage part silently broken: a widget with no provider, a
 // manageUrl that is ignored, a slug the routes refuse, the server package in
 // client code, a subscription created and never submitted, a cancellation built
-// and never confirmed. Run it from the project root.
+// and never confirmed, a cancel route the server would do alone, an access flag
+// kept in the browser, a provider with no chain. Run it from the project root.
 //
 // It only reads source files and package manifests. No write, no install, no
 // network. It never opens an env file, so it cannot show a key.
@@ -174,6 +175,11 @@ if (widgetFiles.length === 0) {
     report('PASS', `<MesubProvider> is rendered (${at(providers[0].file, providers[0].index)})`)
     if (providers.length > 1) report('WARN', `${providers.length} <MesubProvider> found: one around the app is enough, and each renders its own window`)
   }
+  // chain: the test network unless set. A plan lives on one network, and the wallet signs for the provider's.
+  for (const { file, index, tag } of providers) {
+    if (/\bchain=/.test(tag)) report('PASS', `${at(file, index)} sets chain: check it is the plans' network`)
+    else if (!/\{\s*\.\.\./.test(tag)) report('WARN', `${at(file, index)} sets no chain, so the wallet signs on the test network: set chain to the network of the plans (their network field) before a real subscription, and ask the user when unsure`)
+  }
 
   // manageUrl: a site path, a full URL or null. Anything else is ignored without a word.
   const managesInPage = sources.some(({ text }) => /<ManageSubscriptions\b|\buseSubscriptions\s*\(/.test(text))
@@ -281,6 +287,23 @@ if (widgetFiles.length === 0) {
   }
 }
 
+// --- Access kept in the browser ---
+// A flag in localStorage, sessionStorage or a cookie written by the page is the visitor's to set.
+const STORAGE = /\b(localStorage|sessionStorage)\s*(?:\.\s*(setItem|getItem)\s*\(|\[)|\bdocument\.cookie\s*=(?!=)/g
+const ACCESS_WORDS = /subscri|premium|\bpro\b|paid|access|unlock|plan|member/i
+let flags = 0
+for (const file of sources) {
+  const widgetFile = /\b(onSubscribed|onChanged|useSubscribe|useSubscriptions)\b|<(SubscribeButton|ManageButton)\b/.test(file.text)
+  for (const match of file.text.matchAll(STORAGE)) {
+    const near = file.text.slice(match.index, match.index + 160)
+    if (!widgetFile && !ACCESS_WORDS.test(near)) continue
+    flags += 1
+    report('FAIL', `${at(file, match.index)} keeps something about access in ${match[1] ?? 'a cookie the page writes'}: the visitor can set it from the console, and it outlives a cancellation or a failed payment. Ask the server again (router.refresh, a refetch) after onSubscribed; the server decides access`)
+    break
+  }
+}
+if (flags === 0) report('PASS', 'no access flag kept in localStorage, sessionStorage or a cookie the page writes')
+
 // --- mesub.subscriptions.* without the widget ---
 const calls = (name) => new RegExp(`\\bsubscriptions\\s*\\??\\.\\s*${name}\\s*\\(`, 'g')
 const first = (name) => {
@@ -354,6 +377,30 @@ if (!created && !submitted && built.length === 0 && !dynamic) {
   }
   if (unchecked === 0) report('PASS', 'every file that acts on a subscription by id also reads whose it is (a reading of the code, not a proof)')
 }
+
+// --- A cancel the server would do alone ---
+// Only the paying wallet can cancel: a route may build the transaction and confirm it, never cancel by itself.
+let alone = 0
+for (const file of sources) {
+  if (isClient(file.text)) continue
+  const nextCancel = /(^|\/)app\/(?:.*\/)?[^/[]*cancel[^/]*\/(?:.*\/)?route\.[cm]?[jt]sx?$/i.test(shown(file.path)) && !/\[\.\.\./.test(shown(file.path))
+  const declared_ = [...file.text.matchAll(/\.(?:post|put|patch|delete|get|all)\s*\(\s*["'`][^"'`]*cancel[^"'`]*["'`]|@(?:Post|Put|Patch|Delete|Get)\s*\(\s*["'`][^"'`]*cancel[^"'`]*["'`]/gi)]
+  const routes = nextCancel ? [{ index: (file.text.match(/export\s+(?:async\s+)?function\s+(?:POST|PUT|PATCH|DELETE|GET)\b|export\s+const\s+(?:POST|PUT|PATCH|DELETE|GET)\b/) ?? { index: 0 }).index }] : declared_
+  for (const route of routes) {
+    const handler = file.text.slice(route.index, route.index + 1500)
+    if (/\btransaction\b|\bconfirmCancel\b|\bbuildAction\b|\bconfirmAction\b/.test(handler)) continue
+    alone += 1
+    report('FAIL', `${at(file, route.index)} is a cancel route that hands no transaction to the wallet: no server call cancels alone, only the subscriber's wallet can sign it. Offer the widget's ManageButton, or build with subscriptions.cancel, return its transaction for the wallet to sign and send, then confirmCancel`)
+  }
+  for (const match of file.text.matchAll(calls('cancel'))) {
+    const before = file.text.slice(Math.max(0, match.index - 60), match.index)
+    if (/(?:return|=>)\s*(?:await\s+)?[\w.?]*$|\(\s*(?:await\s+)?[\w.?]*$/.test(before)) continue
+    if (/\btransaction\b/.test(file.text.slice(match.index, match.index + 600))) continue
+    alone += 1
+    report('FAIL', `${at(file, match.index)} builds a cancellation and drops its transaction: nothing is cancelled until the paying wallet signs and sends it. Return the transaction to the page, then confirmCancel`)
+  }
+}
+if (alone === 0) report('PASS', 'no server route claims to cancel without the wallet')
 
 if (files.length >= MAX_FILES) report('WARN', `stopped reading at ${MAX_FILES} files: run this from the app's own folder for a full check`)
 

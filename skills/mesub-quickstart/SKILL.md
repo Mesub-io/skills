@@ -54,7 +54,7 @@ Copy an asset, then adapt the lines marked `ADAPT`. What each framework needs be
 - **Never give the key a browser prefix** (`NEXT_PUBLIC_`, `VITE_` and the like), never import it in client code, never log it. Say "API key".
 - **`customer` comes from a session the app verified, never from the request itself**: not the query, the body, a header or a wallet the page sends. Why: every subscription and every paid route hangs on it, so an id read from the request lets anyone type a subscriber's id and get their access. Return `null` when nobody is signed in.
 - **Name the customer the same way everywhere**, by `external_id`, the app's own id for the user. Otherwise a subscription made under one name is not found under the other.
-- **If the install says the package does not exist, stop and tell the user.** The packages are in early 0.x and may not be published. Do not install a lookalike, copy the SDK's source, or call the HTTP API instead. Why: a lookalike package is how a key gets stolen.
+- **If the install says the package does not exist, stop and tell the user** where it comes from meanwhile: `references/steps.md`, step 2. Do not install a lookalike, copy the SDK's source, or call the HTTP API instead. Why: a lookalike package is how a key gets stolen.
 - **Gate on the server.** Hiding a button is not a gate.
 - **Do not catch the check's errors as "not subscribed"**, do not cache its answer, and do not store "is subscribed" in the app's database. The SDK caches and handles an outage itself; a wrong key or slug throws on purpose.
 - **Do not build the subscribe flow or add a wallet library.** The widget does both.
@@ -76,7 +76,7 @@ node "<skill-dir>/scripts/check-setup.mjs"
 
 <!-- related:start -->
 <!-- Rendered from catalog.yaml by `pnpm render`. Do not edit. -->
-This skill works alone: never assume another is installed. A task outside it: name its owner, from `references/kit-directory.md`. Owner not installed and not installable: stop and say so. Going on without it is the user's call, keeping its rule:
+This skill works alone: never assume another is installed. A task outside it: name its owner, from `references/kit-directory.md`. Not installed: install it only on the user's yes, else stop and say so. Going on without it is the user's call, keeping its rule:
 
 - `mesub-gate-access`: gate on the server; an error is never "not subscribed".
 - `mesub-subscribe-and-manage`: the widget subscribes; never hand-make that flow.

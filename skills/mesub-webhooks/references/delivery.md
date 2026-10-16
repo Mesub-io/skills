@@ -12,7 +12,9 @@ So the route must:
 - **never redirect.** Common causes: the app's login middleware sending signed-out requests to a sign-in page, a trailing-slash rule, a forced host or scheme change in front of the app.
 - **be reachable without a session.** Mesub sends no cookie and no token of the app. Leave the route out of the login, and out of CSRF protection: the signature is what proves who sent it.
 
-**No database or queue in the app yet.** The deduplication needs a durable store anyway, and the smallest one serves both. A single SQLite file is enough for one instance: `node:sqlite` is built in from Node 22.13 (behind a flag before), otherwise a SQLite library or the app's existing database. Then an outbox instead of a queue: in the same write as the claim, insert a row for the work (a mail, a post to a chat); answer 2xx; drain the rows after the answer, from the same process or a timer, marking each done with one conditional update so two drainers never send one row twice. A send can still repeat if the process dies between sending and marking: make the effect safe to repeat where it can be, or say so. Several instances need a shared database, not a file each.
+**No database or queue in the app yet.** The deduplication needs a durable store anyway, and the smallest one serves both. A single SQLite file is enough for one instance: `node:sqlite` is built in from Node 22.13 (behind a flag before), otherwise a SQLite library or the app's existing database. Then an outbox instead of a queue: `assets/handle-event.ts` decides the work from the event first (`workFor`), and `claim(id, work)` records the id and the work rows in one transaction (below); answer 2xx; drain the rows after the answer, from the same process or a timer: take each row with one conditional update so two drainers never send it at once, send, then mark it done. A send can still repeat if the process dies between sending and marking: make the effect safe to repeat where it can be, or say so. Several instances need a shared database, not a file each.
+
+`node:sqlite` is still experimental: Node 22 and 24 print `ExperimentalWarning: SQLite is an experimental feature` once at start. It is harmless. Tell the user rather than hide it; to silence that one warning only, start Node with `--disable-warning=ExperimentalWarning` (in the start script or `NODE_OPTIONS`), never `--no-warnings`, which hides every other warning too.
 
 ## Retries
 
@@ -65,16 +67,35 @@ Prefer the event's `id`: one table then covers every endpoint and the catch-up b
 - **`webhook-id` is per endpoint.** Two endpoints of one project receive the same event under two `webhook-id`s and one event `id`. If both feed the same code, deduplicate on the event's `id`.
 - Keep the ids well past the three days of retries before pruning them: a delivery sent again later carries the same id.
 
-A deduplication table is small:
+A deduplication table is small, and the outbox sits beside it:
 
 ```sql
 CREATE TABLE mesub_events (
     id          text PRIMARY KEY,   -- the event's id, or webhook-id for a body without one
     received_at timestamptz NOT NULL DEFAULT now()
 );
--- claim: true when a row was inserted
-INSERT INTO mesub_events (id) VALUES ($1) ON CONFLICT (id) DO NOTHING;
+CREATE TABLE mesub_outbox (
+    id       bigserial PRIMARY KEY,
+    event_id text NOT NULL REFERENCES mesub_events (id) ON DELETE CASCADE,
+    kind     text NOT NULL,
+    payload  jsonb NOT NULL,
+    taken_at timestamptz,
+    done_at  timestamptz
+);
+-- claim(id, work), in ONE transaction: the id, then the work only when the id was new.
+BEGIN;
+INSERT INTO mesub_events (id) VALUES ($1) ON CONFLICT (id) DO NOTHING;  -- 0 rows: a repeat, ROLLBACK and answer 2xx
+INSERT INTO mesub_outbox (event_id, kind, payload) VALUES ($1, $2, $3);  -- once per row of work
+COMMIT;
+-- release(id): the work goes with it.
+DELETE FROM mesub_events WHERE id = $1;
+-- the drainer takes a row (1 row updated: this drainer sends it), sends, then sets done_at.
+-- A row taken and never done, by a process that died, is taken again after 5 minutes.
+UPDATE mesub_outbox SET taken_at = now()
+ WHERE id = $1 AND done_at IS NULL AND (taken_at IS NULL OR taken_at < now() - interval '5 minutes');
 ```
+
+In SQLite the same holds with `INSERT OR IGNORE`, `changes()` for the row count, `integer PRIMARY KEY` and `text` for the payload, inside `BEGIN IMMEDIATE ... COMMIT`, and `PRAGMA foreign_keys = ON` for the cascade.
 
 Make the effects themselves safe to repeat where you can (set a value rather than add to one): it covers what the table misses.
 

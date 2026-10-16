@@ -8,13 +8,14 @@ import { type AccessStore, type EventDeps, type EventStore, receiveEvent } from 
 // so no event is acknowledged without being recorded.
 const store: EventStore = {
     claim: async () => {
-        throw new Error('Record the event id in the app\'s database here.');
+        throw new Error('Record the event id and its work in one transaction of the app\'s database here.');
     },
     release: async () => {},
 };
 
-// ADAPT: the app's access table, see handle-event.ts. Mesub does not send the access events yet;
-// until this is replaced, one that arrives throws and is retried rather than dropped.
+// ADAPT, optional: the app's access table, see handle-event.ts. Mesub does not send the access events
+// yet: while the app asks hasAccess on each request, delete this and pass `{ store }` alone. Kept and
+// not replaced, an access event that arrives throws and is retried rather than dropped.
 const access: AccessStore = {
     apply: async () => {
         throw new Error('Record the access in the app\'s database here.');
@@ -24,7 +25,7 @@ const access: AccessStore = {
     },
 };
 
-// ADAPT: add what the reactions in handle-event.ts use.
+// The work workFor() returns sits in the outbox: the app drains it after the answer (references/delivery.md).
 const deps: EventDeps = { store, access };
 
 export async function POST(request: Request): Promise<Response> {

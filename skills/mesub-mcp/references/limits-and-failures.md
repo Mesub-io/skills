@@ -6,7 +6,7 @@
 |---|---|---|
 | Reads | 120 a minute, over every tool that reads | The call is refused with `rate_limited` and the wait in seconds |
 | Changes | 20 a minute, over every tool that changes something | The same |
-| Test deliveries (`send_test_webhook`) | 5 a minute on a connection, counted apart, and one at a time per endpoint | `rate_limited`, saying Mesub sends at most 5 test deliveries a minute, with the wait; or a refusal while a test is still pending |
+| Test deliveries (`send_test_webhook`) | 5 calls a minute on a connection, counted apart, refused ones included, and one at a time per endpoint | `rate_limited`, saying Mesub takes at most 5 test sends a minute, refused ones included, with the wait; or a refusal while a test is still on its way, which counts among the 5 |
 | Webhook endpoints | 16 a project, one per URL | `create_webhook` is refused |
 | Connected agents | 10 a project, 30 an account | The merchant revokes one in the dashboard before connecting another |
 | The event log (`list_events`) | 45 days back | Not a refusal: `days` stops at 45, and a `day` older than that answers with `out_of_reach` true. That time is out of reach, never "nothing happened" |
@@ -25,11 +25,11 @@ A failed call is a tool error whose text is `Mesub error <code>: <message>`, fol
 
 | What the error says | It means | Do |
 |---|---|---|
-| `rate_limited`, "Too many calls on this connection: wait N seconds", or for a test delivery "at most 5 test deliveries a minute" | The connection is past a limit of the table above | Wait the stated time, once, then make the one call again. Tell the merchant if the wait is long. Do not switch to another tool to get round it |
+| `rate_limited`, "Too many calls on this connection: wait N seconds", or for a test delivery "at most 5 test sends a minute, refused ones included" | The connection is past a limit of the table above | Wait the stated time, once, then make the one call again. Tell the merchant if the wait is long. Do not switch to another tool to get round it |
 | `invalid_agent_token`, "connect again" | The connection expired or was revoked | Stop. See "The connection lapsed" below |
 | "Nothing of this project has that id or slug" | A wrong id, a slug where an id was wanted, or something of another project | Take the id from the tool that lists it. Do not try variants |
 | "Correct the request before calling again" | An argument the tool does not take, or out of range | Read the tool's own description, fix the one argument |
-| "Not allowed for this project as it stands" | The tier or the state forbids it: a retry policy on a tier that does not retry, a project at its plan limit | The same call gives the same answer. Report it: the way out is in the dashboard. From `prepare_plan`, the advice to drop `retry_attempts` and `retry_delay_minutes` comes only when the call sent them: follow it only once the merchant agrees |
+| "Not allowed for this project as it stands" | The tier or the state forbids it: `retries_not_on_tier` (a retry policy on a tier that does not retry), `plan_cap_reached` (a project at its plan limit) | The same call gives the same answer. Report it: the way out is in the dashboard. On `retries_not_on_tier`, from `prepare_plan` or `update_retry_policy`, calling again without `retry_attempts` and `retry_delay_minutes` works: do it only once the merchant agrees |
 | "Refused in the current state, and nothing was changed" | A conflict: a subscriber who is not late, a retry too soon, an endpoint already on that URL, a test still pending, a plan name already taken | Read the current state with the matching read tool, report it, and let the merchant decide |
 | `unavailable`, "Temporary" | Mesub or the chain did not answer in time | `ping` tells an outage from a mistake. **If the call was a change, read the current state before anything else: it may have gone through** |
 | `internal_error`, `unexpected` | The server failed, or the API answered something it does not recognise | Do not repeat a change. Report it with the tool's name, and the `request_id` when the error carries one (`req_` and 24 letters or digits): Mesub support finds the request by it |

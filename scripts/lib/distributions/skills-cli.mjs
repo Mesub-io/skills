@@ -45,6 +45,6 @@ export default {
   },
 
   installOne(catalog, skill) {
-    return `To install it alone: \`npx -y skills add ${slug(catalog)} --skill ${skill.id}\`.`
+    return `To install it alone, once the user agrees: \`npx -y skills add ${slug(catalog)} --skill ${skill.id}\`.`
   },
 }

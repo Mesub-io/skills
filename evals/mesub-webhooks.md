@@ -49,6 +49,7 @@ Fixture: [next-mesub](fixtures/next-mesub/README.md).
 - [ ] If it writes access branches, applies `subscription.access_granted` and `subscription.access_revoked` by `sequence`, skipping one at or below the last applied for that subscription.
 - [ ] If it keeps a per-user flag, keeps one row per subscription with the user it names, and reads the user's flag over all of their subscriptions.
 - [ ] Reads the body with `request.text()` in the route handler.
+- [ ] When the project has no database or no premium flag, builds against a clearly named placeholder marked `ADAPT` (the flag store behind the access events) and says so in the reply, rather than stopping to ask or inventing a table silently.
 
 ### Must not
 
@@ -59,7 +60,7 @@ Fixture: [next-mesub](fixtures/next-mesub/README.md).
 ### Checks
 
 ```bash
-# Exits 0 with no FAIL line
+# Exits 0 with no FAIL line (a handler written against a marked placeholder store passes)
 node "<skill-dir>/scripts/check-webhooks.mjs"
 ```
 

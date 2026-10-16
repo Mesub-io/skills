@@ -75,3 +75,45 @@ test('an unknown flag exits 2', () => {
   const ran = spawnSync('node', [SCRIPT, '--nope'], { encoding: 'utf8' })
   assert.equal(ran.status, 2)
 })
+
+const CLIENT = `import { Mesub } from '@mesub/node'\nexport const mesub = new Mesub()\n`
+
+test('a gate that imports the app client through a tsconfig path counts', () => {
+  const { out } = check({
+    ...ROUTES,
+    'tsconfig.json': `{\n  // comments are allowed here\n  "compilerOptions": { "baseUrl": ".", "paths": { "@/*": ["./src/*"], }, },\n}\n`,
+    'src/lib/mesub.ts': CLIENT,
+    'src/app/reports/page.tsx': `import { mesub } from '@/lib/mesub'\nexport default async function Page() { if (!(await mesub.hasAccess({ external_id: 'x' }, 'pro'))) return null; return 'ok' }\n`,
+  })
+  assert.match(out, /PASS  a route asks Mesub for access \(src\/app\/reports\/page\.tsx\)/)
+})
+
+test('a gate that imports the app client by a relative path counts, .js specifier included', () => {
+  const { out } = check({
+    ...ROUTES,
+    'src/mesub.ts': CLIENT,
+    'src/reports.ts': `import { mesub } from './mesub.js'\nexport const ok = (id: string) => mesub.hasAccess({ external_id: id }, 'pro')\n`,
+  })
+  assert.match(out, /PASS  a route asks Mesub for access \(src\/reports\.ts\)/)
+})
+
+test('a file that only names hasAccess, without reaching the client, is not a gate', () => {
+  const { status, out } = check({ ...ROUTES, 'src/other.ts': `export const hasAccess = () => true\nhasAccess()\n` })
+  assert.equal(status, 1, out)
+  assert.match(out, /FAIL  no route is gated/)
+})
+
+test('a customer read from the query string or the path fails, from the body warns', () => {
+  const query = check({
+    'src/app.ts': ROUTES['src/app.ts'].replace('req.user.id', 'req.query.user'),
+  })
+  assert.equal(query.status, 1, query.out)
+  assert.match(query.out, /FAIL  src\/app\.ts:6 takes the customer from the URL/)
+  const search = check({
+    'src/mesub.ts': CLIENT,
+    'src/route.ts': `import { mesub } from './mesub'\nimport { mesubRouteHandlers } from '@mesub/node/next'\nexport const h = { customer: (request) => ({ external_id: new URL(request.url).searchParams.get('id') }) }\n`,
+  }, '--no-gate-yet')
+  assert.match(search.out, /FAIL  src\/route\.ts:3 takes the customer from the URL/)
+  const body = check({ 'src/app.ts': ROUTES['src/app.ts'].replace('req.user.id', 'req.body.user') })
+  assert.match(body.out, /WARN  src\/app\.ts:6 seems to take the customer from the request body/)
+})

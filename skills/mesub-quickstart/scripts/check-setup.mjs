@@ -263,15 +263,80 @@ if (mounts.length === 0) {
   report(serverOnly ? 'SKIP' : 'FAIL', 'the widget routes are not mounted: no mesubRoutes( or mesubRouteHandlers( call found')
 }
 
+// --- The files that reach Mesub: the package, or the app's own module that imports it ---
+const IMPORTS_NODE = /from\s+["']@mesub\/node|require\(\s*["']@mesub\/node|import\(\s*["']@mesub\/node/
+const EXTENSIONS = ['', '.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.mts', '.cts']
+
+/** The path aliases of tsconfig.json or jsconfig.json, read leniently: `@/*` -> ['src/*']. */
+function aliases() {
+  for (const name of ['tsconfig.json', 'jsconfig.json']) {
+    const text = read(join(root, name))
+    if (!text) continue
+    try {
+      const clean = text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:"'])\/\/[^\n]*/g, '$1').replace(/,(\s*[}\]])/g, '$1')
+      const options = JSON.parse(clean).compilerOptions ?? {}
+      const base = options.baseUrl ?? '.'
+      return Object.entries(options.paths ?? {}).map(([key, targets]) => [key, targets.map((target) => join(root, base, target))])
+    } catch {
+      break
+    }
+  }
+  // No readable config: the two usual ones.
+  return [['@/*', [join(root, '*'), join(root, 'src/*')]], ['~/*', [join(root, '*'), join(root, 'src/*')]]]
+}
+const ALIASES = aliases()
+const known = new Set(sources.map(({ path }) => path))
+
+/** The project file an import names, or null for a package or a file not found. */
+function resolveImport(from, specifier) {
+  let bases = []
+  if (specifier.startsWith('.')) bases = [join(from, '..', specifier)]
+  else {
+    for (const [key, targets] of ALIASES) {
+      const prefix = key.replace(/\*$/, '')
+      if (key.endsWith('*') ? specifier.startsWith(prefix) : specifier === key) {
+        const rest = specifier.slice(prefix.length)
+        bases.push(...targets.map((target) => target.replace(/\*$/, rest)))
+      }
+    }
+  }
+  for (const base of bases) {
+    const stripped = base.replace(/\.(js|jsx|mjs|cjs)$/, '')
+    for (const candidate of [base, stripped]) {
+      for (const extension of EXTENSIONS) {
+        if (known.has(candidate + extension)) return candidate + extension
+        if (known.has(join(candidate, `index${extension}`))) return join(candidate, `index${extension}`)
+      }
+    }
+  }
+  return null
+}
+
+const importsOf = (path, text) =>
+  [...text.matchAll(/(?:from\s+|require\(\s*|import\(\s*)["']([^"']+)["']/g)].map((match) => resolveImport(path, match[1])).filter(Boolean)
+// A module that imports @mesub/node, and every local module importing one, up to three steps away.
+const reaching = new Set(sources.filter(({ text }) => IMPORTS_NODE.test(text)).map(({ path }) => path))
+for (let step = 0; step < 3; step++) {
+  for (const { path, text } of sources) {
+    if (!reaching.has(path) && importsOf(path, text).some((target) => reaching.has(target))) reaching.add(path)
+  }
+}
+const mesubSources = sources.filter(({ path }) => reaching.has(path))
+
 // --- Who is asking ---
 let suspicious = 0
-for (const { path, text } of sources) {
-  if (!/@mesub\/node/.test(text)) continue
+for (const { path, text } of mesubSources) {
   for (const match of text.matchAll(/\bcustomer\b\s*[:=(]/g)) {
     const body = text.slice(match.index, match.index + 320)
-    if (/\b(req|request)\.(query|body|params)\b|searchParams|\.headers\.get\(\s*["'`]x-|\.headers\[\s*["'`]x-/.test(body)) {
+    // The URL is the visitor's to type: an id from the query or the path names anyone.
+    if (/\b(req|request)\.(query|params)\b|searchParams|\bparams\.\w+/.test(body)) {
       suspicious += 1
-      report('WARN', `${shown(path)}:${lineOf(text, match.index)} seems to take the customer from the request itself: it must come from a verified session`)
+      report('FAIL', `${shown(path)}:${lineOf(text, match.index)} takes the customer from the URL (the query string or the path): anyone can type another user's id there. It must come from the verified session`)
+      break
+    }
+    if (/\b(req|request)\.body\b|\.headers\.get\(\s*["'`]x-|\.headers\[\s*["'`]x-/.test(body)) {
+      suspicious += 1
+      report('WARN', `${shown(path)}:${lineOf(text, match.index)} seems to take the customer from the request body or a custom header: it must come from a verified session`)
       break
     }
   }
@@ -279,7 +344,8 @@ for (const { path, text } of sources) {
 if (suspicious === 0 && mounts.length > 0) report('PASS', 'no customer read from the query, the body or a custom header (a reading of the code, not a proof)')
 
 // --- A gated route ---
-const gate = sources.find(({ text }) => /from\s+["']@mesub\/node|require\(\s*["']@mesub\/node/.test(text) && /\b(hasAccess|requirePlan|withMesub|RequirePlan|accessList)\s*[(<]|\bmesub\.access\s*\(/.test(text))
+const GATES = /\b(hasAccess|requirePlan|withMesub|RequirePlan|accessList)\s*[(<]|\bmesub\w*\.access\s*\(/
+const gate = mesubSources.find(({ text }) => GATES.test(text))
 if (gate) report('PASS', `a route asks Mesub for access (${shown(gate.path)})`)
 else if (serverOnly && mounts.length === 0) report('FAIL', 'nothing is wired: no widget routes (--server-only) and no route asks Mesub for access')
 else if (noGateYet) report('WARN', 'no route is gated yet (--no-gate-yet): nothing calls hasAccess, requirePlan, withMesub or RequirePlan')

@@ -43,7 +43,10 @@ which a handler must ignore: it proves the check, not a branch.
                           ${TYPES.join(', ')}.
   --external-id <id>      the subscription's external_id (default user_123),
                           to reach a user of the development database
-  --subscription <id>     the subscription's id (default sub_test)
+  --subscription <id>     the subscription's id (default sub_test, or sub_local_1
+                          with --type: a handler drops sub_test as a test delivery)
+  --sequence <n>          the event's sequence, 1 or more (default 1): raise it to
+                          send a later access event about the same subscription
   --network <cluster>     the body's "network": the Solana cluster the project
                           runs on, as Solana names it. Left out, the cluster
                           Mesub runs on today. @mesub/node refuses a body without it.
@@ -73,9 +76,11 @@ function option(name, fallback) {
 const network = option('--network', ['dev', 'net'].join(''))
 const type = option('--type', 'test')
 const externalId = option('--external-id', 'user_123')
-const subscriptionId = option('--subscription', 'sub_test')
 if (type !== 'test' && !TYPES.includes(type)) stop(`Unknown event type: ${type}. One of: ${TYPES.join(', ')}.`)
 const real = type !== 'test'
+const subscriptionId = option('--subscription', real ? 'sub_local_1' : 'sub_test')
+const sequence = Number(option('--sequence', '1'))
+if (!Number.isInteger(sequence) || sequence < 1) stop('--sequence takes a whole number, 1 or more.')
 if (args.length !== 1 || args[0].startsWith('-')) stop(args.length === 0 ? 'Missing the handler URL.' : `Unknown argument: ${args.find((arg) => arg.startsWith('-')) ?? args[1]}`)
 
 let url
@@ -162,7 +167,7 @@ const body = JSON.stringify(
     network,
     api_version: '2026-10-02',
     // Always 1 on a test delivery, as Mesub sends it.
-    sequence: 1,
+    sequence,
     data: { ...subscription, ...moved },
     detail,
     // A real event carries no "test": the handler must act on it.
@@ -211,7 +216,7 @@ async function mustRefuse(name, headers) {
   else report('WARN', `${name}: answered ${status}, not a 4xx. It is refused, but as a fault of the server: answer 400`)
 }
 
-if (real) report('WARN', `the signed deliveries are a real ${type} about ${subscriptionId} (external_id ${externalId}), without "test": the handler acted on it. Check its effect in the development database`)
+if (real) report('WARN', `the signed deliveries are a real ${type} about ${subscriptionId} (external_id ${externalId}), without "test": the handler's branch for it ran unless the handler skips it (an id it treats as a test, a sequence at or below one applied). Check its effect in the development database`)
 
 try {
   await mustRefuse('unsigned', {})

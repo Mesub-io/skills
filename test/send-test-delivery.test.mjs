@@ -75,3 +75,12 @@ test('an unknown type exits 2', () => {
   assert.equal(ran.status, 2)
   assert.match(ran.stderr, /Unknown event type: subscription\.nope/)
 })
+
+test('--type defaults to a subscription the handler does not drop as a test, and --sequence is sent', async () => {
+  await withHandler(async (url, accepted) => {
+    await send(url, '--type', 'subscription.access_revoked', '--sequence', '3')
+    const event = accepted.find((one) => one.type === 'subscription.access_revoked')
+    assert.notEqual(event.data.id, 'sub_test')
+    assert.equal(event.sequence, 3)
+  })
+})
