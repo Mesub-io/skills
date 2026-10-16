@@ -28,6 +28,24 @@ What to answer:
 | The app's own handling failed (database down) | 5xx | Mesub sends it again later, which is what you want |
 | The check throws anything else | 5xx, and fix it | A missing secret or a parsed body is a fault of the server |
 
+## Rotating the signing secret
+
+The user regenerates an endpoint's secret in the dashboard, with an overlap of 24 hours or none (`regenerate_webhook_secret` takes 0 to 24). During the overlap the old secret keeps signing beside the new one: every delivery, retries included, carries two signatures in `webhook-signature`, space separated, the new secret's first:
+
+```text
+webhook-signature: v1,<signed with the new secret> v1,<signed with the old secret>
+```
+
+The check accepts the delivery when any one matches, and `verifyWebhook` and `mesub.webhooks.verify` already do. They take one secret, so the server never needs both: the old one keeps verifying until the new one is deployed, and the new one verifies from then on. After the overlap, deliveries carry the new signature alone.
+
+The rollout to tell the user:
+
+1. Regenerate the secret with an overlap.
+2. Put the new secret in the server's environment as `MESUB_WEBHOOK_SECRET` and restart, before the overlap ends. No delivery fails at any point.
+3. With no overlap, the old secret stops at once: every delivery is refused (400, `invalid_webhook`) until the new one is deployed. Retries cover about three days, so deploy it at once, and catch up with `GET /v1/events` if the endpoint was disabled meanwhile.
+
+A secret that leaked gets no overlap: whoever holds it could sign deliveries until the overlap ends.
+
 ## Duplicates
 
 The same event can arrive more than once: a retry after a slow answer that had in fact succeeded, or two tries close together. Deduplicate on an id that stays the same across them. Two do:

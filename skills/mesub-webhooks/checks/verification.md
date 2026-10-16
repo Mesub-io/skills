@@ -78,6 +78,8 @@ An agent cannot register an endpoint, read its secret or receive a delivery from
 
 For a server on a laptop, steps 1 to 3 need a tunnel first: `references/local-testing.md`.
 
+If the user replaces the secret later, they regenerate it with an overlap and deploy the new one before the overlap ends: deliveries carry both signatures meanwhile, and `verify` accepts either (`references/delivery.md`, "Rotating the signing secret"). With no overlap, deliveries fail until the new secret is deployed.
+
 Pass: the user confirms step 4. Until then, report the handler as written and checked locally, not as receiving events.
 
 ## What nothing here proves
