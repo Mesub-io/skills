@@ -86,7 +86,7 @@ Null on a `paid` attempt, a short stable string in snake case on every other.
 | `retries_allowed` | How many retries the period had when the attempt ran | It is not a retry of the plan's |
 | `period_start` | The start of the period it was for | Mesub stopped before reading the period |
 
-`retry_number` and `retries_allowed` are also null, with `retry` true, on a retry fired by hand from the dashboard on Dev or Business.
+`retry_number` and `retries_allowed` are also null, with `retry` true, on a retry by hand on Dev or Business: the user's from the dashboard, or the customer's Pay now (`subscriptions.retry`).
 
 ## From an attempt to a diagnosis
 
