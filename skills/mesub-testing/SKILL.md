@@ -9,7 +9,7 @@ license: Apache-2.0
 
 ## Overview
 
-This skill makes an agent write tests that prove a Mesub integration behaves: who gets in, who is refused and how, what happens when Mesub is down, what a handler does with a signed event. They run against the fake in `@mesub/node/testing`: the real guard, cache and signature check, with no network, account or wallet.
+This skill makes an agent write tests that prove a Mesub integration behaves: who gets in, who is refused and how, an outage, a signed event. They run against the fake of `@mesub/node/testing`: the real guard, cache and signature check, no network.
 
 ## When to use this skill
 
@@ -27,7 +27,7 @@ This skill makes an agent write tests that prove a Mesub integration behaves: wh
 
 ### Check what is installed first
 
-Read `node_modules/@mesub/node/package.json`: the version, and `"./testing"` under `exports`. The packages may not be published yet. If either is missing, stop and tell the user: no lookalike, no hand-written fake. This skill was written from 0.1.0: the installed `dist/testing.d.ts` wins when they differ.
+Read `node_modules/@mesub/node/package.json`: the version, and `"./testing"` under `exports`. If either is missing, stop and tell the user: no lookalike, no hand-written fake. Written from 0.1.0: the installed `dist/testing.d.ts` wins.
 
 ### The shape of every test
 
@@ -48,12 +48,12 @@ fake.grantLastPeriod({ external_id: 'user_9' }, 'pro', endsAt); // the plan ends
 fake.endPlan('pro'); // its end passed: nobody has access on it
 ```
 
-`fake.client()` is a real `Mesub` wired to the fake. A test replaces two things, the client and who is signed in, and hands both in from outside: `references/seams.md`. Every method of the fake: `references/fake-mesub.md`.
+`fake.client()` is a real `Mesub` wired to the fake. A test replaces two things, the client and who is signed in, and hands both in from outside: `references/seams.md`.
 
 ### Steps
 
 1. **Read the project**: the test framework, and where the guards, the route mount and the webhook handler get their client and their `customer`.
-2. **Make the seam** if there is none: `assets/create-app.ts` (Express) or the builders in `assets/next-route.test.ts`. It is the only change to the code that ships: tell the user.
+2. **Make the seam** if there is none: `assets/create-app.ts` (Express) or the builders in `assets/next-route.test.ts`. It is the only change to the code that ships: tell the user. Why: a client built at module level throws without `MESUB_API_KEY`: such an app cannot even be imported.
 3. **A paid route**: `assets/guard.test.ts`. At least: a subscriber gets 200, a signed-in non-payer 402, nobody signed in 401, an outage for a user never seen 503. Every case: `references/cases.md`.
 4. **The widget routes**: `assets/widget-routes.test.ts`. At least: signed out is 401, a user reads only their own subscriptions, a new subscription is tied to the signed-in user.
 5. **A webhook handler**, if any: `assets/webhook.test.ts`. At least: a signed delivery is handled, a changed body answers 400, a repeat is handled once. `references/webhooks.md`.
@@ -72,7 +72,7 @@ Copy an asset, then adapt the lines marked `ADAPT`.
 - **Always name `plans`.** Without it every slug exists, so a typo passes, and the widget routes answer 404 for every plan.
 - **One client per test.** `reset()` empties the fake, not a client's cache: an older client serves another test's answer during an outage.
 - **Test the refusals, not only the 200**, which passes with no guard at all. An outage for a user never seen is a 503 with `Retry-After`, never a 402; a user seen before keeps their last answer.
-- **A broken integration is an error, never a refusal.** The guard throws on a refused key or an unknown slug. Under Express it reaches `next()` as a 500; an older `@mesub/node` passes the error's own status (401, 404): assert what the app really answers.
+- **A broken integration is an error, never a refusal.** The guard throws on a refused key or an unknown slug: assert what the app really answers, a 500 under Express (401 or 404 with an older `@mesub/node`).
 - **Send a webhook's body as the string that was signed**, never the parsed object, and always send one delivery that must be refused.
 - **A webhook adds nothing to the fake.** For "the event lands and the user is out", set the answer with `fake.deny`, then send the event.
 
@@ -84,7 +84,7 @@ From the project root:
 node "<skill-dir>/scripts/check-tests.mjs"
 ```
 
-`<skill-dir>` is the absolute path of the folder that holds this `SKILL.md`. Do not change into it.
+`<skill-dir>` is this skill's folder, as an absolute path: do not change into it.
 
 **Green tests prove the app's own code, not the integration with Mesub.** The key, the slug, the endpoint's secret and a real subscription cannot be tested against a fake: report them as not covered (`references/limits.md`).
 
@@ -92,9 +92,14 @@ node "<skill-dir>/scripts/check-tests.mjs"
 
 <!-- related:start -->
 <!-- Rendered from catalog.yaml by `pnpm render`. Do not edit. -->
-This skill works alone: never assume another one is installed. The other skills of the kit: `mesub-quickstart`, `mesub-gate-access`, `mesub-subscribe-and-manage`, `mesub-webhooks`, `mesub-errors`, `mesub-mcp`.
+This skill works alone: never assume another is installed. A task outside it: name its owner, from `references/kit-directory.md`. Owner not installed and not installable: stop and say so. Going on without it is the user's call, keeping its rule:
 
-For a task outside this skill, find its owner in `references/kit-directory.md` (what each skill covers, how to install it alone, its docs page), and say which skill owns it.
+- `mesub-quickstart`: never ask for the API key; `customer` from the verified session.
+- `mesub-gate-access`: gate on the server; an error is never "not subscribed".
+- `mesub-subscribe-and-manage`: the widget subscribes; never hand-make that flow.
+- `mesub-webhooks`: verify the raw body's signature; deduplicate on the event id.
+- `mesub-errors`: branch on `apiCode`, never a message; never loop on `retryable`.
+- `mesub-mcp`: ask before any change; never an API key.
 <!-- related:end -->
 
 ## References
@@ -106,7 +111,7 @@ For a task outside this skill, find its owner in `references/kit-directory.md` (
 - `references/subscribing.md`: subscriptions, payments and their refusals in the fake.
 - `references/limits.md`: what no test against the fake proves.
 - `references/docs.md`: the docs page behind this skill.
-- `references/kit-directory.md`: every skill of the kit, how to install each one alone, and its docs fallback.
+- `references/kit-directory.md`: every skill of the kit, its install and docs.
 
 ## Assets
 
@@ -122,4 +127,4 @@ For a task outside this skill, find its owner in `references/kit-directory.md` (
 
 ## Checks
 
-- `checks/verification.md`: the runbook to go through before saying the work is done.
+- `checks/verification.md`: the runbook before saying the work is done.

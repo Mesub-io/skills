@@ -65,26 +65,30 @@ Anything else is thrown and ends as a 500: a refused API key, an unknown slug, a
 - **Leave `maxStaleMs` and `guardTimeout` alone unless the user decides.** `maxStaleMs: 0` makes an outage keep everyone out. With several servers or short-lived processes, plug a shared store instead: `references/outage-and-cache.md`.
 - **`hasAccess` called by hand** ignores `guardTimeout`, and answers `false` both for "no" and for "Mesub is down and never saw them": word the page for both.
 - **Gate on the server.** Hiding a component is not a gate, and `@mesub/react` has none.
-- **In a test, never mock `@mesub/node` or the guard.** Hand the app the client of `FakeMesub` from `@mesub/node/testing`. Why: a mocked check passes on a route with no guard.
 - **Before using an option this skill does not show, read it in the installed package** (`node_modules/@mesub/node/README.md` and its types). Never write a call from memory.
 
 ### The check
 
-From the project root, with the script's path resolved under this skill's folder:
+From the project root:
 
 ```bash
 node "<skill-dir>/scripts/check-gates.mjs"
 ```
 
-`<skill-dir>` is the absolute path of the folder that holds this `SKILL.md`. Do not change into it: the script reads the current directory. Then go through `checks/verification.md`. You cannot produce a real outage or a real subscriber: say what was checked and what was not.
+`<skill-dir>` is this skill's folder, as an absolute path: do not change into it. Then go through `checks/verification.md`. You cannot produce a real outage or a real subscriber: say what was checked and what was not.
 
 ## Related skills
 
 <!-- related:start -->
 <!-- Rendered from catalog.yaml by `pnpm render`. Do not edit. -->
-This skill works alone: never assume another one is installed. The other skills of the kit: `mesub-quickstart`, `mesub-subscribe-and-manage`, `mesub-webhooks`, `mesub-testing`, `mesub-errors`, `mesub-mcp`.
+This skill works alone: never assume another is installed. A task outside it: name its owner, from `references/kit-directory.md`. Owner not installed and not installable: stop and say so. Going on without it is the user's call, keeping its rule:
 
-For a task outside this skill, find its owner in `references/kit-directory.md` (what each skill covers, how to install it alone, its docs page), and say which skill owns it.
+- `mesub-quickstart`: never ask for the API key; `customer` from the verified session.
+- `mesub-subscribe-and-manage`: the widget subscribes; never hand-make that flow.
+- `mesub-webhooks`: verify the raw body's signature; deduplicate on the event id.
+- `mesub-testing`: never mock `@mesub/node`: a seam and `FakeMesub`.
+- `mesub-errors`: branch on `apiCode`, never a message; never loop on `retryable`.
+- `mesub-mcp`: ask before any change; never an API key.
 <!-- related:end -->
 
 ## References
@@ -94,7 +98,7 @@ For a task outside this skill, find its owner in `references/kit-directory.md` (
 - `references/outage-and-cache.md`: freshness, the fallback, the options, a shared store.
 - `references/answer-and-statuses.md`: every field of an answer, and what each status means for access.
 - `references/docs.md`: the docs pages behind this skill.
-- `references/kit-directory.md`: every skill of the kit, how to install each one alone, and its docs fallback.
+- `references/kit-directory.md`: every skill of the kit, its install and docs.
 
 ## Assets
 
@@ -106,8 +110,8 @@ For a task outside this skill, find its owner in `references/kit-directory.md` (
 
 ## Scripts
 
-- `scripts/check-gates.mjs`: lists every gate and reports the mistakes above. Read-only, no network, never shows a key. Usage above.
+- `scripts/check-gates.mjs`: lists every gate and the routes it guards, and reports the mistakes above. Read-only, no network, never shows a key. Usage above.
 
 ## Checks
 
-- `checks/verification.md`: the runbook to go through before saying the work is done.
+- `checks/verification.md`: the runbook before saying the work is done.

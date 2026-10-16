@@ -9,7 +9,7 @@ license: Apache-2.0
 
 ## Overview
 
-This skill turns a failure into a cause and a fix: which layer answered, what its code, reason or outcome means, whether waiting helps, and what must change.
+This skill turns a failure into a cause and a fix: who answered, what its code or reason means, whether waiting helps, what must change.
 
 ## When to use this skill
 
@@ -27,7 +27,7 @@ This skill turns a failure into a cause and a fix: which layer answered, what it
 
 ### Find the layer, then the fact
 
-The same status means different things depending on who answered. Get the raw fact first: the status and body, the thrown error's fields, or the subscription. Never diagnose from a screen's wording.
+The same status means different things depending on who answered. Get the raw fact first (the status and body, the error's fields, the subscription), never a screen's wording.
 
 | What is seen | It is | Read |
 |---|---|---|
@@ -65,21 +65,21 @@ try {
 - **Never turn a failed call into "not subscribed".** A refused API key or an unknown slug throws on purpose. Why: read as `false`, it locks every paying customer out and hides a broken integration.
 - **Never answer the browser 401 for Mesub refusing the API key.** Let it throw. Why: the widget reads 401 as "nobody is signed in".
 - **Hand the browser Mesub's `message` only when `apiCode` is set**, a fixed sentence otherwise. Why: the SDK's own messages can name the base URL.
-- **Never log the client, its options or request headers**, and never ask for the API key. Log a `MesubError`'s `status`, `code`, `apiCode`, `message` and `requestId`: quote it to Mesub support.
-- **Mind the spellings.** Reasons use underscores (`insufficient_balance`, `program_4`), the status is `cancelled`, an account closed outside Mesub ends `closed_elsewhere`. An older Mesub hyphenates the `reason` (`insufficient-balance`, `program:4`): turn `-` and `:` into `_` before comparing. A wrong one never matches and nothing warns.
+- **Never log the client, its options or headers**, nor ask for the API key. Log a `MesubError`'s `status`, `code`, `apiCode`, `message` and `requestId`: quote it to Mesub support.
+- **Mind the spellings.** Reasons use underscores (`insufficient_balance`, `program_4`), the status is `cancelled`, an account closed outside Mesub ends `closed_elsewhere`. An older Mesub hyphenates the `reason`: compare after turning `-` and `:` into `_`. A wrong one never matches and nothing warns.
 - **Read `late_reason` before telling a customer to top up.** On two of its three values adding funds fixes nothing.
 - **Only a `rejected` attempt counts against the customer.** `blocked` and `skipped` spend no retry.
-- **Before using a field this skill does not show, read it in the installed package** (`node_modules/@mesub/node/README.md` and its types). The packages are early 0.x: never assume a version or write a call from memory.
+- **Before using a field this skill does not show, read it in the installed package** (`node_modules/@mesub/node/README.md` and its types). Never write a call from memory.
 
 ### The check
 
-From the project root, with the script's path resolved under this skill's folder:
+From the project root:
 
 ```bash
 node "<skill-dir>/scripts/check-error-handling.mjs"
 ```
 
-`<skill-dir>` is the absolute path of the folder that holds this `SKILL.md`. Do not change into it: the script reads the current directory. It reads text, not types: open each line it names.
+`<skill-dir>` is this skill's folder, as an absolute path: do not change into it. It reads text, not types: open each line it names.
 
 **Most failures cannot be reproduced on demand**: a late payment or an outage needs real state on Mesub's side. Say which fact the diagnosis rests on, what was fixed, and what only the user can confirm.
 
@@ -87,9 +87,14 @@ node "<skill-dir>/scripts/check-error-handling.mjs"
 
 <!-- related:start -->
 <!-- Rendered from catalog.yaml by `pnpm render`. Do not edit. -->
-This skill works alone: never assume another one is installed. The other skills of the kit: `mesub-quickstart`, `mesub-gate-access`, `mesub-subscribe-and-manage`, `mesub-webhooks`, `mesub-testing`, `mesub-mcp`.
+This skill works alone: never assume another is installed. A task outside it: name its owner, from `references/kit-directory.md`. Owner not installed and not installable: stop and say so. Going on without it is the user's call, keeping its rule:
 
-For a task outside this skill, find its owner in `references/kit-directory.md` (what each skill covers, how to install it alone, its docs page), and say which skill owns it.
+- `mesub-quickstart`: never ask for the API key; `customer` from the verified session.
+- `mesub-gate-access`: gate on the server; an error is never "not subscribed".
+- `mesub-subscribe-and-manage`: the widget subscribes; never hand-make that flow.
+- `mesub-webhooks`: verify the raw body's signature; deduplicate on the event id.
+- `mesub-testing`: never mock `@mesub/node`: a seam and `FakeMesub`.
+- `mesub-mcp`: ask before any change; never an API key.
 <!-- related:end -->
 
 ## References
@@ -100,7 +105,7 @@ For a task outside this skill, find its owner in `references/kit-directory.md` (
 - `references/reasons.md`: `reason_code`, `late_reason`, `stop_reason`, `end_reason`, `closable`, the statuses that are not failures.
 - `references/attempts.md`: an attempt's `outcome` and every `reason`, by whose doing it is.
 - `references/docs.md`: the docs pages behind this skill.
-- `references/kit-directory.md`: every skill of the kit, how to install each one alone, and its docs fallback.
+- `references/kit-directory.md`: every skill of the kit, its install and docs.
 
 ## Assets
 
@@ -114,4 +119,4 @@ For a task outside this skill, find its owner in `references/kit-directory.md` (
 
 ## Checks
 
-- `checks/verification.md`: the runbook to go through before saying the work is done.
+- `checks/verification.md`: the runbook before saying the work is done.

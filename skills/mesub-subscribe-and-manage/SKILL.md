@@ -9,13 +9,13 @@ license: Apache-2.0
 
 ## Overview
 
-This skill covers the moments a wallet signs: subscribing, cancelling, resuming and closing. With `@mesub/react` the widget does the wallet work and calls routes on the app's own server. Without it, the server calls `mesub.subscriptions.*` and the app's page has the wallet sign.
+This skill covers the moments a wallet signs: subscribing, cancelling, resuming, closing. With `@mesub/react` the widget does the wallet work through the app's own routes; without it, the server calls `mesub.subscriptions.*`.
 
 ## When to use this skill
 
 - A subscribe button of the app's own, or anything around the window: `useSubscribe`, its states, `onSubscribed`.
 - Letting a customer cancel, resume or close: `ManageButton`, `ManageSubscriptions`, `useSubscriptions`, `manageUrl`.
-- Theming the widget, or reading what its routes take and answer.
+- Theming the widget, or what its routes take and answer.
 - Subscribing or managing from the server, for an app without the widget.
 
 ## Do not use this skill when
@@ -28,7 +28,7 @@ This skill covers the moments a wallet signs: subscribing, cancelling, resuming 
 
 ### First, read what is there
 
-Read `package.json`, the lockfile and `node_modules/@mesub/*/package.json` for the versions. Neither package may be on the public registry yet: never assume an install works, and if one says the package does not exist, stop and tell the user. Then find `<MesubProvider endpoint=...>` and the `mesubRoutes` or `mesubRouteHandlers` call. With neither, first setup is not done: say so.
+Read `package.json`, the lockfile and `node_modules/@mesub/*/package.json` for the versions. If an install says a package does not exist, stop and tell the user. Then find `<MesubProvider endpoint=...>` and the `mesubRoutes` or `mesubRouteHandlers` call. With neither, setup is not done: say so.
 
 ### Pick the path
 
@@ -37,29 +37,29 @@ Read `package.json`, the lockfile and `node_modules/@mesub/*/package.json` for t
 | React, no wallet UI of its own | The widget | `references/widget.md` |
 | Not React, or it owns its wallet step | `mesub.subscriptions.*` | `references/server-subscribe.md`, `references/server-manage.md` |
 
-Prefer the widget when both fit: it handles fresh transactions, expired terms and unknown outcomes. Copy an asset, adapt its `ADAPT` lines.
+Prefer the widget when both fit: it handles expiries and unknown outcomes. Copy an asset, adapt its `ADAPT` lines.
 
 ### Rules for the widget
 
 - **Access is decided on the server.** `onSubscribed`, `state === 'subscribed'` and `onChanged` are signals to fetch again, never a grant. Why: client state is the visitor's to edit.
-- **Do not lock a customer out when they cancel.** A paid-up subscription keeps access until `access_until`. Keep asking Mesub.
-- **Read `action` and `payable`, do not compute them.** `useSubscriptions()` says what each allows now; `payNow(id)` pays a late one. Keep a default branch on `status`: `references/statuses.md`.
-- **A blocked subscription is not a late one.** `blocked_reason` is never the customer's doing; access ends on `access_until`.
-- **Do not rebuild or wrap the window's screens**, and add no wallet library. Every failure has its screen and says whether anything was charged: `references/widget-screens.md`.
-- **`manageUrl` is a path starting with one `/`, an http(s) URL or `null`.** Anything else is ignored.
-- **Theme through `--mesub-*` properties only.** The widget has no class names: `references/theming.md`.
+- **Do not lock a customer out when they cancel.** Access runs until `access_until`: keep asking Mesub.
+- **Read `action` and `payable`, do not compute them.** `useSubscriptions()` says what each allows now; `payNow(id)` pays a late one. Keep a default branch on `status` (`references/statuses.md`).
+- **A blocked subscription is not a late one.** `blocked_reason` is never the customer's doing; access ends at `access_until`.
+- **Do not rebuild or wrap the window's screens**, and add no wallet library: `references/widget-screens.md`.
+- **`manageUrl` is a path starting with one `/`, an http(s) URL or `null`**, else ignored.
+- **Theme through `--mesub-*` properties only**, never class names: `references/theming.md`.
 - **A file that calls a hook or hands the widget a function is a client component**, under the provider, never importing `@mesub/node`.
-- **Check the provider's `chain` against the plan's network** before a real subscription: `references/widget.md`.
+- **The provider's `chain` is the test network by default: set it to the plans' network** before a real subscription (`references/widget.md`).
 
 ### Rules for the server path
 
-- **Subscribing: the wallet signs and does not send. Managing: the wallet signs and sends.** Swapping them fails silently.
-- **Identity comes from the session.** `external_id` is the verified user's id, never a value the page sent. Before any call by subscription id, check whose it is: the API key reaches every subscription of the project.
+- **Subscribing: the wallet signs and does not send. Managing: the wallet signs and sends.** Swapped, it fails silently.
+- **Identity comes from the session.** `external_id` is the verified user's id, never one the page sent. Before any call by subscription id, check whose it is: the API key reaches every subscription of the project.
 - **Terms first, transaction last.** A transaction lives half a minute (`transaction_expires_at`). Once the terms are signed, ask `subscriptions.transaction(id)`, have it signed at once, submit. Expired: ask again, never `create` anew.
 - **Branch on the result, not on the absence of an error**: `subscription.access`, then `reason_code`, never the words of `reason`.
 - **Offer Close only while `closable`** ("Close from" `closable_from`), and word a stop by `stop_reason`.
 - **An unknown outcome is not a failure.** On `MesubSubmitError` read the subscription back and never create anew until it reads `expired`. A confirm that timed out is sent again with the same signature.
-- **Only the paying wallet can cancel, resume or close.** No server call does it alone: say so if asked.
+- **Only the paying wallet can cancel, resume or close**, never a server call alone: say so if asked.
 - **`submit` waits up to 130 s and a confirm 90 s**, in the widget's routes too: `references/routes.md` for hosts that cut sooner.
 - **Show `terms.message` as written and the costs before the wallet is asked**, and Mesub's refusal messages as written. On a plan with an end date the terms say what a page must not reword: `references/server-subscribe.md`.
 
@@ -71,7 +71,7 @@ From the project root:
 node "<skill-dir>/scripts/check-wallet-side.mjs"
 ```
 
-`<skill-dir>` is the absolute path of the folder that holds this `SKILL.md`. Do not change into it.
+`<skill-dir>` is this skill's folder, as an absolute path: do not change into it.
 
 **A real subscription or cancellation needs a person with a wallet.** Report it as wired and checked up to the wallet, never as tested end to end, and say what the user must click.
 
@@ -79,9 +79,14 @@ node "<skill-dir>/scripts/check-wallet-side.mjs"
 
 <!-- related:start -->
 <!-- Rendered from catalog.yaml by `pnpm render`. Do not edit. -->
-This skill works alone: never assume another one is installed. The other skills of the kit: `mesub-quickstart`, `mesub-gate-access`, `mesub-webhooks`, `mesub-testing`, `mesub-errors`, `mesub-mcp`.
+This skill works alone: never assume another is installed. A task outside it: name its owner, from `references/kit-directory.md`. Owner not installed and not installable: stop and say so. Going on without it is the user's call, keeping its rule:
 
-For a task outside this skill, find its owner in `references/kit-directory.md` (what each skill covers, how to install it alone, its docs page), and say which skill owns it.
+- `mesub-quickstart`: never ask for the API key; `customer` from the verified session.
+- `mesub-gate-access`: gate on the server; an error is never "not subscribed".
+- `mesub-webhooks`: verify the raw body's signature; deduplicate on the event id.
+- `mesub-testing`: never mock `@mesub/node`: a seam and `FakeMesub`.
+- `mesub-errors`: branch on `apiCode`, never a message; never loop on `retryable`.
+- `mesub-mcp`: ask before any change; never an API key.
 <!-- related:end -->
 
 ## References
@@ -95,7 +100,7 @@ For a task outside this skill, find its owner in `references/kit-directory.md` (
 - `references/plan-token.md`: a plan's token (an unverified one marked, its mint shown), `amount_usd`.
 - `references/statuses.md`: the statuses, what each allows, `stop_reason`, blocked charges.
 - `references/docs.md`: the docs pages behind this skill, where they differ from the packages.
-- `references/kit-directory.md`: every skill of the kit, how to install each one alone, and its docs fallback.
+- `references/kit-directory.md`: every skill of the kit, its install and docs.
 
 ## Assets
 
@@ -111,4 +116,4 @@ For a task outside this skill, find its owner in `references/kit-directory.md` (
 
 ## Checks
 
-- `checks/verification.md`: the runbook to go through before saying the work is done.
+- `checks/verification.md`: the runbook before saying the work is done.
