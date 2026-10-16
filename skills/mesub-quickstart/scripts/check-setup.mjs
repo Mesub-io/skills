@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Usage: node "<skill-dir>/scripts/check-setup.mjs" [--help] [--server-only]
+// Usage: node "<skill-dir>/scripts/check-setup.mjs" [--help] [--server-only] [--no-gate-yet]
 //
 // Reads the project in the current directory and reports whether Mesub is wired:
 // the packages, the API key, the routes the widget calls, a gated route, the
@@ -13,12 +13,13 @@ import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { join, relative, sep } from 'node:path'
 
-const HELP = `Usage: node "<skill-dir>/scripts/check-setup.mjs" [--help] [--server-only]
+const HELP = `Usage: node "<skill-dir>/scripts/check-setup.mjs" [--help] [--server-only] [--no-gate-yet]
 
 Checks, from the project root, that a Mesub integration is wired.
 Reads files only: no write, no install, no network, no key value shown.
 
   --server-only   the project has no React front: skip the widget checks
+  --no-gate-yet   the project gates no route yet: a missing gate is a WARN
   --help          show this text
 
 Each line is PASS, FAIL, WARN or SKIP. Exit 0 when nothing FAILs, 1 otherwise.`
@@ -28,12 +29,13 @@ if (args.includes('--help') || args.includes('-h')) {
   process.stdout.write(`${HELP}\n`)
   process.exit(0)
 }
-const unknown = args.filter((arg) => arg !== '--server-only')
+const unknown = args.filter((arg) => arg !== '--server-only' && arg !== '--no-gate-yet')
 if (unknown.length > 0) {
   process.stderr.write(`Unknown argument: ${unknown[0]}\n\n${HELP}\n`)
   process.exit(2)
 }
 const serverOnly = args.includes('--server-only')
+const noGateYet = args.includes('--no-gate-yet')
 
 const root = process.cwd()
 const SKIP_DIRS = new Set([
@@ -201,7 +203,7 @@ for (const path of envFiles) {
   }
 }
 if (!keyFound) {
-  report('WARN', `${KEY_NAME} is in no env file here: fine if the host sets it, otherwise new Mesub() throws on start`)
+  report('WARN', `${KEY_NAME} is in no env file here: fine if the host sets it, otherwise a module-level new Mesub() throws at import (at build under Next) and a guard's default client at its first request`)
 }
 
 let leaks = 0
@@ -279,7 +281,9 @@ if (suspicious === 0 && mounts.length > 0) report('PASS', 'no customer read from
 // --- A gated route ---
 const gate = sources.find(({ text }) => /from\s+["']@mesub\/node|require\(\s*["']@mesub\/node/.test(text) && /\b(hasAccess|requirePlan|withMesub|RequirePlan|accessList)\s*[(<]|\bmesub\.access\s*\(/.test(text))
 if (gate) report('PASS', `a route asks Mesub for access (${shown(gate.path)})`)
-else report('WARN', 'no route is gated yet: nothing calls hasAccess, requirePlan, withMesub or RequirePlan')
+else if (serverOnly && mounts.length === 0) report('FAIL', 'nothing is wired: no widget routes (--server-only) and no route asks Mesub for access')
+else if (noGateYet) report('WARN', 'no route is gated yet (--no-gate-yet): nothing calls hasAccess, requirePlan, withMesub or RequirePlan')
+else report('FAIL', 'no route is gated: nothing calls hasAccess, requirePlan, withMesub or RequirePlan. Pass --no-gate-yet if the project gates none yet')
 
 // --- The widget ---
 if (hasReact) {

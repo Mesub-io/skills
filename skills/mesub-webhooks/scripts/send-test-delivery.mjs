@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Usage: node --env-file=.env "<skill-dir>/scripts/send-test-delivery.mjs" <url> [--network <cluster>] [--help]
+// Usage: node --env-file=.env "<skill-dir>/scripts/send-test-delivery.mjs" <url> [--type <event type>] [--external-id <id>] [--subscription <id>] [--network <cluster>] [--help]
 //
 // Posts five made-up deliveries to a webhook handler running on THIS machine
 // and reports how it answers: one unsigned, one signed with another secret,
@@ -7,15 +7,26 @@
 //
 // Network: it calls the given URL, which must be on localhost. Nothing else.
 // It reads MESUB_WEBHOOK_SECRET from the environment to sign, the way Mesub
-// does, and never shows it. It writes no file. Every delivery is a `test`
-// event with "test": true and the subscription sub_test, which a handler
-// must ignore, in the body Mesub sends since api_version 2026-10-02.
+// does, and never shows it. It writes no file. By default every delivery is a
+// `test` event with "test": true and the subscription sub_test, which a
+// handler must ignore, in the body Mesub sends since api_version 2026-10-02.
+// With --type, the body is a real event of that type, without "test": the
+// handler acts on it, so run it against a development database only.
 //
 // Exit 0: no FAIL. Exit 1: at least one FAIL. Exit 2: arguments not understood,
 // no secret, or the server cannot be reached.
 import { createHmac, randomBytes, randomUUID } from 'node:crypto'
 
-const HELP = `Usage: node --env-file=.env "<skill-dir>/scripts/send-test-delivery.mjs" <url> [--network <cluster>] [--help]
+// The types @mesub/node reads, `test` aside: its WebhookEvent.
+const TYPES = [
+  'subscription.created', 'subscription.renewal_upcoming', 'subscription.renewed',
+  'subscription.payment_failed', 'subscription.stopped', 'subscription.cancelled',
+  'subscription.resumed', 'subscription.ended', 'subscription.expired',
+  'subscription.access_granted', 'subscription.access_revoked', 'subscription.paused',
+  'subscription.unpaused',
+]
+
+const HELP = `Usage: node --env-file=.env "<skill-dir>/scripts/send-test-delivery.mjs" <url> [options]
 
 Posts five made-up Mesub deliveries to a handler on this machine and reports
 how it answers. <url> is the handler's, on localhost:
@@ -23,12 +34,20 @@ how it answers. <url> is the handler's, on localhost:
 
 It signs with MESUB_WEBHOOK_SECRET, read from the environment and never shown:
 load the file the server itself reads with --env-file, as above.
-Each delivery is a "test" event about the subscription sub_test.
+By default each delivery is a "test" event about the subscription sub_test,
+which a handler must ignore: it proves the check, not a branch.
 
-  --network <cluster>  the body's "network": the Solana cluster the project
-                       runs on, as Solana names it. Left out, the cluster
-                       Mesub runs on today. @mesub/node refuses a body without it.
-  --help               show this text
+  --type <event type>     send a real event of that type instead, without
+                          "test": true, so the handler's branch for it runs.
+                          It acts on it: use a development database. One of
+                          ${TYPES.join(', ')}.
+  --external-id <id>      the subscription's external_id (default user_123),
+                          to reach a user of the development database
+  --subscription <id>     the subscription's id (default sub_test)
+  --network <cluster>     the body's "network": the Solana cluster the project
+                          runs on, as Solana names it. Left out, the cluster
+                          Mesub runs on today. @mesub/node refuses a body without it.
+  --help                  show this text
 
 Each line is PASS, FAIL or WARN. Exit 0 when nothing FAILs, 1 otherwise.`
 
@@ -41,14 +60,22 @@ const stop = (message) => {
   process.stderr.write(`${message}\n\n${HELP}\n`)
   process.exit(2)
 }
-// Spelled in two parts only because the kit's prose names no cluster: Mesub's own today.
-let network = ['dev', 'net'].join('')
-const at = args.indexOf('--network')
-if (at !== -1) {
-  network = args[at + 1]
-  if (!network || network.startsWith('-')) stop('--network needs a value.')
+/** The value of `--name value`, taken out of args, or the fallback. */
+function option(name, fallback) {
+  const at = args.indexOf(name)
+  if (at === -1) return fallback
+  const value = args[at + 1]
+  if (!value || value.startsWith('-')) stop(`${name} needs a value.`)
   args.splice(at, 2)
+  return value
 }
+// Spelled in two parts only because the kit's prose names no cluster: Mesub's own today.
+const network = option('--network', ['dev', 'net'].join(''))
+const type = option('--type', 'test')
+const externalId = option('--external-id', 'user_123')
+const subscriptionId = option('--subscription', 'sub_test')
+if (type !== 'test' && !TYPES.includes(type)) stop(`Unknown event type: ${type}. One of: ${TYPES.join(', ')}.`)
+const real = type !== 'test'
 if (args.length !== 1 || args[0].startsWith('-')) stop(args.length === 0 ? 'Missing the handler URL.' : `Unknown argument: ${args.find((arg) => arg.startsWith('-')) ?? args[1]}`)
 
 let url
@@ -65,49 +92,81 @@ const secret = process.env.MESUB_WEBHOOK_SECRET
 if (!secret) stop('MESUB_WEBHOOK_SECRET is not in the environment: load the server\'s env file with --env-file.')
 if (!secret.startsWith('whsec_')) stop('MESUB_WEBHOOK_SECRET does not start with whsec_: it is not a signing secret.')
 
+const now = new Date()
+const iso = (days) => new Date(now.getTime() + days * 86_400_000).toISOString()
+const AMOUNT = '9990000'
+// A made-up mint: the handler must not need a real one to run its branch.
+const MINT = 'So11111111111111111111111111111111111111112'
+
+/** The subscription as the event carries it: active and paid, then moved by the type. */
+const subscription = {
+  id: subscriptionId,
+  status: 'active',
+  paused: false,
+  end_reason: null,
+  late_reason: null,
+  stop_reason: null,
+  access: true,
+  payment_status: 'paid',
+  blocked_since: null,
+  blocked_reason: null,
+  plan: 'pro',
+  wallet: '11111111111111111111111111111111',
+  email: 'subscriber@example.com',
+  external_id: externalId,
+  current_period_start: iso(-10),
+  current_period_end: iso(20),
+  next_charge_at: iso(20),
+  next_retry_at: null,
+  retry_deadline: null,
+  next_retry_number: null,
+  retries_allowed: null,
+  access_until: iso(20),
+  closable: false,
+  closable_from: null,
+  created_at: iso(-10),
+  confirmed_at: iso(-10),
+}
+const over = { access: false, next_charge_at: null, access_until: null }
+/** Per type: what moves on the subscription, and the event's detail. */
+const SHAPES = {
+  test: [{}, {}],
+  'subscription.created': [{}, { first_payment: { amount: AMOUNT, mint: MINT, signature: null } }],
+  'subscription.renewal_upcoming': [{}, { can_pay: true, renewal_issue: null, amount: AMOUNT, mint: MINT, due_at: iso(20) }],
+  'subscription.renewed': [{}, { amount: AMOUNT, mint: MINT, period_start: iso(-10), period_end: iso(20), signature: 'made_up_signature' }],
+  'subscription.payment_failed': [
+    { status: 'unpaid', payment_status: 'late', late_reason: 'insufficient_balance', next_retry_at: iso(1), retry_deadline: iso(7), next_retry_number: 1, retries_allowed: 3 },
+    { reason: 'insufficient_balance', amount: AMOUNT, mint: MINT, period_start: iso(-10), period_end: iso(20), next_retry_at: iso(1), retry_deadline: iso(7), retries_left: 3, retry_mode: 'scheduled' },
+  ],
+  'subscription.stopped': [{ status: 'stopped', payment_status: 'late', stop_reason: 'out_of_retries', ...over }, { reason: 'out_of_retries' }],
+  'subscription.cancelled': [{ status: 'cancelled', next_charge_at: null }, {}],
+  'subscription.resumed': [{}, {}],
+  'subscription.ended': [{ status: 'ended', end_reason: 'cancelled', ...over }, { changed_at: now.toISOString(), end_reason: 'cancelled' }],
+  'subscription.expired': [{ status: 'expired', payment_status: 'none', confirmed_at: null, ...over }, {}],
+  'subscription.access_granted': [{}, { changed_at: now.toISOString(), blocked_reason: null, access_until: iso(20) }],
+  'subscription.access_revoked': [{ status: 'ended', end_reason: 'cancelled', ...over }, { changed_at: now.toISOString(), blocked_reason: null, access_until: null }],
+  'subscription.paused': [{ paused: true, next_charge_at: null }, {}],
+  'subscription.unpaused': [{}, {}],
+}
+const [moved, detail] = SHAPES[type]
+
 // What the dashboard's "Send test" posts, spaced the way no JSON writer would
 // write it again: a handler that parses then serializes fails the signature.
 // `detail` sits at the top of the body, beside `data`, not inside it.
 const body = JSON.stringify(
   {
-    id: 'evt_test',
+    id: real ? `evt_local_${randomUUID()}` : 'evt_test',
     object: 'event',
-    type: 'test',
-    created_at: new Date().toISOString(),
+    type,
+    created_at: now.toISOString(),
     network,
     api_version: '2026-10-02',
     // Always 1 on a test delivery, as Mesub sends it.
     sequence: 1,
-    data: {
-      id: 'sub_test',
-      status: 'active',
-      paused: false,
-      end_reason: null,
-      late_reason: null,
-      stop_reason: null,
-      access: true,
-      payment_status: 'paid',
-      blocked_since: null,
-      blocked_reason: null,
-      plan: 'pro',
-      wallet: '11111111111111111111111111111111',
-      email: 'subscriber@example.com',
-      external_id: 'user_123',
-      current_period_start: '2026-01-01T00:00:00.000Z',
-      current_period_end: '2026-01-31T00:00:00.000Z',
-      next_charge_at: '2026-01-31T00:00:00.000Z',
-      next_retry_at: null,
-      retry_deadline: null,
-      next_retry_number: null,
-      retries_allowed: null,
-      access_until: '2026-01-31T00:00:00.000Z',
-      closable: false,
-      closable_from: null,
-      created_at: '2026-01-01T00:00:00.000Z',
-      confirmed_at: '2026-01-01T00:00:00.000Z',
-    },
-    detail: {},
-    test: true,
+    data: { ...subscription, ...moved },
+    detail,
+    // A real event carries no "test": the handler must act on it.
+    ...(real ? {} : { test: true }),
   },
   null,
   3,
@@ -134,9 +193,9 @@ async function post(headers) {
   return { status: response.status, ms: Date.now() - started }
 }
 
-const now = Math.floor(Date.now() / 1000)
+const seconds = Math.floor(Date.now() / 1000)
 const id = `msg_local_${randomUUID()}`
-const good = headersFor(secret, id, now)
+const good = headersFor(secret, id, seconds)
 const refused = (status) => status >= 400 && status < 500
 const ok = (status) => status >= 200 && status < 300
 
@@ -152,10 +211,12 @@ async function mustRefuse(name, headers) {
   else report('WARN', `${name}: answered ${status}, not a 4xx. It is refused, but as a fault of the server: answer 400`)
 }
 
+if (real) report('WARN', `the signed deliveries are a real ${type} about ${subscriptionId} (external_id ${externalId}), without "test": the handler acted on it. Check its effect in the development database`)
+
 try {
   await mustRefuse('unsigned', {})
-  await mustRefuse('signed with another secret', headersFor(`whsec_${randomBytes(24).toString('base64')}`, `msg_local_${randomUUID()}`, now))
-  await mustRefuse('signed an hour ago', headersFor(secret, `msg_local_${randomUUID()}`, now - 3600))
+  await mustRefuse('signed with another secret', headersFor(`whsec_${randomBytes(24).toString('base64')}`, `msg_local_${randomUUID()}`, seconds))
+  await mustRefuse('signed an hour ago', headersFor(secret, `msg_local_${randomUUID()}`, seconds - 3600))
 
   const first = await post(good)
   if (ok(first.status)) {

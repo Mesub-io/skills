@@ -2,7 +2,7 @@
 // Usage: node "<skill-dir>/scripts/check-gates.mjs" [--help]
 //
 // Reads the project in the current directory and reports every place that asks
-// Mesub for access, and the mistakes that make a gate unsafe or silently
+// Mesub for access, the routes a guard guards, and the mistakes that make a gate unsafe or silently
 // broken. Run it from the project root.
 //
 // It only reads files. No write, no install, no network. It never shows the
@@ -15,7 +15,8 @@ import { basename, join, relative, sep } from 'node:path'
 const HELP = `Usage: node "<skill-dir>/scripts/check-gates.mjs" [--help]
 
 Lists, from the project root, every gate on a Mesub plan (requirePlan, withMesub,
-RequirePlan, hasAccess) and checks them for the usual mistakes.
+RequirePlan, hasAccess), the routes each guard guards, and checks them for the
+usual mistakes.
 Reads files only: no write, no install, no network, no key value shown.
 
   --help          show this text
@@ -114,6 +115,8 @@ const usesNode = ({ text }) => /from\s+["']@mesub\/node|require\(\s*["']@mesub\/
 // A file that asks through a client imported from the app's own module counts too.
 const asksMesub = ({ text }) => /\.\s*(hasAccess|accessList)\s*\(|\bmesub\w*\s*\.\s*access\s*\(/i.test(text)
 const server = sources.filter((file) => usesNode(file) || asksMesub(file))
+// Where a named gate is used: any file of the app, not only those that ask Mesub.
+const everyFile = sources
 
 // --- The package ---
 const declared = new Map()
@@ -163,6 +166,68 @@ function listedPlans(written, planFirst) {
   return [...new Set([...list[1].matchAll(/(["'`])([^"'`]+)\1/g)].map((match) => match[2]))]
 }
 
+const ROUTE_CALL = /\.\s*(get|post|put|patch|delete|all|use|head|options)\s*\(/g
+const METHODS = /^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)$/
+
+/** The URL an App Router route file answers: app/api/reports/route.ts gives /api/reports. */
+function nextPath(path) {
+  const parts = shown(path).split('/')
+  const app = parts.lastIndexOf('app')
+  if (app === -1 || !/^route\.[cm]?[jt]sx?$/.test(parts.at(-1))) return null
+  return `/${parts.slice(app + 1, -1).filter((part) => !/^\(.*\)$/.test(part)).join('/')}`
+}
+
+/** `GET /x (file:line)` for an Express route call at `index`, whose arguments are `written`. */
+function routeName(path, text, index, method, written) {
+  const literal = written.match(/^\s*(["'`])([^"'`]*)\1/)
+  const verb = method === 'use' ? 'every route under' : method.toUpperCase()
+  const at = `${shown(path)}:${lineOf(text, index)}`
+  if (method === 'use' && !literal) return `every later route of its app or router (${at})`
+  return `${verb} ${literal ? literal[2] : 'a path worked out in code'} (${at})`
+}
+
+/**
+ * The routes a gate guards: null when it is neither named nor inside a route call
+ * (nothing to follow), [] when it is named and no route uses the name.
+ */
+function routesOf(path, text, index) {
+  // Inline: app.get('/x', requirePlan(...), handler).
+  const before = text.slice(Math.max(0, index - 400), index)
+  const inline = [...before.matchAll(ROUTE_CALL)].at(-1)
+  if (inline) {
+    const open = Math.max(0, index - 400) + inline.index + inline[0].length - 1
+    const written = argsAt(text, open)
+    if (open + written.length + 1 > index) return [routeName(path, text, open, inline[1], written)]
+  }
+  // NestJS: @UseGuards(RequirePlan(...)) on a class or a method.
+  if (/@UseGuards\s*\([^@]*$/.test(before)) {
+    const rest = text.slice(index, index + 1500)
+    const verb = rest.match(/@(Get|Post|Put|Patch|Delete|All)\s*\(\s*(?:(["'`])([^"'`]*)\2)?/)
+    const controller = text.slice(0, index).match(/@Controller\s*\(\s*(?:(["'`])([^"'`]*)\1)?[^)]*\)(?![\s\S]*@Controller)/)
+    const base = controller?.[2] ? `/${controller[2].replace(/^\/+/, '')}` : ''
+    if (verb) return [`${verb[1].toUpperCase()} ${`${base}/${verb[3] ?? ''}`.replace(/\/+/g, '/').replace(/(.)\/$/, '$1') || '/'} (${shown(path)}:${lineOf(text, index + verb.index)})`]
+    return null
+  }
+  const declared = before.match(/(?:export\s+)?(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*(?::[^=;]+)?=\s*(?:await\s+)?$/)
+  if (!declared) return null
+  const name = declared[1]
+  // Next: export const GET = withMesub(...) in app/**/route.ts.
+  if (METHODS.test(name)) {
+    const url = nextPath(path)
+    return url ? [`${name} ${url} (${shown(path)}:${lineOf(text, index)})`] : null
+  }
+  const uses = []
+  const used = new RegExp(`(^|[^\\w$.])${name.replace(/\$/g, '\\$')}(?![\\w$])(?!\\s*[(:=])`)
+  for (const file of everyFile) {
+    for (const call of file.text.matchAll(ROUTE_CALL)) {
+      const open = call.index + call[0].length - 1
+      const written = argsAt(file.text, open)
+      if (used.test(written)) uses.push(routeName(file.path, file.text, call.index, call[1], written))
+    }
+  }
+  return uses
+}
+
 const guards = []
 for (const file of server) {
   const { path, text } = file
@@ -178,7 +243,14 @@ for (const file of server) {
       const plans = listedPlans(written, guard.planFirst)
       const single = guard.planFirst ? written.match(/^\s*(["'`])([^"'`]+)\1/) : written.match(/\bplan\s*:\s*(["'`])([^"'`]+)\1/)
       const named = plans ? plans.join(', ') : single ? single[2] : 'a plan worked out in code'
-      report('PASS', `gate: ${guard.name} on ${named} (${where})`)
+      const routes = routesOf(path, text, match.index)
+      if (routes === null) {
+        report('PASS', `gate: ${guard.name} on ${named} (${where})`)
+      } else if (routes.length === 0) {
+        report('WARN', `gate: ${guard.name} on ${named} (${where}) is defined but guards no route this check can find: mount it on the paid routes, or check by hand where it runs`)
+      } else {
+        report('PASS', `gate: ${guard.name} on ${named} (${where}), guards ${routes.join(', ')}`)
+      }
 
       if (plans && plans.length > MAX_PLANS) {
         report('FAIL', `${where} asks about ${plans.length} plans: a guard takes ${MAX_PLANS} at most and throws when it is built`)

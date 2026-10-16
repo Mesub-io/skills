@@ -4,10 +4,12 @@
 // Reads the project in the current directory and reports the ways its handling
 // of Mesub's errors is silently broken: a code that can never match, a reason
 // spelt the way another field spells it or an older Mesub spelt it, a branch on
-// a message or on the sentence of a `reason`, a wait counted in the wrong unit.
+// a message or on the sentence of a `reason`, a wait counted in the wrong unit,
+// a loop that retries on `retryable`, an access check whose error becomes "no".
 // Run it from the project root.
 //
-// It only reads the files that import @mesub/node or @mesub/react. No write, no
+// It only reads the files that import @mesub/node or @mesub/react, or that ask
+// Mesub through the app's own client (hasAccess, retryable, MesubError). No write, no
 // install, no network. It prints file names, line numbers and the names of
 // codes, never the content of an env file nor the value of a key.
 //
@@ -135,6 +137,8 @@ function read(path) {
 }
 
 const USES_MESUB = /(from\s+|require\(\s*|import\(\s*)['"]@mesub\/(node|react)/
+// A helper that imports the app's own client, not the package, still asks Mesub.
+const ASKS_MESUB = /\.\s*(hasAccess|accessList)\s*\(|\bmesub\w*\s*\.\s*access\s*\(|\bretryable\b|\bMesubError\b/i
 const FIELDS = 'apiCode|code|late_reason|end_reason|stop_reason|outcome|reason_code|reason|status'
 // `x.apiCode === 'literal'`, either way round.
 const COMPARED = new RegExp(
@@ -212,13 +216,86 @@ function judge(field, value, file, line, raw) {
   }
 }
 
+/** The text with its comments blanked, same length and same lines. */
+function withoutComments(text) {
+  const blank = (match) => match.replace(/[^\n]/g, ' ')
+  return text.replace(/\/\*[\s\S]*?\*\//g, blank).replace(/(^|[^:'"`\\])\/\/[^\n]*/g, (match, lead) => lead + blank(match.slice(lead.length)))
+}
+
+const lineOf = (text, index) => text.slice(0, index).split('\n').length
+
+/** The index just past the block that opens at `open` (a `{`), or the end of the text. */
+function blockEnd(text, open) {
+  let depth = 0
+  for (let index = open; index < text.length; index++) {
+    if (text[index] === '{') depth += 1
+    else if (text[index] === '}' && (depth -= 1) === 0) return index + 1
+  }
+  return text.length
+}
+
+/** The loops on `retryable`, and the access checks whose error becomes "no". */
+function judgeFlow(file, text) {
+  // A loop: its head (the condition) and its body, or a do's body and its while.
+  for (const match of text.matchAll(/\b(for|while)\s*\(|\bdo\s*\{/g)) {
+    let head = ''
+    let bodyStart
+    if (match[1]) {
+      let depth = 0
+      let close = match.index + match[0].length - 1
+      for (; close < text.length; close++) {
+        if (text[close] === '(') depth += 1
+        else if (text[close] === ')' && (depth -= 1) === 0) break
+      }
+      head = text.slice(match.index, close + 1)
+      // `} while (x)` closing a do: judged with its do.
+      if (match[1] === 'while' && /\}\s*$/.test(text.slice(Math.max(0, match.index - 20), match.index))) continue
+      const rest = text.slice(close + 1).match(/^\s*\{/)
+      if (!rest) {
+        if (/\bretryable\b/.test(head)) find('WARN', 'loop', file, lineOf(text, match.index), 'a loop on retryable: the SDK already retried what is safe to retry, and a write sent again is a second write. Show the wait (retryAfter) instead')
+        continue
+      }
+      bodyStart = close + 1 + rest[0].length - 1
+    } else {
+      bodyStart = match.index + match[0].length - 1
+    }
+    const end = blockEnd(text, bodyStart)
+    let body = text.slice(bodyStart, end)
+    if (!match[1]) body += (text.slice(end).match(/^\s*while\s*\([^)]*\)/) ?? [''])[0]
+    // A for...of walks a list: only its head counts.
+    const walksList = /^for\s*\(\s*(const|let|var)?\s*[\w{}\[\],\s]+\s+(of|in)\s/.test(head)
+    if (/\bretryable\b/.test(head) || (!walksList && /\bretryable\b/.test(body))) {
+      find('WARN', 'loop', file, lineOf(text, match.index), 'a loop on retryable: the SDK already retried what is safe to retry, and a write sent again is a second write. Show the wait (retryAfter) instead')
+    }
+  }
+
+  // An access check whose every error is answered "no".
+  for (const match of text.matchAll(/\.\s*(hasAccess|accessList|access)\s*\(/g)) {
+    if (match[1] === 'access' && !/\bmesub\w*\s*$/i.test(text.slice(Math.max(0, match.index - 24), match.index))) continue
+    const line = lineOf(text, match.index)
+    const after = text.slice(match.index + match[0].length, match.index + match[0].length + 600)
+    const swallowed = after.match(/^[^;]*?\)\s*\.catch\s*\(\s*(?:async\s*)?\(?[^)]*\)?\s*=>\s*\(?\s*(false|null|undefined)\b/)
+    if (swallowed) {
+      find('FAIL', 'fallback', file, line, `every error of ${match[1]} becomes "${swallowed[1]}": a refused key or a wrong slug would lock every subscriber out, silently. Let it throw; the client already serves its last answer in an outage`)
+      continue
+    }
+    const before = text.slice(Math.max(0, match.index - 600), match.index)
+    const opened = [...before.matchAll(/\btry\s*\{/g)].at(-1)
+    if (opened === undefined || /\bcatch\b/.test(before.slice(opened.index))) continue
+    if (/\bcatch\s*(\([^)]*\))?\s*\{[^}]*?\b(return\s+(false|null)\b|=\s*false\b|return\s*;)/.test(after)) {
+      find('WARN', 'fallback', file, line, `${match[1]} sits in a try whose catch answers "no": a refused key or a wrong slug would lock every subscriber out, silently. Rethrow what is not an outage; the client already serves its last answer in one`)
+    }
+  }
+}
+
 const files = walk(root)
 let read_ = 0
 
 for (const file of files) {
   const text = read(file)
-  if (text === null || !USES_MESUB.test(text)) continue
+  if (text === null || !(USES_MESUB.test(text) || ASKS_MESUB.test(text))) continue
   read_++
+  judgeFlow(file, withoutComments(text))
 
   // The field a `switch` is on, for the `case` lines under it.
   let switched = null
@@ -256,6 +333,8 @@ const CHECKS = [
   ['reasons', 'every outcome, reason, reason_code, late_reason, stop_reason and end_reason is spelt as Mesub serves it'],
   ['message', 'no branch on an error message'],
   ['wait', 'retryAfter is read in milliseconds'],
+  ['loop', 'nothing loops on a retryable error'],
+  ['fallback', 'no access check turns an error into "no"'],
 ]
 
 const out = []

@@ -97,3 +97,66 @@ test('a switch on stop_reason is judged case by case', () => {
   assert.match(out, /FAIL .*stop_reason is never 'grace_ended'/)
   assert.doesNotMatch(out, /'out_of_retries'/)
 })
+
+const LOOP = /WARN .*a loop on retryable/
+
+test('a loop on retryable around an access check that falls back to false is caught', () => {
+  const { status, out } = check(
+    `export async function hasPro(id) { for (;;) { try { return await mesub.hasAccess({ customer: { external_id: id }, plan: 'pro' }) } catch (error) { if (error instanceof MesubError && error.retryable) continue; return false } } }`,
+  )
+  assert.equal(status, 0, out)
+  assert.match(out, LOOP)
+  assert.match(out, /WARN .*hasAccess sits in a try whose catch answers "no"/)
+})
+
+test('the try and catch to false alone warn', () => {
+  const { out } = check(
+    'export async function hasPro(id: string) {',
+    '  try {',
+    `    return await mesub.hasAccess({ customer: { external_id: id }, plan: 'pro' })`,
+    '  } catch {',
+    '    return false',
+    '  }',
+    '}',
+  )
+  assert.match(out, /WARN  mesub\.ts:4: hasAccess sits in a try whose catch answers "no"/)
+  assert.doesNotMatch(out, LOOP)
+})
+
+test('a catch to false on the promise fails', () => {
+  const { status, out } = check(`const ok = await mesub.hasAccess({ customer, plan: 'pro' }).catch(() => false)`)
+  assert.equal(status, 1)
+  assert.match(out, /FAIL .*every error of hasAccess becomes "false"/)
+})
+
+test('a while and a do on retryable warn', () => {
+  const { out } = check(
+    'while (error?.retryable) { error = await attempt() }',
+    'do { result = await attempt() } while (result.error?.retryable)',
+  )
+  assert.equal(out.split('\n').filter((line) => LOOP.test(line)).length, 2, out)
+})
+
+test('a loop not on retryable, and a for...of reading it, do not warn', () => {
+  const { out } = check(
+    'for (let page = 0; page < 3; page++) { await mesub.events.list({ limit: 100 }) }',
+    'for (const failure of failures) { if (failure.retryable) later.push(failure) }',
+    'try { return await mesub.hasAccess({ customer, plan }) } catch (error) { log(error); throw error }',
+  )
+  assert.doesNotMatch(out, LOOP)
+  assert.match(out, /PASS  nothing loops on a retryable error/)
+  assert.match(out, /PASS  no access check turns an error into "no"/)
+})
+
+test('a helper that uses the app client, not the package, is read', () => {
+  const root = mkdtempSync(join(tmpdir(), 'check-error-handling-'))
+  try {
+    writeFileSync(join(root, 'mesub.ts'), `import { Mesub } from '@mesub/node'\nexport const mesub = new Mesub()\n`)
+    writeFileSync(join(root, 'access.ts'), `import { mesub } from './mesub'\nexport async function ok(id) { try { return await mesub.hasAccess({ customer: { external_id: id }, plan: 'pro' }) } catch { return false } }\n`)
+    const ran = spawnSync('node', [SCRIPT], { cwd: root, encoding: 'utf8' })
+    assert.match(ran.stdout, /2 files importing a Mesub package read|2 files/)
+    assert.match(ran.stdout, /WARN  access\.ts:2: hasAccess sits in a try/)
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
