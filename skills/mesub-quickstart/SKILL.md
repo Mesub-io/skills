@@ -31,7 +31,7 @@ This skill takes a project from no Mesub code to one paying subscriber: the pack
 
 1. **The subscriber has no Mesub account.** Who they are comes from the app's own login. An app with no login needs one first.
 2. **The API key lives on the server only.** `@mesub/react` holds no key and never talks to Mesub: it calls routes on the app's own server.
-3. **A plan is named by its slug** (`pro` for a plan called Pro). Price, token and period live in the dashboard, not in code.
+3. **A plan is named by its slug**, read in the dashboard, never guessed. Price, token and period live in the dashboard, not in code.
 4. **Mesub charges every period by itself.** No cron, no job, no renewal code in the app.
 
 ### The six steps

@@ -36,11 +36,11 @@ const { subscription } = await mesub.subscriptions.submit(created.subscription.i
 
 | Call | The fake answers | Refusals |
 |---|---|---|
-| `create` | A `pending` subscription, a made-up `transaction`, zero `costs`, `terms` that expire in five minutes | 400 `invalid_request` without `plan` and `wallet`, or with a wallet that is not a base58 address. 404 `plan_not_found`. 409 `plan_ended` once the plan's end date has passed. 409 `already_subscribed` when that wallet holds the plan (`active`, `cancelled`, `unpaid`) |
+| `create` | A `pending` subscription, a made-up `transaction`, zero `costs`, `terms` that expire in five minutes | 400 `invalid_request` without `plan` and `wallet`, or with a wallet that is not a base58 address. 404 `plan_not_found`. 409 `plan_ended` once the plan's end date has passed. 409 when that wallet holds the plan, by the status of what it holds: `already_subscribed` (`active`), `payment_pending` (`unpaid`), `subscription_cancelled` (`cancelled`, or `ended` by a cancellation and not closed yet), `subscription_stopped` (`stopped` with `stop_reason` `authority_closed`) |
 | `create` again, same customer, wallet and plan | The same pending subscription | |
-| `transaction(id)` | For a `pending` subscription, what `create` answers: the subscription, a made-up `transaction`, `terms`, `costs` | `not_awaiting_signature` once it is no longer `pending`, `plan_ended`, `already_subscribed`, `subscription_not_found` for an unknown id |
-| `submit` | `active`, paid, a period of 30 days, and access granted under each name the subscription carries. On a plan that ends inside those 30 days: `access_until` at the plan's end and `next_charge_at` null | 409 `not_awaiting_signature` when it is not `pending` |
-| `retrieve`, `list` | What was added or created, newest first | 404 `subscription_not_found` |
+| `transaction(id)` | For a `pending` subscription, what `create` answers: the subscription, a made-up `transaction`, `terms`, `costs` | `not_awaiting_signature` once it is no longer `pending`, `plan_ended`, the 409s of `create` for what the wallet holds, `subscription_not_found` for an unknown id |
+| `submit` | `active`, paid, a period of 30 days, and access granted under each name the subscription carries. On a plan that ends inside those 30 days: `access_until` at the plan's end and `next_charge_at` null | 400 `invalid_request` without `transaction` (base64) or a non-empty `terms_signature`. 409 `not_awaiting_signature` when it is not `pending`, `plan_ended` once the plan's end date has passed |
+| `retrieve`, `list` | What was added or created, newest first | 404 `subscription_not_found`. 400 `invalid_request` for a `limit` outside 1 to 100 |
 
 ### A transaction that expired
 

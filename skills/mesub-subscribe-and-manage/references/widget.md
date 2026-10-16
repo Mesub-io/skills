@@ -25,7 +25,7 @@ Once, around the app. It renders the one window every button and hook opens.
 
 Any other string (`account`, `//host/page`, a value with a space) is ignored and the link falls back to Mesub's page. Nothing warns about it. Point it at the page that renders `ManageSubscriptions` or a list built on `useSubscriptions`.
 
-**`chain`** is the test network by default: set it to the network of the plans. The docs page does not list this prop. A plan lives on one network (its `network` field, in what `GET <endpoint>/plans/<slug>` answers). If the provider's chain is not that network, the wallet is asked to sign for the wrong one. Compare with the plan's `network`, pass `chain="solana:<cluster>"` as Solana's wallets name it, and ask the user when unsure.
+**`chain`** is the test network by default: set it to the network of the plans. A plan lives on one network (its `network` field, in what `GET <endpoint>/plans/<slug>` answers). If the provider's chain is not that network, the wallet is asked to sign for the wrong one. Compare with the plan's `network`, pass `chain="solana:<cluster>"` as Solana's wallets name it, and ask the user when unsure.
 
 **Requests** go with `credentials: 'include'`, so the session cookie travels. A custom `fetch` receives that `init` and must pass it on, `signal` included.
 
@@ -37,7 +37,7 @@ Any other string (`account`, `//host/page`, a value with a space) is ignored and
 </SubscribeButton>
 ```
 
-- `plan`: the plan's slug. Required.
+- `plan`: the plan's slug. Required. Read it in the dashboard (the plan's Implement tab) or from `mesub.plans.list()` on the server, never guess it from the plan's name: an unknown slug shows "Plan not found".
 - `onSubscribed(subscription)`: called once Mesub confirmed the first payment, even if the window was closed meanwhile.
 - `children`: the label, "Subscribe" by default. While signing, confirming and once subscribed the button words itself.
 - Every other `<button>` prop goes to the button, and the ref is forwarded. An `onClick` that calls `preventDefault()` stops the window from opening: that is how to run the app's own check first.
@@ -96,7 +96,7 @@ const { state, subscriptions, error, reload, payNow, manage } = useSubscriptions
 | `subscriptions` | Newest first, each with `action` (`cancel`, `resume`, `close` or `null`) and `payable` (a late payment that paying now can settle: `unpaid`, not paused nor blocked, still approved by the wallet, before `retry_deadline`). Checkouts nobody signed are left out |
 | `error` | The server's message in the `error` state, `null` otherwise |
 | `reload()` | Reads the list again |
-| `payNow(id)` | Pays that late payment now, with nothing to sign. Never throws: resolves to a `PayNowResult`, `{ ok, message, retryAfter? }`. `ok` true means the charge was sent, not paid: the list reads again and the outcome comes with the charge. `message` is the widget's own sentence for a refusal (add funds, wait N minutes, no retries left). `retryAfter`, in seconds, when Mesub was busy: disable the button and count it down. Offer it only on a `payable` row |
+| `payNow(id)` | Pays that late payment now, with nothing to sign. Never throws: resolves to a `PayNowResult`, `{ ok, message, retryAfter? }`. `ok` true means the charge was sent, not paid: the list reads again and the outcome comes with the charge. `message` is the widget's own sentence for a refusal (add funds, wait N minutes, no retries left, and when Mesub is busy "Mesub can't take the payment right now. Nothing was charged."). `retryAfter`, in seconds, only when Mesub was busy (a 503 with `Retry-After`, about 20 seconds): disable the button and count it down, then clear the message. Offer it only on a `payable` row |
 | `manage(id)` | Opens the window for what that subscription allows. Resolves when it closes: the subscription as it is now, or `null` if nothing changed or it allows nothing |
 
 Fields are as the server serves them: snake case, dates as ISO strings, `plan` is the slug. The app's own id and email are never in them.

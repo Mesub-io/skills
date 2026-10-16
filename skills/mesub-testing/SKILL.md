@@ -9,7 +9,7 @@ license: Apache-2.0
 
 ## Overview
 
-This skill makes an agent write tests that prove a Mesub integration behaves: who gets in, who is refused and how, an outage, a signed event. They run against the fake of `@mesub/node/testing`: the real guard, cache and signature check, no network.
+This skill writes tests that prove a Mesub integration behaves: who gets in, who is refused and how, an outage, a signed event. They run against the fake of `@mesub/node/testing`: the real guard, cache and signature check, no network.
 
 ## When to use this skill
 
@@ -27,7 +27,7 @@ This skill makes an agent write tests that prove a Mesub integration behaves: wh
 
 ### Check what is installed first
 
-Read `node_modules/@mesub/node/package.json`: the version, and `"./testing"` under `exports`. If either is missing, stop and tell the user: no lookalike, no hand-written fake. Written from 0.1.0: the installed `dist/testing.d.ts` wins.
+Read `node_modules/@mesub/node/package.json`: the version, and `"./testing"` under `exports`. If either is missing, stop and tell the user where it comes from (`references/docs.md`): no lookalike, no hand-written fake. Written from 0.1.0: the installed `dist/testing.d.ts` wins.
 
 ### The shape of every test
 
@@ -48,12 +48,12 @@ fake.grantLastPeriod({ external_id: 'user_9' }, 'pro', endsAt); // the plan ends
 fake.endPlan('pro'); // its end passed: nobody has access on it
 ```
 
-`fake.client()` is a real `Mesub` wired to the fake. A test replaces two things, the client and who is signed in, and hands both in from outside: `references/seams.md`.
+`fake.client()` is a real `Mesub` wired to the fake. A test replaces two things, the client and who is signed in, and hands both in: `references/seams.md`.
 
 ### Steps
 
 1. **Read the project**: the test framework, and where the guards, the route mount and the webhook handler get their client and their `customer`.
-2. **Make the seam** if there is none: `assets/create-app.ts` (Express) or the builders in `assets/next-route.test.ts`. It is the only change to the code that ships: tell the user. Why: a client built at module level throws without `MESUB_API_KEY`: such an app cannot even be imported.
+2. **Make the seam** if there is none: `assets/create-app.ts` (Express) or the builders in `assets/next-route.test.ts`. It is the only change to the code that ships: tell the user. Why: a client built at module level throws without `MESUB_API_KEY`: the app cannot be imported.
 3. **A paid route**: `assets/guard.test.ts`. At least: a subscriber gets 200, a signed-in non-payer 402, nobody signed in 401, an outage for a user never seen 503. Every case: `references/cases.md`.
 4. **The widget routes**: `assets/widget-routes.test.ts`. At least: signed out is 401, a user reads only their own subscriptions, a new subscription is tied to the signed-in user.
 5. **A webhook handler**, if any: `assets/webhook.test.ts`. At least: a signed delivery is handled, a changed body answers 400, a repeat is handled once. `references/webhooks.md`.

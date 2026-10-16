@@ -11,4 +11,8 @@ This skill holds what the wallet side and the server calls need. The docs hold t
 
 - The docs site may not be reachable yet. If a page cannot be read, say so and work from the installed package: `node_modules/@mesub/react/README.md`, `node_modules/@mesub/node/README.md` and their type declarations. Do not guess what the page said.
 - Before using a prop, an option or a method this skill does not show, check it in the installed types (`node_modules/@mesub/react/dist/index.d.ts`, `node_modules/@mesub/node/dist/index.d.ts`). Never write a call from memory.
-- Where the docs and the installed package differ, the package wins. Known today: the docs page of the widget does not list the provider's `chain` prop, nor say that `manageUrl` leads to Mesub's own page by default.
+- Where the docs and the installed package differ, the package wins. Known today: the docs page of the widget does not say that `manageUrl` leads to Mesub's own page by default.
+
+## Where the packages come from
+
+`@mesub/node` and `@mesub/react` are in early 0.x and may not be on the public npm registry yet: when `npm install` answers that a package does not exist, that is why. Until they are published, they come from their public source repositories, `Mesub-io/node-sdk` and `Mesub-io/react-sdk`: built and packed in a clone (`pnpm install && pnpm build && npm pack`), then installed from the tarball (`npm install /path/to/mesub-node-<version>.tgz`, a `file:` dependency), or linked from the same workspace. Tell the user that and let them choose; do it only on their yes. Never install a package with a similar name, a tarball or a folder of unknown origin, and never copy the SDK's source into the project. `@mesub/react` 0.1.x works with the routes of `@mesub/node` 0.1.x: install the two at the same minor.

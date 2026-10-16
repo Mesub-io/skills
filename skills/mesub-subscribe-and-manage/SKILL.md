@@ -28,7 +28,7 @@ This skill covers the moments a wallet signs: subscribing, cancelling, resuming,
 
 ### First, read what is there
 
-Read `package.json`, the lockfile and `node_modules/@mesub/*/package.json` for the versions; a package that does not install: stop and tell the user. Then find `<MesubProvider endpoint=...>` and the `mesubRoutes` or `mesubRouteHandlers` call. With neither, setup is not done: say so.
+Read `package.json`, the lockfile and `node_modules/@mesub/*/package.json` for the versions; a package missing: stop and tell the user where it comes from (`references/docs.md`). Then find `<MesubProvider endpoint=...>` and the `mesubRoutes` or `mesubRouteHandlers` call. With neither, setup is not done: say so.
 
 ### Pick the path
 
@@ -50,7 +50,7 @@ Prefer the widget when both fit: it handles expiries and unknown outcomes. Copy 
 - **Theme through `--mesub-*` properties only**, never class names: `references/theming.md`.
 - **A value the project lacks** ("our purple" with no purple in it): build with a named placeholder marked `ADAPT`, and say so. Never stop to ask, never invent one silently.
 - **A file calling a hook or handing the widget a function is a client component**, under the provider, never importing `@mesub/node`.
-- **The provider's `chain` is the test network by default: set it to the plans' network** before a real subscription (`references/widget.md`).
+- **The provider's `chain` defaults to the test network: set it to the plans' network** (`references/widget.md`).
 
 ### Rules for the server path
 

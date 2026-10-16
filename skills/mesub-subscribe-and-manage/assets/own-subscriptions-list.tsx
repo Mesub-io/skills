@@ -35,7 +35,11 @@ function PayNowButton({ pay }: { pay: () => Promise<PayNowResult> }) {
 
     useEffect(() => {
         if (wait <= 0) return;
-        const timer = setTimeout(() => setWait(wait - 1), 1000);
+        const timer = setTimeout(() => {
+            setWait(wait - 1);
+            // The wait is over: "Nothing was charged" no longer describes what pressing does.
+            if (wait === 1) setSaid(null);
+        }, 1000);
         return () => clearTimeout(timer);
     }, [wait]);
 

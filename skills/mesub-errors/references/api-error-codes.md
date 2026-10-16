@@ -101,7 +101,7 @@ Answered when the user creates a plan with an end date in the dashboard. No call
 
 ## Paying a late payment now (`subscriptions.retry`, Pay now)
 
-`POST /v1/subscriptions/{id}/retry` charges the missed period at once, with nothing for the wallet to sign: the customer's Pay now in the widget, or the app's own call. The user's retry from the dashboard follows the same rules: on Free it is one of the missed period's three, whoever fires it. It answers 202 with the subscription, still `unpaid`: the outcome comes with the charge, as `subscription.renewed` or `subscription.payment_failed`. Mesub refuses it first when it cannot succeed, so a refusal spends no retry.
+`POST /v1/subscriptions/{id}/retry` charges the missed period at once, with nothing for the wallet to sign: the customer's Pay now in the widget, or the app's own call. The user's retry from the dashboard follows the same rules: on Free it is one of the missed period's three, whoever fires it. It answers 202 with the subscription, still `unpaid`: the outcome comes with the charge, as `subscription.renewed` or `subscription.payment_failed`. Mesub refuses it first when it cannot succeed, so a refusal spends no retry: it reads the wallet on chain before queuing it, here and on a retry an agent fires through the Mesub MCP server, but not on the user's own click in the dashboard.
 
 | API code | Status | Wait | What it means | What to do |
 |---|---|---|---|---|
@@ -111,7 +111,7 @@ Answered when the user creates a plan with an end date in the dashboard. No call
 | `retry_too_soon` | 409 | yes | The wait since the last retry by hand is not over: 10 minutes on Free, doubling on Dev and Business | Wait for `Retry-After` (`error.retryAfter`) |
 | `retries_spent` | 409 | no | On Free, the missed period's three retries by hand are spent | It stops at that period's end. The customer subscribes again then |
 | `pull_running` | 409 | yes | A charge of this subscription runs now | Read the subscription back in a moment: it may be paid already |
-| `retry_cannot_succeed` | 409 | no | The wallet no longer approves the subscription, its token account is frozen, or its authority is closed: `late_reason` says which | Adding funds does not help. The customer cancels and subscribes again |
+| `retry_cannot_succeed` | 409 | no | The wallet no longer approves the subscription, its token account is frozen, its authority is closed, or the plan's token no longer exists: the message says which, and `late_reason` names a revoked approval or a closed authority | Adding funds does not help. A revoked approval or a closed authority: the customer subscribes again |
 | `subscription_changed` | 409 | yes | Two retries met, or a charge moved the subscription on | Read it back before asking again |
 | `plan_ended` | 409 | no | The plan is past its end date | Nothing can be charged on it |
 | `unavailable` | 503 | yes | The charge could not be queued. Nothing changed | Wait for `Retry-After`, about 20 seconds |
