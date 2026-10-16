@@ -144,6 +144,7 @@ Gate on `access`, never on `status`, and keep a default branch: a status may be 
 | `puller_not_allowed` | Mesub's puller was taken off the plan | The user, on the plan |
 | `receiver_not_allowed` | The receiving wallet is not among the plan's destinations | The user, on the plan |
 | `receiver_account_missing` | The receiving wallet has no account for the plan's token | The user |
+| `receiver_account_frozen` | The receiving wallet's account for the plan's token is frozen | The user, with whoever froze it |
 | `mint_gone` | The plan's token no longer exists | Not the app, not the customer |
 | `mesub` | A cause on Mesub's side | Nobody: wait |
 

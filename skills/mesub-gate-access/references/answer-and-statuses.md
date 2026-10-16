@@ -74,7 +74,7 @@ A gate that reads `access` needs no code for any of this. One that reads `status
 
 ## When charges are blocked
 
-A charge can fail for a cause that is not the customer's. The answer then carries `blocked_since` (an ISO date) and `blocked_reason`: `puller_not_allowed`, `receiver_not_allowed`, `receiver_account_missing` or `mint_gone` for the plan's own setup, which only the merchant can repair, and `mesub` for any cause on Mesub's side. Both are `null` otherwise.
+A charge can fail for a cause that is not the customer's. The answer then carries `blocked_since` (an ISO date) and `blocked_reason`: `puller_not_allowed`, `receiver_not_allowed`, `receiver_account_missing`, `receiver_account_frozen` or `mint_gone` for the plan's own setup, which only the merchant can repair, and `mesub` for any cause on Mesub's side. Both are `null` otherwise.
 
 - **The status does not change.** It stays `active`, or `unpaid` if it was late already, and `payment_status` with it: the customer is never `late` for a block.
 - **Access ends on `access_until`.** `access` is never true past it on a blocked subscription: the end of the period after the one paid for under `mesub`, sooner under a cause of the plan's setup.
