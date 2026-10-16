@@ -25,6 +25,8 @@ What the guards and the widget routes of `@mesub/node` answer in each situation,
 | Mesub refuses the API key | `fake.fail({ status: 401, code: 'invalid_api_key' })` | An error, never a refusal (below) |
 | The slug is not a plan | `new FakeMesub({ plans: ['pro'] })` and a guard on another slug | An error, never a refusal (below) |
 
+**An outage in plain words**, for a user who asks what their customers see. A guard gives Mesub 2 seconds (`guardTimeout`), retries included. A customer the client answered before keeps that answer for up to 24 hours (`maxStaleMs`), or until a last period's `access_until`. A customer it never answered gets a 503 with `Retry-After`, never a 402. Those answers live in the client's memory: after a restart, or on a second instance without a shared `cache` store, everyone gets that 503 until Mesub answers again.
+
 The minimum for any paid route is the first four rows and the first outage row. A test that only checks the 200 passes on a route with no guard at all.
 
 The two rows about blocked charges are worth a test when the app shows a customer why they are out, or words a missed payment: a blocked customer is not late and has nothing to pay. The fields and their values: `fake-mesub.md` in this folder.

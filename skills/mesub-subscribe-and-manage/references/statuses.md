@@ -1,6 +1,8 @@
 # Statuses, and what each allows
 
-The same nine statuses on the server (`ServerSubscription` of `@mesub/node`) and in the browser (`MesubSubscription` of `@mesub/react`). New ones may be added: keep a default branch.
+The same nine statuses on a subscription read on the server (`ServerSubscriptionStatus` of `@mesub/node`) and in the browser (`MesubSubscriptionStatus` of `@mesub/react`). New ones may be added: keep a default branch.
+
+An access answer (`access`, `hasAccess`, a guard's `answer`) is another type, `SubscriptionStatus`: it has no `expired`, and adds `none` for a customer with nothing on the plan. A test or a branch on an access answer's `status` never compares it with `expired`.
 
 | `status` | What it is | Shown by the widget's lists | Allows |
 |---|---|---|---|

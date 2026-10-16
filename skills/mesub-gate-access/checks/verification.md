@@ -12,7 +12,7 @@ node "<skill-dir>/scripts/check-gates.mjs"
 
 `<skill-dir>` is the folder that holds `SKILL.md`.
 
-Pass: no `FAIL` line, and every route you meant to gate is in the list of gates. Read every `WARN` and either fix it or say why it is fine here. A `WARN` about the customer coming from the request is never fine: open the file and prove where the id comes from. The script reads code: a gate it lists is not a gate that works.
+Pass: no `FAIL` line, and every route you meant to gate is named after a gate (`guards GET /api/...`). A gate "defined but guards no route" is either unused or mounted in a way the script cannot read: find where it runs. Read every `WARN` and either fix it or say why it is fine here. A `WARN` about the customer coming from the request is never fine: open the file and prove where the id comes from. The script reads code: a gate it lists is not a gate that works.
 
 ## 2. Read each gate
 

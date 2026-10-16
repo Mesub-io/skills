@@ -10,8 +10,9 @@ export interface AppDeps {
     mesub: Mesub;
     // Production: who the app's verified session names. Never a header a test could set.
     customer: CustomerOption<Request>;
+    // Optional: only for an app that receives Mesub's events. Left out, so is the webhook route.
     // ADAPT: what the app does with an event. It runs once per event, again only if it threw.
-    onEvent: (event: WebhookEvent) => void | Promise<void>;
+    onEvent?: (event: WebhookEvent) => void | Promise<void>;
 }
 
 export function createApp({ mesub, customer, onEvent }: AppDeps): Express {
@@ -19,8 +20,9 @@ export function createApp({ mesub, customer, onEvent }: AppDeps): Express {
     // ADAPT: the app's own store of handled ids. A Set does not survive a restart.
     const handled = new Set<string>();
 
+    // Optional, with onEvent: an app with no webhook handler deletes this route.
     // Before any express.json(): the signature is over the bytes received.
-    app.post('/webhooks/mesub', express.raw({ type: 'application/json' }), async (req, res, next) => {
+    if (onEvent) app.post('/webhooks/mesub', express.raw({ type: 'application/json' }), async (req, res, next) => {
         let event: WebhookEvent;
         try {
             // The client's own verify: it also drops what this client cached for that customer.

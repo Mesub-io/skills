@@ -69,7 +69,26 @@ try {
 }
 ```
 
-A `MesubError` carries `code`, `status` (the HTTP status, or `null` when no response came back), `apiCode` (Mesub's own finer code), `retryable`, `retryAfter` (milliseconds, or `null`) and `body`. Mesub may add codes: keep a default branch. Log `body.request_id` with it when Mesub answered (`req_` and 24 letters or digits, also in the `Mesub-Request-Id` header): it is what to quote to Mesub support.
+A `MesubError` carries `code`, `status` (the HTTP status, or `null` when no response came back), `apiCode` (Mesub's own finer code), `retryable`, `retryAfter` (milliseconds, or `null`), `requestId` and `body`. Mesub may add codes: keep a default branch. Log `requestId` with it: `req_` and 24 letters or digits, read from the `Mesub-Request-Id` header or the body's `request_id`, `null` when no response came back. It is what to quote to Mesub support. Prefer it to reading `body`, which is typed `unknown`.
+
+Under Express, an error handler of the app's, mounted after every route, logs what the guard handed on. The guard's copy is a 500: Mesub's own status and code are on its `cause`.
+
+```ts
+import type { ErrorRequestHandler } from 'express';
+import { MesubError } from '@mesub/node';
+
+export const mesubErrors: ErrorRequestHandler = (error, _req, res, next) => {
+    if (!(error instanceof MesubError)) return next(error);
+    // The guard's 500 copy carries Mesub's own answer (401 key refused, 404 slug unknown) on `cause`.
+    const mesub = error.cause instanceof MesubError ? error.cause : error;
+    console.error('Mesub refused', mesub.status, mesub.code, mesub.apiCode, mesub.requestId);
+    res.status(500).json({ error: { code: 'internal_error', message: 'Something went wrong on our side.' } });
+};
+
+// app.use(mesubErrors), last.
+```
+
+Never log the API key, and never answer the browser with Mesub's message: it is for the logs.
 
 ## The front's side
 
