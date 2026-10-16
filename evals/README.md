@@ -54,15 +54,14 @@ Copy a fixture out of the repository before a run: an agent must not see the eva
 
 ## Getting the packages
 
-`@mesub/node` is on npm. `@mesub/react` is not yet, so a run installs a local build of it, with its repository cloned and built (`pnpm install && pnpm build`). In the copy of the fixture:
+`@mesub/node` and `@mesub/react` are on npm. In the copy of the fixture:
 
 ```bash
 npm install
-npm install @mesub/node
-npm install <path to react-sdk>   # Next fixtures only, until @mesub/react is on npm
+npm install @mesub/node @mesub/react   # the Express fixtures need only @mesub/node
 ```
 
-The Express fixtures need only `@mesub/node`. For an eval of the first setup, where finding the packages absent is part of the test, skip the last two lines and note it in the record: the expected behaviour is then to install `@mesub/node` from npm, and to stop and ask before building `@mesub/react`.
+For an eval of the first setup, where finding the packages absent is part of the test, skip the second line and note it in the record: the expected behaviour is then to install them from npm under their exact names, never a lookalike.
 
 ## The mechanical checks
 
@@ -103,7 +102,7 @@ One file per run in [results/](results/README.md), named `<date>-<skill-id>-<age
 | Agent and model | |
 | Skill version | 0.1.0 |
 | Fixture | express-session |
-| Packages | local builds, or absent |
+| Packages | the npm versions, or absent |
 | Skill loaded without being named | yes or no |
 
 ## Expected behaviours
