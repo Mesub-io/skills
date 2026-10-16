@@ -18,7 +18,7 @@ An installed `@mesub/node` whose types do not name `reason_code` still hands it 
 | `transaction_expired` | submit, confirms | Its blockhash ran out before it landed: it never will | **Not a failed payment**, nothing was charged. Ask for a fresh transaction (`subscriptions.transaction(id)` on a checkout, `cancel`, `resume` or `close` again on the others), sign it at once, send it again |
 | `nothing_landed` | submit | No subscription stands at its address yet: it stays `pending` | Not a failure either. Read it back later: Mesub settles a `pending` one within the hour. Never create anew until it reads `expired` |
 | `transaction_failed` | submit, confirms | It landed and the chain refused it: nothing it held happened | Nothing was charged. Show `reason` and build again |
-| `not_our_transaction` | submit, confirms | The signature is not of a transaction Mesub built for this subscription | Send the signature of the transaction Mesub handed out, not rebuilt |
+| `not_our_transaction` | submit | The signature is not of a transaction Mesub built for this subscription | Send the signature of the transaction Mesub handed out, not rebuilt |
 | `subscription_mismatch` | submit | What landed names another wallet, plan, amount or period: it is now `failed` | Create again. Never retry the same transaction |
 | `subscription_remade` | submit | It landed, and the subscription was closed and made again without Mesub since: now `failed` | Read the customer's subscriptions back |
 | `dev_not_running` | submit | Mesub's own Dev plan landed cancelled or part paid: now `failed` | Concerns Mesub's own plan only |
@@ -62,7 +62,7 @@ A null `late_reason` on an `unpaid` subscription means the wallet refused the pa
 What happens next depends on the project's tier:
 
 - **Dev and Business**: Mesub retries by itself, 3 times by default, each after a quarter of the period and a day at most. Access stays on while retries run. `next_retry_at` says when, `next_retry_number` and `retries_allowed` which one, and `access_until` is the date of the last retry. When that one fails too the subscription turns `stopped`, `stop_reason` `out_of_retries`.
-- **Free**: no automatic retry, and an `unpaid` subscription grants no access. The user retries by hand from the dashboard, up to 3 times, until `retry_deadline`. Past it the subscription turns `stopped`, `stop_reason` `retry_deadline_passed`.
+- **Free**: no automatic retry, and an `unpaid` subscription grants no access. Each retry is by hand, up to 3 for the missed period, until `retry_deadline`: the user's from the dashboard, or the customer's own Pay now in the widget (`subscriptions.retry` on the server), both counted against the same 3. Past it the subscription turns `stopped`, `stop_reason` `retry_deadline_passed`.
 
 So "a paying customer is locked out" on Free is the documented behaviour of an `unpaid` subscription, not a bug in the gate.
 
@@ -144,6 +144,7 @@ Gate on `access`, never on `status`, and keep a default branch: a status may be 
 | `puller_not_allowed` | Mesub's puller was taken off the plan | The user, on the plan |
 | `receiver_not_allowed` | The receiving wallet is not among the plan's destinations | The user, on the plan |
 | `receiver_account_missing` | The receiving wallet has no account for the plan's token | The user |
+| `receiver_account_frozen` | The receiving wallet's account for the plan's token is frozen | The user, with whoever froze it |
 | `mint_gone` | The plan's token no longer exists | Not the app, not the customer |
 | `mesub` | A cause on Mesub's side | Nobody: wait |
 

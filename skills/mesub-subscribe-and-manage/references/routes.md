@@ -25,12 +25,13 @@ Paths are under the mount point.
 | `POST /subscriptions` | Prepares one: body `{ plan, wallet }` | 201 with the terms and a transaction |
 | `POST /subscriptions/:id/transaction` | A fresh transaction for one that is prepared and not yet signed, asked by the widget once the terms are signed. No body | What `POST /subscriptions` answers |
 | `POST /subscriptions/:id/submit` | Sends what the wallet signed: body `{ transaction, terms_signature }` | 201 `{ subscription, reason?, reason_code? }` |
+| `POST /subscriptions/:id/retry` | Pay now: charges the missed period of a late one at once, nothing to sign. No body | 202 `{ subscription }`, still `unpaid`: the outcome comes with the charge |
 | `POST /subscriptions/:id/cancel`, `/resume`, `/close` | Builds the transaction the wallet signs and sends | 201 `{ transaction, last_valid_block_height, transaction_expires_at }` |
 | `POST /subscriptions/:id/cancel/confirm`, and the two others | Confirms it: body `{ signature }` | 201 `{ subscription, reason?, reason_code? }` |
 
 `reason_code` and `transaction_expires_at` are Mesub's, handed on as Mesub answered them: present when the Mesub behind the routes serves them, whatever the installed package's types say. Code reading these answers branches on `reason_code`, never on the words of `reason`.
 
-The fresh-transaction route came after the others. A widget that asks for it against an older `@mesub/node` gets a 404 `not_found`: check both installed versions when a user reports it, and say which package is behind.
+The fresh-transaction route and the Pay now route came after the others. A widget that asks for it against an older `@mesub/node` gets a 404 `not_found`: check both installed versions when a user reports it, and say which package is behind.
 
 What the routes guarantee, so the app does not add it on top:
 
@@ -56,7 +57,7 @@ A refusal is `{ "error": { "code": "...", "message": "..." } }`.
 | 502 | the SDK's code | Mesub could not be reached or answered something unreadable. A fixed message, never the server's own details |
 | 500 | none | Thrown to the framework: Mesub refused the API key (missing, wrong, rotated), or something in front of Mesub turned the server away |
 
-Under Express the default error handler answers a thrown error's own status, so without an error handler of the app's own a refused key shows as 401 and an unknown slug as 404. Give the app an error handler that answers 500 for a `MesubError`.
+Under Express the guards and `mesubRoutes` hand a `MesubError` of a 4xx to `next()` as a copy of status 500, the original as its `cause`, so a refused key or an unknown slug ends as a 500, never as a 401 the widget would read as "sign in first". A copy of `@mesub/node` older than that passes the error's own status (401, 404) to Express's default handler: if a refused key answers 401, the package is behind; an error handler of the app's that answers 500 for a `MesubError` covers both.
 
 **Never turn that 500 into a 401.** The widget reads a 401 as "sign in first", and every visitor would get the sign-in screen for a broken key.
 

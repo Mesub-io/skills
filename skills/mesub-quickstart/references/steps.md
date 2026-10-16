@@ -20,7 +20,7 @@ Before writing code:
 - The variable is `MESUB_API_KEY`. `new Mesub()` reads it by itself: do not pass it by hand unless the runtime has no `process.env` (an edge runtime), where it is passed as an option from the runtime's own bindings.
 - It goes in the server's environment: the env file the framework already loads locally, and the host's settings in production. Confirm that file is ignored by git before the user fills it.
 - Never give it a prefix that a bundler ships to the browser (`NEXT_PUBLIC_`, `VITE_`, `REACT_APP_` and the like), never import it in a client component, never log it, never commit it, not even in an example file.
-- Say "API key". The other key Mesub has, the publishable key, is not used anywhere in this setup.
+- Say "API key": it is the only key Mesub has. The browser never holds one.
 - A missing key makes `new Mesub()` throw on start with "Missing Mesub API key". That is the intended behaviour: do not catch it.
 
 ## Step 2: install
@@ -81,9 +81,10 @@ Rules that hold whatever the framework:
 
 Two pieces, both in `assets/`:
 
-1. `assets/mesub-provider.tsx`: `MesubProvider`, once, around the app, with the stylesheet. Its `endpoint` is exactly the path of step 3.
+1. `assets/mesub-provider.tsx`: `MesubProvider`, once, around the app, with the stylesheet. Its `endpoint` is exactly the path of step 3, and its `chain` must be the plan's network.
 2. `assets/subscribe-button.tsx`: `SubscribeButton` with the plan's slug.
 
+- `chain` is the network the wallet signs for, `solana:` then the cluster. It has a default, which the docs page does not list. Read the default in the installed build (`MesubProviderProps`) and the plan's `network` in what `GET <endpoint>/plans/<slug>` answers: when they differ, pass `chain` with that cluster, as Solana's wallets name it, and ask the user when unsure. On the wrong one the wallet signs for a network the plan is not on.
 - `endpoint` and the mount path must be the same string. A mismatch is the most common first-run failure: the window opens on an error instead of the plan.
 - Requests go with the session cookie. If the app's login is a bearer token instead, the provider takes a `fetch` that adds the header: see `references/frameworks.md`.
 - Do not add a wallet library, a wallet adapter or a connect button for this. The widget finds installed wallets itself, asks for an account when it needs a signature, and never disconnects one.

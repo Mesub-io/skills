@@ -196,7 +196,8 @@ if (widgetFiles.length === 0) {
   }
 
   // Slugs: the routes refuse anything that is not a slug, and anything outside their `plans` list.
-  const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+  // With at least one letter, as the SDK holds them: a number alone is never a slug.
+  const SLUG = /^(?=.*[a-z])[a-z0-9]+(?:-[a-z0-9]+)*$/
   let allowed = null
   for (const { text } of sources) {
     const call = text.match(/\b(?:mesubRoutes|mesubRouteHandlers)\s*\(/)

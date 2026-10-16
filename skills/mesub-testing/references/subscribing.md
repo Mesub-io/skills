@@ -5,13 +5,13 @@ How the fake answers `mesub.subscriptions` and what a test can set: for an app t
 ## Put a subscription there
 
 ```ts
-const wallet = 'wallet-of-user-42'; // any string: the fake does not check addresses
+const wallet = '7EcDhSYGxXyscszYEp35KHN8vvw3svAuLKTzXwCFLtV'; // a base58 address: the fake refuses any other on a call
 
 const subscription = fake.addSubscription({ wallet, plan: 'pro', external_id: 'user_42' });
 fake.setAttempts(subscription.id, [{}, { outcome: 'skipped', reason: 'insufficient_balance' }]);
 ```
 
-- `addSubscription(fields)` needs `wallet` and `plan`. The rest defaults to an active, paid subscription with id `sub_fake_1` and up, `external_id` and `email` null. `retrieve` and `list` then answer it.
+- `addSubscription(fields)` needs `wallet` and `plan`. It takes any string as the wallet, but `access`, `list` and `create` answer 400 `invalid_request` to a wallet that is not a base58 address (32 to 44 characters), as Mesub does: use a real-shaped one. The rest defaults to an active, paid subscription with id `sub_fake_1` and up, `external_id` and `email` null. `retrieve` and `list` then answer it.
 - **It does not change the access answer.** A subscription added this way is not let through a guard until `fake.grant(...)` says so. The two are set apart on purpose.
 - `setAttempts(id, attempts)` gives it its charges. Each defaults to `outcome` `paid`, `amount` `"9990000"`, `reason` null, `retry` false. An attempt Mesub answers also carries `amount_usd` (a decimal string, null until priced): check the installed types for whether the fake's attempts take it before setting it. `subscriptions.attempts(id)` answers them newest first with `paid: { count, amount }` over all of them. It throws for an id the fake does not hold.
 - Outcomes: `paid`, `skipped`, `rejected`, `blocked`.
@@ -36,7 +36,7 @@ const { subscription } = await mesub.subscriptions.submit(created.subscription.i
 
 | Call | The fake answers | Refusals |
 |---|---|---|
-| `create` | A `pending` subscription, a made-up `transaction`, zero `costs`, `terms` that expire in five minutes | 400 `invalid_request` without `plan` and `wallet`. 404 `plan_not_found`. 409 `plan_ended` once the plan's end date has passed. 409 `already_subscribed` when that wallet holds the plan (`active`, `cancelled`, `unpaid`) |
+| `create` | A `pending` subscription, a made-up `transaction`, zero `costs`, `terms` that expire in five minutes | 400 `invalid_request` without `plan` and `wallet`, or with a wallet that is not a base58 address. 404 `plan_not_found`. 409 `plan_ended` once the plan's end date has passed. 409 `already_subscribed` when that wallet holds the plan (`active`, `cancelled`, `unpaid`) |
 | `create` again, same customer, wallet and plan | The same pending subscription | |
 | `transaction(id)` | For a `pending` subscription, what `create` answers: the subscription, a made-up `transaction`, `terms`, `costs` | `not_awaiting_signature` once it is no longer `pending`, `plan_ended`, `already_subscribed`, `subscription_not_found` for an unknown id |
 | `submit` | `active`, paid, a period of 30 days, and access granted under each name the subscription carries. On a plan that ends inside those 30 days: `access_until` at the plan's end and `next_charge_at` null | 409 `not_awaiting_signature` when it is not `pending` |

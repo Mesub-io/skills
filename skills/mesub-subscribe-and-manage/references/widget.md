@@ -77,7 +77,7 @@ Opens one subscription in the Mesub window: how it stands, what is charged next,
 <ManageSubscriptions onChanged={(subscription) => refresh()} />
 ```
 
-The signed-in customer's subscriptions, in the page: plan, price, status, the next date that matters (the next charge, the next try, or the end of its access), the paying wallet, and one button per row for what it allows. It words every state itself (loading, signed out, error with Try again, none yet).
+The signed-in customer's subscriptions, in the page: plan, price, status, the next date that matters (the next charge, the next try, or the end of its access), the paying wallet, and one button per row for what it allows. A late payment the customer can pay now also gets **Pay now**: nothing to sign, it charges the missed period at once; when Mesub is busy the button counts down the seconds before it can be pressed again. It words every state itself (loading, signed out, error with Try again, none yet).
 
 - `onChanged(subscription)`: called once one was cancelled, resumed or closed.
 - Other `<div>` props go to its root, which carries `data-mesub-subscriptions` and `data-mesub-state`.
@@ -85,15 +85,16 @@ The signed-in customer's subscriptions, in the page: plan, price, status, the ne
 ## useSubscriptions
 
 ```tsx
-const { state, subscriptions, error, reload, manage } = useSubscriptions();
+const { state, subscriptions, error, reload, payNow, manage } = useSubscriptions();
 ```
 
 | Returned | What it is |
 |---|---|
 | `state` | `loading`, `ready`, `signed-out` (the routes answered 401) or `error` |
-| `subscriptions` | Newest first, each with `action`: `cancel`, `resume`, `close` or `null`. Checkouts nobody signed are left out |
+| `subscriptions` | Newest first, each with `action` (`cancel`, `resume`, `close` or `null`) and `payable` (a late payment that paying now can settle: `unpaid`, not paused nor blocked, still approved by the wallet, before `retry_deadline`). Checkouts nobody signed are left out |
 | `error` | The server's message in the `error` state, `null` otherwise |
 | `reload()` | Reads the list again |
+| `payNow(id)` | Pays that late payment now, with nothing to sign. Never throws: resolves to a `PayNowResult`, `{ ok, message, retryAfter? }`. `ok` true means the charge was sent, not paid: the list reads again and the outcome comes with the charge. `message` is the widget's own sentence for a refusal (add funds, wait N minutes, no retries left). `retryAfter`, in seconds, when Mesub was busy: disable the button and count it down. Offer it only on a `payable` row |
 | `manage(id)` | Opens the window for what that subscription allows. Resolves when it closes: the subscription as it is now, or `null` if nothing changed or it allows nothing |
 
 Fields are as the server serves them: snake case, dates as ISO strings, `plan` is the slug. The app's own id and email are never in them.

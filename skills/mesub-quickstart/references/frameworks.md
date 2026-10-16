@@ -22,17 +22,19 @@ app.get('/api/analytics', yourLogin, requirePlan('pro', { customer }), handler);
 - **Without the guard.** `hasAccess` is the same question, for a route that serves something different to subscribers rather than refusing:
 
 ```ts
+// mesub.ts: the one client of the process. It reads MESUB_API_KEY.
 import { Mesub } from '@mesub/node';
+export const mesub = new Mesub();
 
-const mesub = new Mesub(); // reads MESUB_API_KEY, build it once per process
-
+// Give that same client to the routes and the guards.
+app.use('/api/mesub', yourLogin, mesubRoutes({ client: mesub, customer }));
 app.get('/api/feed', yourLogin, async (req, res) => {
     const paid = await mesub.hasAccess({ external_id: req.user.id }, 'pro');
     res.json(paid ? fullFeed(req.user) : preview());
 });
 ```
 
-Build one `Mesub` per process, at module level, never one per request: the outage fallback lives in its memory.
+Build one `Mesub` per process, at module level, never one per request: the outage fallback lives in its memory. Once the app has its own, pass it as `client` to `mesubRoutes`, `requirePlan` and `withMesub` too: left out, they share a default client of their own, a second cache, and a webhook verified on one client leaves the other's answers stale.
 
 ## Next.js
 
@@ -43,9 +45,8 @@ App Router, Next.js 14 or later. Copy `assets/next-mesub-route.ts` and `assets/n
 - **`withMesub` wraps route handlers only.** It is not for `middleware.ts`, pages or server components. For a server component or a server action, ask directly and decide what to render:
 
 ```tsx
-import { Mesub } from '@mesub/node';
-
-const mesub = new Mesub();
+// The one client of the process, the one the route handlers are given as `client` too.
+import { mesub } from '@/lib/mesub';
 
 export default async function Reports() {
     const session = await yourSession();
@@ -120,6 +121,6 @@ Useful when checking by hand. Paths are under the mount point.
 | `POST /subscriptions` | 401 `unauthenticated` | 201 with the terms and a transaction to sign |
 | any path, key refused by Mesub | 500, thrown to the framework | 500 |
 
-Under Express the default error handler answers a thrown error's own status, so without an error handler of the app's own a refused key shows as 401 and an unknown slug as 404. Give the app an error handler that answers 500 for a `MesubError`.
+Under Express the guards and `mesubRoutes` hand a `MesubError` of a 4xx to `next()` as a copy of status 500, the original as its `cause`, so a refused key or an unknown slug ends as a 500, never as a 401 the widget would read as "sign in first". A copy of `@mesub/node` older than that passes the error's own status (401, 404) to Express's default handler: if a refused key answers 401, the package is behind; an error handler of the app's that answers 500 for a `MesubError` covers both.
 
 A refusal is `{ "error": { "code": "...", "message": "..." } }`. A 401 from these routes always means nobody is signed in on the app. Mesub refusing the API key is never passed on as a 401: it would read to the widget as "sign in first".

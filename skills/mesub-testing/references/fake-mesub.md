@@ -2,7 +2,7 @@
 
 Everything `@mesub/node/testing` exports, read from the SDK's source at `@mesub/node` 0.1.0. The installed version is what runs: before using a name below, check it in `node_modules/@mesub/node/dist/testing.d.ts`.
 
-The entry exports one class, `FakeMesub`, one function, `signWebhook`, and their types: `FakeMesubOptions`, `FakeAccess`, `FakeFailure`, `FakeRequest`, `FakeWebhookFields`, `SignedWebhook`, `SignWebhookOptions`. It brings no test framework and needs no other package. `@mesub/react` has no testing entry.
+The entry exports one class, `FakeMesub`, one function, `signWebhook`, and their types: `FakeMesubOptions`, `FakeAccess`, `FakeFailure`, `FakeRequest`, `FakePlanFields`, `FakeEventFields`, `FakeWebhookFields`, `SignedWebhook`, `SignWebhookOptions`. It brings no test framework and needs no other package. `@mesub/react` has no testing entry.
 
 ## What it is
 
@@ -24,10 +24,13 @@ const mesub = fake.client(); // a real Mesub, wired to the fake
 | `baseUrl` | `https://api.mesub.test` | Where the fake answers. May carry a path |
 | `webhookSecret` | a fixed made-up `whsec_` value | What `webhook()` signs with and `client()` verifies with |
 | `attemptsRoute` | `true` | `false` acts as a Mesub without the attempts route: it answers 404 there |
+| `revalidateAfter` | Mesub's own | The `revalidate_after` of every access answer, in seconds. Left out, Mesub's: 10 for a no, and for a yes the time to its next charge, retry or end, from 10 to 300. `0` makes every change show on the next call of the same client. One set on an answer with `fields` wins |
+| `accessEvents` | `false` | `true` raises `subscription.access_granted` / `subscription.access_revoked` when a change the fake makes flips access (a submit grants), and `subscription.paused` / `unpaused` from `park` / `unpark`, as Mesub will once it turns them on |
+| `eventsSince` | 30 days before the fake was made | Mesub's `available_since`: events created before it are not served on `/v1/events` |
 
 Always name `plans`. Without it a typo in a slug passes every test, and the widget routes answer 404 for every plan because they read the plan list.
 
-A plan given as a slug is filled in: 9.99 USDC a month (`amount` `"9990000"`, `amount_display` `"9.99"`, `decimals` 6, `period_hours` 720), `status` `active`, `available` true, `ends_at` null.
+A plan given as an object is a `FakePlanFields`: `slug` and any plan field, `token` given in part. A plan given as a slug is filled in: 9.99 USDC a month (`amount` `"9990000"`, `amount_display` `"9.99"`, `decimals` 6, `period_hours` 720), `status` `active`, `available` true, `ends_at` null.
 
 ### A plan's token and dollar value
 
@@ -75,7 +78,7 @@ const mesub = new Mesub({
 - A customer nobody set is answered `access` false, `status` `none`.
 - Statuses an answer can carry: `pending`, `active`, `cancelled`, `unpaid`, `stopped`, `ended`, `failed`, `superseded`, `none`.
 - `deny` always answers `access` false, whatever `fields` say. For a late payer who still has access, use `grant` with `{ status: 'unpaid', payment_status: 'late', late_reason: 'insufficient_balance' }`. Whether a late payer keeps access depends on the project's tier: ask the user which case is theirs rather than guess.
-- **`revalidate_after` is 0 by default**: the answer is stale at once, so a change shows on the next call, and the outage fallback still keeps it. Set it (seconds) only to test the cache itself.
+- **`revalidate_after` is Mesub's own by default**: a client keeps a yes up to five minutes and a no 10 seconds, so a change made after a client asked shows to a new client, not to that one. Build one client per test, or pass `new FakeMesub({ plans: ['pro'], revalidateAfter: 0 })` so every change shows on the next call; the outage fallback still keeps the last answer. Set it on one answer (seconds) to test the cache itself.
 - All four return the answer they stored.
 
 ## A blocked subscription
@@ -92,7 +95,7 @@ fake.grant({ external_id: 'user_42' }, 'pro', { ...blocked, access_until: inThre
 fake.deny({ external_id: 'user_42' }, 'pro', { ...blocked, status: 'active', payment_status: 'paid' });
 ```
 
-`blocked_reason` is `puller_not_allowed`, `receiver_not_allowed`, `receiver_account_missing`, `mint_gone`, `mesub` or `null`. The fake serves what the test gave and works nothing out: it does not end access when `access_until` passes, and never blocks or unblocks by itself. These fields are newer than the rest: check `blocked_since` in the installed `dist/testing.d.ts` or `dist/index.d.ts` before using them, and tell the user when the package is behind.
+`blocked_reason` is `puller_not_allowed`, `receiver_not_allowed`, `receiver_account_missing`, `receiver_account_frozen`, `mint_gone`, `mesub` or `null`. The fake serves what the test gave and works nothing out: it does not end access when `access_until` passes, and never blocks or unblocks by itself. These fields are newer than the rest: check `blocked_since` in the installed `dist/testing.d.ts` or `dist/index.d.ts` before using them, and tell the user when the package is behind.
 
 ## A plan with an end date
 
@@ -136,6 +139,14 @@ fake.fail({ status: 401, code: 'invalid_api_key' });
 `fake.reset()` forgets every answer, subscription, attempt, failure and recorded request. It keeps the options (`plans`, the key, the secret).
 
 **It does not empty a client's cache.** A client built before `reset()` still holds the last answer for each customer it asked about, and serves it during an outage. Build a new client in the per-test setup, with `fake.client()`.
+
+## Parked seats
+
+`fake.park(id)` parks a held subscription's seat, as Mesub does when a project holds more subscribers than its tier allows: `paused` true, `next_charge_at` null, access and status unchanged. `fake.unpark(id)` brings it back. Both throw for an id the fake does not hold, and raise `subscription.paused` / `unpaused` only with `accessEvents`.
+
+## Events
+
+The fake records the events Mesub would raise for what it changes (`subscription.created` on a submit, `cancelled`, `resumed`, `ended` on a confirm, and the access events with `accessEvents`), and serves them on `/v1/events` (`mesub.events.list`, `retrieve`). It sends no webhook. `fake.addEvent(type, fields?)` records any other: `fields` is a `FakeEventFields` (`subscription`, `detail`, `created_at`, `id`, `sequence`), and the subscription defaults to the one the fake holds under `fields.subscription.id`. It changes nothing else: what the event says happened is not done.
 
 ## Webhooks, subscriptions, attempts
 

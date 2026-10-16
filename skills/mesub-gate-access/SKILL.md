@@ -47,7 +47,7 @@ This skill makes an agent gate a route or a page on a plan: the right question, 
 |---|---|---|---|
 | 401 | `unauthenticated` | `customer` returned nothing | sign in |
 | 402 | `no_access` | Mesub said no, for every plan asked | offer the plan |
-| 503, `Retry-After: 30` | `unavailable` | Mesub did not answer and nothing is known about this customer | retry later |
+| 503, `Retry-After` Mesub's or 30 | `unavailable` | Mesub did not answer and nothing is known about this customer | retry later |
 
 Anything else is thrown and ends as a 500: a refused API key, an unknown slug, a malformed customer. That is on purpose. More: `references/refusals.md`.
 

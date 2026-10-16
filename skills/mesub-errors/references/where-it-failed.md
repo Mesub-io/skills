@@ -10,7 +10,7 @@ A refusal, not an error. The body is `{ access: false, reason }`.
 |---|---|---|---|
 | 401 | `unauthenticated` | `customer` returned nothing | The session does not reach the guard, or nobody is signed in |
 | 402 | `no_access` | Mesub said this customer has no access. The body also carries `status` | Read `status`, then `late_reason`, `stop_reason` or `end_reason` in `reasons.md`. Check the customer is named the same way as when subscribing. A `status` of `active` here is a plan past its end date, or a parked seat whose paid period is over, not a bug in the guard |
-| 503 | `unavailable` | Mesub could not answer about a customer it never saw. `Retry-After: 30` | An outage or a rate limit, not a no. A customer already seen is served the last answer known |
+| 503 | `unavailable` | Mesub could not answer about a customer it never saw. `Retry-After` is Mesub's own (a rate limit's, say), 30 when it sent none | An outage or a rate limit, not a no. A customer already seen is served the last answer known |
 | 500, or under Express 401 or 404 with no JSON body of the guard's | none | The guard threw: a refused API key or an unknown plan | Read the server log. It is a `MesubError` `unauthorized` or `plan_not_found` |
 
 `hasAccess` behaves the same without a response: the last answer known in an outage, `false` for a customer never seen, and it throws on a refused key or an unknown slug. `access` always throws.
@@ -63,4 +63,4 @@ Nothing failed in the code. Read the subscription: `reasons.md`, then its paymen
 
 ## Express and a thrown error
 
-Under Express the default error handler answers a thrown error's own status, so without an error handler of the app's own a refused key shows as 401 and an unknown slug as 404. Give the app an error handler that answers 500 for a `MesubError`. Tell it from a real refusal by the body: a guard's 401 carries `reason: "unauthenticated"` and the routes' carries `error.code: "unauthenticated"`; Express's own page carries neither.
+Under Express the guards and `mesubRoutes` hand a `MesubError` of a 4xx to `next()` as a copy of status 500, the original as its `cause`, so a refused key or an unknown slug ends as a 500, never as a 401 the widget would read as "sign in first". A copy of `@mesub/node` older than that passes the error's own status (401, 404) to Express's default handler: if a refused key answers 401, the package is behind; an error handler of the app's that answers 500 for a `MesubError` covers both. Tell a 401 from a real refusal by the body: a guard's 401 carries `reason: "unauthenticated"` and the routes' carries `error.code: "unauthenticated"`; Express's own page carries neither.

@@ -14,7 +14,7 @@ const { body, headers } = await fake.webhook('subscription.renewed', {
 - `headers` holds `webhook-id`, `webhook-timestamp` and `webhook-signature`.
 - It is signed with `fake.webhookSecret`. `fake.client()` verifies with that same secret, so a handler given the fake's client accepts it. A handler that calls `verifyWebhook` by itself reads `MESUB_WEBHOOK_SECRET`: set it to `fake.webhookSecret` in the test's environment.
 
-Types `fake.webhook` takes: `subscription.created`, `subscription.renewed`, `subscription.payment_failed`, `subscription.stopped`, `subscription.cancelled`, `subscription.resumed`, `subscription.ended`, `subscription.expired`, `test`.
+Types `fake.webhook` takes (`WebhookEventType`): `subscription.created`, `subscription.renewal_upcoming`, `subscription.renewed`, `subscription.payment_failed`, `subscription.stopped`, `subscription.cancelled`, `subscription.resumed`, `subscription.ended`, `subscription.expired`, `subscription.access_granted`, `subscription.access_revoked`, `subscription.paused`, `subscription.unpaused`, `test`. An older copy types fewer: check `WebhookEventType` in the installed `.d.ts` files.
 
 What `fields` may set:
 
@@ -23,10 +23,12 @@ What `fields` may set:
 | `subscription` | active, paid, on `pro`, a made-up wallet, `external_id` and `email` null, id `sub_fake_1` and up | Any field of the subscription the event carries (`event.data`) |
 | `detail` | a plausible one for the type | The event's own fields: at the top of the body in Mesub's deliveries since `api_version` `2026-10-02`, under `data` in an older package's fake |
 | `created_at` | now | When the event happened |
-| `id` | a new `msg_fake_...` each time | The `webhook-id` header, the delivery's id. What `event.id` holds after verification depends on the installed package: see below |
+| `id` | a new `evt_fake_...`, `evt_test` for `test` | The event's id: `event.id` after verification |
+| `sequence` | the next one for that subscription, 1 for `test` | The event's place among its subscription's events; `null` leaves it out |
+| `delivery_id` | a new `msg_fake_...` each time | The `webhook-id` header, the delivery's id: `event.delivery_id` after verification. Send one delivery twice with the same `delivery_id` and `id` |
 | `timestamp` | now | The `webhook-timestamp` header, in Unix seconds |
 
-Default details: `subscription.renewed` carries `amount` `"9990000"`, `mint`, `period_start`, `period_end`, `signature`. `subscription.payment_failed` carries `reason` `insufficient_balance`, `amount`, `mint`, the period, `next_retry_at` a day later, `retry_deadline` null, `retries_left` 1, `retry_mode` `scheduled`. `subscription.stopped` carries `reason`. The others carry an empty detail.
+Default details: `subscription.created` carries `first_payment`. `subscription.renewal_upcoming` carries `can_pay` true, `renewal_issue` null, `amount`, `mint`, `due_at`. `subscription.renewed` carries `amount` `"9990000"`, `mint`, `period_start`, `period_end`, `signature`. `subscription.payment_failed` carries `reason` `insufficient_balance`, `amount`, `mint`, the period, `next_retry_at` a day later, `retry_deadline` null, `retries_left` 1, `retry_mode` `scheduled`. `subscription.stopped` carries `reason`. The two access events carry `changed_at`, `blocked_reason`, `access_until`, and `access_revoked` comes on an ended subscription. `subscription.paused` comes with `data.paused` true. The others carry an empty detail.
 
 **Which body the fake builds follows the installed package.** Mesub's deliveries carry `{ id, object, type, created_at, network, api_version, data, detail }`: `id` is the event's (the `webhook-id` header names the delivery), and `detail` sits at the top, not in `data`. A copy of `@mesub/node` older than that body builds `{ type, created_at, data }` with `detail` inside `data`, gives the handler the `webhook-id` header as `event.id`, and cannot read a real delivery of today. Read `node_modules/@mesub/node/dist` (the `testing` and `webhooks` types) before writing a test that reads `detail` or `event.id`, and say which body the tests cover. With an older package a signed body of today's shape fails verification as a webhook it cannot read: that is the package to update, not the test to bend.
 
@@ -53,12 +55,12 @@ Never send `JSON.parse(body)`: the test would then pass on a handler that verifi
 | Another endpoint's secret | `signWebhook(body, { secret: other })` | 400 |
 | A replay | `fake.webhook(type, { timestamp })` more than 5 minutes old | 400 |
 | A header missing | drop `webhook-signature` | 400 |
-| The same delivery twice | the same `id`, sent twice | 2xx both times, the work done once |
+| The same delivery twice | one `fake.webhook(...)` result, sent twice | 2xx both times, the work done once |
 | A type the handler does not know | `signWebhook` with a body of your own | 2xx, ignored |
 
 The second row is the one that matters most: without it, a handler that verifies nothing passes every test. `assets/webhook.test.ts` holds the first six.
 
-What verification throws, so the handler can be read against it: a `MesubError` with `code` `invalid_webhook` for a missing header, a signature that matches nothing, or a timestamp out of tolerance. A `TypeError` for an integration fault: a body already parsed, no secret, a secret that is not `whsec_...`. A handler that answers 400 on `MesubError` only will answer 500 when the app's JSON parser ran before it, and the first test above catches that.
+What verification throws, so the handler can be read against it: a `MesubError` with `code` `invalid_webhook` for a missing header, a signature that matches nothing, or a timestamp out of tolerance. A `MesubError` with `code` `unexpected` for a signed body the installed package cannot read. A `TypeError` for an integration fault: a body already parsed, no secret, a secret that is not `whsec_...`. Answer 400 to `invalid_webhook` only, and a 5xx to the rest, so Mesub retries once the fault is fixed: `assets/create-app.ts` does. A handler that answers 400 on `MesubError` only will answer 500 when the app's JSON parser ran before it, and the first test above catches that.
 
 ## A body of your own
 
@@ -74,9 +76,9 @@ const delivery = await signWebhook(
 );
 ```
 
-Two differences from what the docs describe, to know when the handler depends on them:
+Differences from what the docs describe, to know when the handler depends on them:
 
-- A test delivery sent from the dashboard carries `"test": true` at the top of its body and a subscription whose id is `sub_test`. `fake.webhook('test')` sets neither. Build it as above when the handler recognises tests that way.
+- A test delivery sent from the dashboard carries `"test": true` at the top of its body and a subscription whose id is `sub_test`. `fake.webhook('test')` sets neither. Build it as above when the handler recognises tests that way. A handler that skips test deliveries, as it should, answers 2xx and does nothing: such a case tests only the skip, never the handling, so the handling needs a real type.
 - The contract names two more, `subscription.access_granted` and `subscription.access_revoked` (detail `changed_at`, and `blocked_reason` and `access_until` on newer bodies), and a `sequence` on every body: the subscription's events numbered 1, 2, 3. Mesub does not send the two access events yet, nor `subscription.paused` / `subscription.unpaused` (a seat parked over the tier cap, back) or `subscription.ended` with `end_reason: cancelled`; `subscription.created` carries `detail.first_payment` (`amount`, `mint`, `signature`, or null). When the installed copy does not type them, or `fake.webhook` sets no `sequence`, sign the body with `signWebhook`, `sequence` included. To test the order, send `sequence` 2 then 1 for one subscription: the access of 2 must stand, and a body without `sequence` must read the subscription rather than apply its `data`.
 - The docs list an event `subscription.renewal_upcoming`. `fake.webhook('subscription.renewal_upcoming')` makes one when the installed copy types the event: search the `.d.ts` files of `node_modules/@mesub/node/dist` for the name. With an older copy, sign one with `signWebhook`: verification still hands back a type it does not know.
 

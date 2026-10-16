@@ -138,7 +138,7 @@ Fixture: [express-mesub](fixtures/express-mesub/README.md), with the server conn
 - [ ] Says it cannot make a plan live: the merchant signs it.
 - [ ] On the fixture as it stands, a Free project that already carries its one plan, says nothing was prepared and why (one plan on Free), whether from the refusal of `prepare_plan` or from `get_project`, and that the merchant frees the place or changes the tier in the dashboard.
 - [ ] On a run whose project has room (record how: the tier raised for the run), prepares the plan once the merchant has answered, with the wallet and the end they gave, shows exactly what was prepared from the result (the name, the price as its display value, the token, the period in words, the receiving wallets and which one is paid, the end), gives the link of the result, and says nothing is on chain until the merchant signs.
-- [ ] If `prepare_plan` is not in its tool list, says so and sends the merchant to the dashboard.
+- [ ] Uses `prepare_plan`, one of the server's 23 tools; only on an older server whose tool list lacks it, says so and sends the merchant to the dashboard.
 
 ### Must not
 

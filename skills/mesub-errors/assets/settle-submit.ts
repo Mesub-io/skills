@@ -34,12 +34,17 @@ export async function settleSubmit(mesub: Mesub, id: string, signed: SubmitParam
 }
 
 // Later, for a subscription left 'unknown': read it, do not submit or create again blind.
-export async function readAgain(mesub: Mesub, id: string): Promise<'landed' | 'wait' | 'create-again'> {
+export async function readAgain(
+    mesub: Mesub,
+    id: string,
+): Promise<'landed' | 'landed-no-access' | 'wait' | 'create-again'> {
     const subscription = await mesub.subscriptions.retrieve(id);
 
     if (subscription.access) return 'landed';
     // Mesub settles a pending one by itself within the hour.
     if (subscription.status === 'pending') return 'wait';
-    // expired or failed: nothing landed, a new create is safe.
-    return 'create-again';
+    // Only these two mean nothing landed: a new create is safe.
+    if (subscription.status === 'expired' || subscription.status === 'failed') return 'create-again';
+    // It landed and moved on since (unpaid, cancelled, ended...): never create anew, read its status.
+    return 'landed-no-access';
 }

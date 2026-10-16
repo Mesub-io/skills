@@ -48,6 +48,7 @@ A charge can fail for a reason that is not the customer's: the plan's own setup,
 | `puller_not_allowed` | The merchant's: Mesub's puller was taken off the plan | The merchant, on the plan |
 | `receiver_not_allowed` | The merchant's: the receiving wallet is not among the plan's destinations | The merchant, on the plan |
 | `receiver_account_missing` | The merchant's: the receiving wallet has no account for the plan's token, and nobody else can be paid | The merchant |
+| `receiver_account_frozen` | The merchant's: the receiving wallet's account for the plan's token is frozen | The merchant, with whoever froze it |
 | `mint_gone` | The merchant's plan: its token no longer exists | Not the app, not the customer |
 | `mesub` | Mesub's, whatever it is | Nothing to fix on the merchant's side |
 | `null` | Not blocked | |

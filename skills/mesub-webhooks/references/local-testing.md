@@ -38,7 +38,7 @@ node --env-file=.env "<skill-dir>/scripts/send-test-delivery.mjs" http://localho
 - It refuses any URL that is not on localhost.
 - Every delivery is a `test` event about `sub_test`, with `"test": true`: a handler that ignores test deliveries has no side effect.
 - It cannot tell whether a repeat was handled once: that is read in the handler.
-- The body has today's shape: `id` `evt_test`, `object`, `api_version`, `detail` at the top. `--network <cluster>` adds `network`, the cluster the project runs on as Solana names it; without it the body has none, and the script says so.
+- The body has today's shape: `id` `evt_test`, `object`, `network`, `api_version`, `sequence` 1, `detail` at the top. `network` is the cluster Mesub runs on today unless `--network <cluster>` names another, as Solana names it: `@mesub/node` refuses a body without it.
 
 ## 3. A test event from the dashboard
 

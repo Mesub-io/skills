@@ -65,7 +65,7 @@ try {
 - **Never turn a failed call into "not subscribed".** A refused API key or an unknown slug throws on purpose. Why: read as `false`, it locks every paying customer out and hides a broken integration.
 - **Never answer the browser 401 for Mesub refusing the API key.** Let it throw. Why: the widget reads 401 as "nobody is signed in".
 - **Hand the browser Mesub's `message` only when `apiCode` is set**, a fixed sentence otherwise. Why: the SDK's own messages can name the base URL.
-- **Never log the client, its options or request headers**, and never ask for the API key. Log a `MesubError`'s `status`, `code`, `apiCode`, `message` and `request_id` (in `body`): quote it to Mesub support.
+- **Never log the client, its options or request headers**, and never ask for the API key. Log a `MesubError`'s `status`, `code`, `apiCode`, `message` and `requestId`: quote it to Mesub support.
 - **Mind the spellings.** Reasons use underscores (`insufficient_balance`, `program_4`), the status is `cancelled`, an account closed outside Mesub ends `closed_elsewhere`. An older Mesub hyphenates the `reason` (`insufficient-balance`, `program:4`): turn `-` and `:` into `_` before comparing. A wrong one never matches and nothing warns.
 - **Read `late_reason` before telling a customer to top up.** On two of its three values adding funds fixes nothing.
 - **Only a `rejected` attempt counts against the customer.** `blocked` and `skipped` spend no retry.

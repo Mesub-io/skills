@@ -36,7 +36,7 @@ grep -rnE 'mesubRoutes\(' src
 grep -rnE 'requirePlan\(|hasAccess\(' src
 
 # Exits 0: no literal API key in the sources
-! grep -rnE 'SUB_[A-Za-z0-9]{16,}' --include='*.ts' --include='*.tsx' --include='*.js' --exclude-dir=node_modules --exclude-dir=.next .
+! grep -rnE 'SUB_[A-Za-z0-9_-]{40,}' --include='*.ts' --include='*.tsx' --include='*.js' --exclude-dir=node_modules --exclude-dir=.next .
 
 # Exits 0: the project still typechecks
 npm run typecheck
@@ -75,7 +75,7 @@ Fixture: [next-session](fixtures/next-session/README.md).
 node "<skill-dir>/scripts/check-setup.mjs"
 
 # Exits 0: no literal API key in the sources
-! grep -rnE 'SUB_[A-Za-z0-9]{16,}' --include='*.ts' --include='*.tsx' --include='*.js' --exclude-dir=node_modules --exclude-dir=.next .
+! grep -rnE 'SUB_[A-Za-z0-9_-]{40,}' --include='*.ts' --include='*.tsx' --include='*.js' --exclude-dir=node_modules --exclude-dir=.next .
 
 # Exits 0: no key under a browser prefix
 ! grep -rnE 'NEXT_PUBLIC_[A-Z_]*MESUB[A-Z_]*KEY' --exclude-dir=node_modules --exclude-dir=.next .
@@ -110,7 +110,7 @@ Fixture: [express-session](fixtures/express-session/README.md).
 ! grep -rnE 'req\.query\.user|searchParams\.get' src
 
 # Exits 0: no literal API key in the sources
-! grep -rnE 'SUB_[A-Za-z0-9]{16,}' --include='*.ts' --include='*.tsx' --include='*.js' --exclude-dir=node_modules --exclude-dir=.next .
+! grep -rnE 'SUB_[A-Za-z0-9_-]{40,}' --include='*.ts' --include='*.tsx' --include='*.js' --exclude-dir=node_modules --exclude-dir=.next .
 
 # Exits 0 with no FAIL line
 node "<skill-dir>/scripts/check-setup.mjs" --server-only

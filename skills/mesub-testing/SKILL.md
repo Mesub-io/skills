@@ -72,7 +72,7 @@ Copy an asset, then adapt the lines marked `ADAPT`.
 - **Always name `plans`.** Without it every slug exists, so a typo passes, and the widget routes answer 404 for every plan.
 - **One client per test.** `reset()` empties the fake, not a client's cache: an older client serves another test's answer during an outage.
 - **Test the refusals, not only the 200**, which passes with no guard at all. An outage for a user never seen is a 503 with `Retry-After`, never a 402; a user seen before keeps their last answer.
-- **A broken integration is an error, never a refusal.** The guard throws on a refused key or an unknown slug. Express's default error handler then answers the error's own status (401, 404), not 500: assert what the app really answers.
+- **A broken integration is an error, never a refusal.** The guard throws on a refused key or an unknown slug. Under Express it reaches `next()` as a 500; an older `@mesub/node` passes the error's own status (401, 404): assert what the app really answers.
 - **Send a webhook's body as the string that was signed**, never the parsed object, and always send one delivery that must be refused.
 - **A webhook adds nothing to the fake.** For "the event lands and the user is out", set the answer with `fake.deny`, then send the event.
 

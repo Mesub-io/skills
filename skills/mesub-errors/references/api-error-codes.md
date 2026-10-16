@@ -21,10 +21,10 @@ New codes are added. None is renamed, save two before the first integrator: `pla
 | `not_found` | 404 | no | Nothing at that address | Check the path and the base URL. See "404" in `sdk-errors.md` |
 | `conflict` | 409 | no | The request does not fit the current state | Read the subscription back and decide from its `status` |
 | `payload_too_large` | 413 | no | The body is too large | Send only what the route asks for. The SDK reads this status as `unexpected` |
-| `rate_limited` | 429 | yes | Too many calls this minute | Wait for `Retry-After`. Then find the loop: access calls are limited to 1,000 a minute per API key, the six cancel, resume and close calls to 60 |
+| `rate_limited` | 429 | yes | Too many calls this minute | Wait for `Retry-After`. Then find the loop: per API key and per route, every read (access, plans, subscriptions, attempts, events) is limited to 1,000 a minute, every write (create, transaction, submit, cancel, resume, close, their confirms, retry) to 60 |
 | `internal_error` | 500 | yes | A failure on Mesub's side | Wait and send again later. Nothing to fix in the app |
 | `unavailable` | 503 | yes | Mesub cannot answer right now | Same |
-| `network_unavailable` | 503 | yes | The Solana network does not answer (create, submit) | Wait for `Retry-After`, about ten seconds. `submit` already does it |
+| `network_unavailable` | 503 | yes | The Solana network does not answer, on any call that reaches it: create, transaction, submit, retry, cancel, resume, close and their confirms | Wait for `Retry-After`, about ten seconds. `submit` already does it |
 
 ## Plans
 
@@ -97,7 +97,26 @@ Answered when the user creates a plan with an end date in the dashboard. No call
 | `close_too_early` | 409 | no | Close: its end has not passed yet | Offer Close only when the subscription's `closable` is true; `closable_from` says from when |
 | `subscription_not_on_chain` | 409 | no | It is closed already, or gone from the chain | Nothing left to do |
 | `nothing_to_confirm` | 400 | no | A confirm before any transaction was built | Call `cancel`, `resume` or `close` first, and confirm with the signature of that transaction |
-| `retry_deadline_passed` | 409 | no | A retry by hand after the deadline, on the Free tier | Raised by a retry fired by hand from the dashboard, not by app code. Past the deadline the subscription turns `stopped` |
+| `retry_deadline_passed` | 409 | no | A retry by hand after the deadline, on the Free tier | Raised by a retry by hand: the user's from the dashboard, or the customer's Pay now (`subscriptions.retry`). Past the deadline the subscription turns `stopped` |
+
+## Paying a late payment now (`subscriptions.retry`, Pay now)
+
+`POST /v1/subscriptions/{id}/retry` charges the missed period at once, with nothing for the wallet to sign: the customer's Pay now in the widget, or the app's own call. The user's retry from the dashboard follows the same rules: on Free it is one of the missed period's three, whoever fires it. It answers 202 with the subscription, still `unpaid`: the outcome comes with the charge, as `subscription.renewed` or `subscription.payment_failed`. Mesub refuses it first when it cannot succeed, so a refusal spends no retry.
+
+| API code | Status | Wait | What it means | What to do |
+|---|---|---|---|---|
+| `subscription_not_late` | 409 | no | It is not `unpaid`: nothing to pay | Offer Pay now only on an `unpaid` one (the widget's `payable`) |
+| `subscription_paused` | 409 | no | A late seat parked over the project's tier cap: nothing may charge it | The user frees a seat or raises the tier. Nothing the customer can do |
+| `insufficient_balance` | 409 | no | The wallet holds less than the period costs. No retry was spent | The customer adds funds, then pays again |
+| `retry_too_soon` | 409 | yes | The wait since the last retry by hand is not over: 10 minutes on Free, doubling on Dev and Business | Wait for `Retry-After` (`error.retryAfter`) |
+| `retries_spent` | 409 | no | On Free, the missed period's three retries by hand are spent | It stops at that period's end. The customer subscribes again then |
+| `pull_running` | 409 | yes | A charge of this subscription runs now | Read the subscription back in a moment: it may be paid already |
+| `retry_cannot_succeed` | 409 | no | The wallet no longer approves the subscription, its token account is frozen, or its authority is closed: `late_reason` says which | Adding funds does not help. The customer cancels and subscribes again |
+| `subscription_changed` | 409 | yes | Two retries met, or a charge moved the subscription on | Read it back before asking again |
+| `plan_ended` | 409 | no | The plan is past its end date | Nothing can be charged on it |
+| `unavailable` | 503 | yes | The charge could not be queued. Nothing changed | Wait for `Retry-After`, about 20 seconds |
+
+Sent once and never retried by the SDK: a second call is a second retry.
 
 ## Events (`GET /v1/events/{id}`)
 

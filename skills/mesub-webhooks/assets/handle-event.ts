@@ -86,14 +86,15 @@ async function applyAccess(event: WebhookEvent, access: AccessStore): Promise<bo
  */
 export async function receiveEvent(event: WebhookEvent, store: EventStore, access: AccessStore): Promise<void> {
     if (isTest(event)) return;
-    // The same on every retry. The event's id with a package written for the 2026-10-02 body (also
-    // what GET /v1/events serves); the webhook-id header with an older one. See references/delivery.md.
-    if (!(await store.claim(event.id))) return;
+    // The same on every retry: the event's id (what GET /v1/events serves), null on a body written
+    // before api_version 2026-10-02, then the delivery's id (webhook-id). See references/delivery.md.
+    const id = event.id ?? event.delivery_id;
+    if (!(await store.claim(id))) return;
 
     try {
         if (!(await applyAccess(event, access))) await react(event);
     } catch (error) {
-        await store.release(event.id);
+        await store.release(id);
         throw error;
     }
 }

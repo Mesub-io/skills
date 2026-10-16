@@ -152,7 +152,8 @@ if (serverOnly) report('SKIP', 'the widget checks, by --server-only')
 
 // --- The API key ---
 const KEY_NAME = 'MESUB_API_KEY'
-const KEY_LITERAL = /SUB_[A-Za-z0-9]{16,}/
+// SUB_ and 32 random bytes in base64url: 43 letters, digits, - or _.
+const KEY_LITERAL = /SUB_[A-Za-z0-9_-]{40,}/
 const PUBLIC_NAME = /\b(NEXT_PUBLIC|VITE|REACT_APP|EXPO_PUBLIC|NUXT_PUBLIC|GATSBY|PUBLIC)_[A-Z0-9_]*/g
 
 /** NAME=value pairs of an env file, comments and blanks left out. */

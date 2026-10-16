@@ -50,7 +50,7 @@ A name the merchant uses for a customer (`ben`) is the app's own id: pass it to 
 | Approval revoked | Does NOT help | Every retry fails: the customer must cancel and subscribe again |
 | Authority closed | Does not help | The same: subscribe again |
 
-- On the Free tier a late subscription has no access and nothing retries by itself: the merchant fires each retry. `retries_automatic` in the overview, when present, says which case applies.
+- On Free a late subscription has no access, nothing retries by itself: each retry is the merchant's or the subscriber's own, from the app. `retries_automatic` in the overview says which applies.
 - Beside a `reason` sits a `reason_label`: show the label to a person, never the raw code. Null or absent: say the reason is not known, never guess.
 
 ### Rules

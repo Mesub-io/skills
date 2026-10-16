@@ -11,16 +11,17 @@ Every failed call to Mesub, after the SDK's own retries.
 | `apiCode` | Mesub's own finer code (`already_subscribed`, `close_too_early`, ...), or `null` when no Mesub error came back |
 | `retryable` | Whether the same call, unchanged, may succeed later. Mesub's flag when it sent one, otherwise true for 408, 429, 5xx and when nothing answered |
 | `retryAfter` | **Milliseconds** Mesub asked to wait, from `Retry-After`, or `null` |
+| `requestId` | The id Mesub gave the request, from `Mesub-Request-Id` or the body's `request_id`; `null` when nothing answered |
 | `body` | What Mesub answered, parsed when it is JSON; `undefined` when nothing came back. Mesub's error body carries `request_id` |
 | `message` | Mesub's sentence, for a person. It may be reworded: never branch on it |
 | `cause` | The underlying error, when there is one |
 
 ### `request_id`: what to quote to Mesub support
 
-Every error body carries `request_id` (`req_` and 24 letters or digits), the id Mesub gave that request, also in the `Mesub-Request-Id` header of every answer. Log it with the error, and quote it when asking Mesub support: it finds the request in Mesub's logs. A package whose types name no `request_id` field still holds it in the body:
+Every error body carries `request_id` (`req_` and 24 letters or digits), the id Mesub gave that request, also in the `Mesub-Request-Id` header of every answer. Log it with the error, and quote it when asking Mesub support: it finds the request in Mesub's logs. Read `error.requestId`: it takes the header, or the body when a proxy dropped the header. A package without that field still holds it in the body:
 
 ```ts
-const requestId = (error.body as { request_id?: unknown } | undefined)?.request_id ?? null;
+const requestId = error.requestId ?? (error.body as { request_id?: unknown } | undefined)?.request_id ?? null;
 ```
 
 It is `null` when nothing answered: there is no request on Mesub's side to find. It has nothing to do with the `requestId` of an agent's consent flow.
@@ -51,7 +52,7 @@ Four different things answer 404:
 | Call | Timeout | Retried by the SDK |
 |---|---|---|
 | Reads (`access`, `plans.*`, `subscriptions.retrieve`, `list`, `attempts`) | 5 s per try (`timeout`) | Twice (`maxRetries`), with backoff, waiting a `Retry-After` up to 60 s |
-| `subscriptions.create`, `cancel`, `resume`, `close` | 5 s | Never |
+| `subscriptions.create`, `transaction`, `retry`, `cancel`, `resume`, `close` | 5 s | Never. A second `retry` is a second retry by hand |
 | `confirmCancel`, `confirmResume`, `confirmClose` | 90 s | Never. A confirm cut short changed nothing: send it again with the same signature |
 | `subscriptions.submit` | 90 s per send, 120 s in all (`timeout`, `budget`), plus up to 10 s to read back | The same request up to twice more, when a send got no answer or a retryable error |
 

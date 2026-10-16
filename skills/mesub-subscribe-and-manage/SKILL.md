@@ -37,16 +37,16 @@ Read `package.json`, the lockfile and `node_modules/@mesub/*/package.json` for t
 | React, no wallet UI of its own | The widget | `references/widget.md` |
 | Not React, or it owns its wallet step | `mesub.subscriptions.*` | `references/server-subscribe.md`, `references/server-manage.md` |
 
-Prefer the widget when both fit: it handles the fresh transaction, expired terms and unknown outcomes. Copy an asset, adapt its `ADAPT` lines.
+Prefer the widget when both fit: it handles fresh transactions, expired terms and unknown outcomes. Copy an asset, adapt its `ADAPT` lines.
 
 ### Rules for the widget
 
 - **Access is decided on the server.** `onSubscribed`, `state === 'subscribed'` and `onChanged` are signals to fetch again, never a grant. Why: client state is the visitor's to edit.
 - **Do not lock a customer out when they cancel.** A paid-up subscription keeps access until `access_until`. Keep asking Mesub.
-- **Read `action`, do not compute it.** `useSubscriptions()` says what each subscription allows now. Keep a default branch on `status`: `references/statuses.md`.
-- **A blocked subscription is not a late one.** `blocked_reason` is never the customer's doing: the status stays, access ends on `access_until`.
+- **Read `action` and `payable`, do not compute them.** `useSubscriptions()` says what each allows now; `payNow(id)` pays a late one. Keep a default branch on `status`: `references/statuses.md`.
+- **A blocked subscription is not a late one.** `blocked_reason` is never the customer's doing; access ends on `access_until`.
 - **Do not rebuild or wrap the window's screens**, and add no wallet library. Every failure has its screen and says whether anything was charged: `references/widget-screens.md`.
-- **`manageUrl` is a path starting with one `/`, an http(s) URL or `null`.** Any other string is ignored silently.
+- **`manageUrl` is a path starting with one `/`, an http(s) URL or `null`.** Anything else is ignored.
 - **Theme through `--mesub-*` properties only.** The widget has no class names: `references/theming.md`.
 - **A file that calls a hook or hands the widget a function is a client component**, under the provider, never importing `@mesub/node`.
 - **Check the provider's `chain` against the plan's network** before a real subscription: `references/widget.md`.

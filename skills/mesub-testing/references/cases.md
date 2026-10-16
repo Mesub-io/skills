@@ -43,11 +43,11 @@ A refused key, an unknown slug, or a `customer` that returns an empty value or t
 
 What the browser then gets depends on the framework:
 
-- **Express**: the error goes to `next(err)`. Express's default error handler answers with the status the error carries: 401 for a refused key, 404 for an unknown slug. Measured, not 500. If the app has its own error handler, the test asserts what that one answers.
+- **Express**: the error goes to `next(err)`, a 4xx `MesubError` as a copy of status 500 (the original as its `cause`): Express's default handler answers 500. Measured. A copy of `@mesub/node` older than that passes the error's own status (401 for a refused key, 404 for an unknown slug). If the app has its own error handler, the test asserts what that one answers.
 - **Next.js**: the handler rejects with the `MesubError` (`code` `unauthorized` or `plan_not_found`). Assert the rejection.
 - **NestJS**: the guard throws the error as it is.
 
-Do not assert a 500 on Express without an error handler that produces it. Tell the user when a refused key would be answered 401 on a paid route: a front that reads 401 as "signed out" will send every visitor to the login page.
+Check which the installed package does before asserting. Tell the user when a refused key would be answered 401 on a paid route: a front that reads 401 as "signed out" will send every visitor to the login page.
 
 ## The widget routes
 
@@ -58,7 +58,7 @@ Paths are under the mount point (`/api/mesub` in the examples). Error bodies are
 | `GET /plans/:slug` | 200 with the plan, signed in or not. 404 `plan_not_found` for a slug that is not in the fake's `plans`, or not in the routes' own `plans` option |
 | `GET /subscriptions` | 200 `{ subscriptions, has_more }`, only those of who is signed in, without `email` or `external_id`. 401 `unauthenticated` signed out |
 | `GET /subscriptions/:id` | 200 `{ subscription, upcoming, payments, paid, payments_error }`. 404 `subscription_not_found` for another customer's, exactly as for an unknown id |
-| `POST /subscriptions` with `{ plan, wallet }` | 201 with `subscription` (`id`, `status: 'pending'`), `transaction`, `terms`, `costs`. 400 `invalid_request` when one is missing. 409 `already_subscribed` when that wallet holds the plan. 409 `plan_ended` once the plan's end has passed. 403 `wallet_mismatch` when `customer` is a wallet and the body names another |
+| `POST /subscriptions` with `{ plan, wallet }` | 201 with `subscription` (`id`, `status: 'pending'`), `transaction`, `terms`, `costs`. 400 `invalid_request` when one is missing or the wallet is not a base58 address. 409 `already_subscribed` when that wallet holds the plan. 409 `plan_ended` once the plan's end has passed. 403 `wallet_mismatch` when `customer` is a wallet and the body names another |
 | `POST /subscriptions/:id/submit` with `{ transaction, terms_signature }` | 201 `{ subscription }`, now `active`. 409 `not_awaiting_signature` the second time |
 | `POST /subscriptions/:id/cancel`, `/resume`, `/close` | 201 `{ transaction, last_valid_block_height }`, or Mesub's 409 |
 | `POST /subscriptions/:id/cancel/confirm` (and `resume`, `close`) with `{ signature }` | 201 `{ subscription }`. 400 `nothing_to_confirm` before the step was built |

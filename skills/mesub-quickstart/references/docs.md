@@ -4,7 +4,7 @@ This skill holds what a first setup needs. The docs hold the rest, and they are 
 
 | Page | Read it for |
 |---|---|
-| [First subscriber](https://docs.mesub.io/docs/quickstart) | The same four steps, written for a person: send the user there to follow along |
+| [First subscriber](https://docs.mesub.io/docs/quickstart) | The same setup, written for a person: send the user there to follow along |
 | [API key](https://docs.mesub.io/docs/api-key) | Creating, rotating and revoking the key in the dashboard |
 | [Check access](https://docs.mesub.io/docs/access) | Every field of an access answer, several plans, the outage fallback |
 | [React widget](https://docs.mesub.io/docs/react) | Every prop, the manage window, theming |

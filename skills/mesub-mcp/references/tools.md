@@ -1,6 +1,6 @@
 # The tools, and how a result is shaped
 
-The server has 22 tools, and a 23rd, `prepare_plan`, is being finished. Each tool describes itself to the agent: its arguments, what it returns, what to ask first. This page is the map, not the manual. When a tool's own description disagrees with this page, the tool is right: the skill may be a version behind.
+The server has 23 tools. Each tool describes itself to the agent: its arguments, what it returns, what to ask first. This page is the map, not the manual. When a tool's own description disagrees with this page, the tool is right: the skill may be a version behind.
 
 A client may show the names behind a prefix of its own. A connection sees every tool or none: there is no read-only mode.
 
@@ -44,7 +44,7 @@ They change the project. Say what will happen and wait for a yes before each one
 
 | Tool | What it does | Mind |
 |---|---|---|
-| `prepare_plan` | Fills in a plan for the merchant to review and sign in the dashboard | Nothing is on chain until they sign. If the tool is not in your list, it has not shipped on this server yet: say so and send the merchant to the dashboard to create the plan |
+| `prepare_plan` | Fills in a plan for the merchant to review and sign in the dashboard | Nothing is on chain until they sign. If the tool is not in your list, the server is an older one: say so and send the merchant to the dashboard to create the plan |
 
 ## How a result is shaped
 
