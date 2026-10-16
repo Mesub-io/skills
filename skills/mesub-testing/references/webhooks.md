@@ -77,6 +77,7 @@ const delivery = await signWebhook(
 Two differences from what the docs describe, to know when the handler depends on them:
 
 - A test delivery sent from the dashboard carries `"test": true` at the top of its body and a subscription whose id is `sub_test`. `fake.webhook('test')` sets neither. Build it as above when the handler recognises tests that way.
+- The contract names two more, `subscription.access_granted` and `subscription.access_revoked` (detail `changed_at`), and a `sequence` on every body: the subscription's events numbered 1, 2, 3. Mesub does not send the two access events yet. When the installed copy does not type them, or `fake.webhook` sets no `sequence`, sign the body with `signWebhook`, `sequence` included. To test the order, send `sequence` 2 then 1 for one subscription: the access of 2 must stand, and a body without `sequence` must read the subscription rather than apply its `data`.
 - The docs list an event `subscription.renewal_upcoming`. `fake.webhook('subscription.renewal_upcoming')` makes one when the installed copy types the event: search the `.d.ts` files of `node_modules/@mesub/node/dist` for the name. With an older copy, sign one with `signWebhook`: verification still hands back a type it does not know.
 
 ## An event does not change the fake

@@ -12,6 +12,16 @@ export interface EventStore {
     release(id: string): Promise<void>;
 }
 
+// ADAPT: back this with the app's own table, one row per subscription (event.data.id).
+// `apply` must be ONE conditional write: set `granted` and `sequence` only where the stored
+// sequence is lower (UPDATE ... WHERE last_sequence < $sequence, or an insert when no row).
+export interface AccessStore {
+    /** Record the access an access event set, unless a higher sequence was already applied. */
+    apply(subscriptionId: string, sequence: number, granted: boolean, changedAt: string): Promise<void>;
+    /** An event without `sequence` cannot be placed: read the state now (mesub.subscriptions.retrieve) and record it. */
+    refresh(subscriptionId: string): Promise<void>;
+}
+
 /** `detail` of subscription.renewal_upcoming, as the docs give it. */
 export interface RenewalUpcomingDetail {
     can_pay: boolean;
@@ -41,18 +51,46 @@ function renewalUpcomingOf(event: WebhookEvent): RenewalUpcomingDetail | null {
     return typeof detail.can_pay === 'boolean' ? (detail as RenewalUpcomingDetail) : null;
 }
 
+// Its place among the subscription's events, or null on a body Mesub did not number.
+// Read by hand: an older copy of the SDK does not type it.
+function sequenceOf(event: WebhookEvent): number | null {
+    const sequence = (event as { sequence?: unknown }).sequence;
+    return typeof sequence === 'number' && Number.isInteger(sequence) && sequence >= 1 ? sequence : null;
+}
+
+// subscription.access_granted and subscription.access_revoked: the only events that say whether the
+// customer has access. Not sent until Mesub turns them on; an older SDK does not name them, so compare strings.
+async function applyAccess(event: WebhookEvent, access: AccessStore): Promise<boolean> {
+    const type = event.type as string;
+    if (type !== 'subscription.access_granted' && type !== 'subscription.access_revoked') return false;
+
+    const sequence = sequenceOf(event);
+    if (sequence === null) {
+        await access.refresh(event.data.id);
+        return true;
+    }
+    const changedAt = detailOf(event).changed_at;
+    await access.apply(
+        event.data.id,
+        sequence,
+        type === 'subscription.access_granted',
+        typeof changedAt === 'string' ? changedAt : event.created_at,
+    );
+    return true;
+}
+
 /**
  * Call it with the event `verify` handed back, never with a body read any other way.
  * It throws when the handling failed: answer a 5xx then, and Mesub sends the event again.
  */
-export async function receiveEvent(event: WebhookEvent, store: EventStore): Promise<void> {
+export async function receiveEvent(event: WebhookEvent, store: EventStore, access: AccessStore): Promise<void> {
     if (isTest(event)) return;
     // The same on every retry. The event's id with a package written for the 2026-10-02 body (also
     // what GET /v1/events serves); the webhook-id header with an older one. See references/delivery.md.
     if (!(await store.claim(event.id))) return;
 
     try {
-        await react(event);
+        if (!(await applyAccess(event, access))) await react(event);
     } catch (error) {
         await store.release(event.id);
         throw error;
@@ -60,8 +98,8 @@ export async function receiveEvent(event: WebhookEvent, store: EventStore): Prom
 }
 
 // ADAPT: keep the branches the app needs. Each one must be quick, or hand the work to a
-// queue: Mesub waits 10 seconds for the answer. Never grant or revoke access from an
-// event alone: ask `hasAccess` (see SKILL.md, "Order").
+// queue: Mesub waits 10 seconds for the answer. Never grant or revoke access here: only the two
+// access events above do, and until Mesub sends them, ask `hasAccess` (references/delivery.md, "Order").
 async function react(event: WebhookEvent): Promise<void> {
     const upcoming = renewalUpcomingOf(event);
     if (upcoming) {

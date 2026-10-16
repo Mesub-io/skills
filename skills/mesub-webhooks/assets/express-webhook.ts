@@ -2,7 +2,7 @@
 // Copy next to the app's routes, with handle-event.ts beside it.
 import express, { type Express } from 'express';
 import { Mesub, MesubError } from '@mesub/node';
-import { type EventStore, receiveEvent } from './handle-event';
+import { type AccessStore, type EventStore, receiveEvent } from './handle-event';
 
 // ADAPT: reuse the app's one Mesub client if it already builds one.
 // It reads MESUB_API_KEY and MESUB_WEBHOOK_SECRET from the server's environment.
@@ -11,7 +11,7 @@ const mesub = new Mesub();
 // Call it BEFORE any app.use(express.json()) and before the app's login or CSRF
 // middleware: the route needs the bytes as sent, and Mesub has no session.
 // ADAPT: the path is the one registered in the dashboard.
-export function mountMesubWebhook(app: Express, store: EventStore): void {
+export function mountMesubWebhook(app: Express, store: EventStore, access: AccessStore): void {
     app.post('/webhooks/mesub', express.raw({ type: 'application/json' }), async (req, res, next) => {
         let event;
         try {
@@ -29,7 +29,7 @@ export function mountMesubWebhook(app: Express, store: EventStore): void {
         }
 
         try {
-            await receiveEvent(event, store);
+            await receiveEvent(event, store, access);
         } catch {
             // ADAPT: report the error to the app's own logger, without the body or the headers.
             res.status(500).end();

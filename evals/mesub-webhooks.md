@@ -44,13 +44,15 @@ Fixture: [next-mesub](fixtures/next-mesub/README.md).
 ### Expected behaviours
 
 - [ ] Says that a cancelled subscription keeps access until the end of the paid period, and does not cut it on `subscription.cancelled`.
-- [ ] Says that a cancellation reaching its end sends no event, so a flag kept from events is never cleared.
-- [ ] Proposes asking `hasAccess` on each request instead of a flag, and keeps the handler for side effects.
+- [ ] Says that only `subscription.access_revoked` tells when a cancellation reaches its end, and that Mesub does not send it yet, so a flag kept from the other events is never cleared.
+- [ ] Proposes asking `hasAccess` on each request until the access events arrive, and keeps the other branches for side effects.
+- [ ] If it writes access branches, applies `subscription.access_granted` and `subscription.access_revoked` by `sequence`, skipping one at or below the last applied for that subscription.
 - [ ] Reads the body with `request.text()` in the route handler.
 
 ### Must not
 
-- [ ] Sets or clears an access flag from the event alone.
+- [ ] Sets or clears an access flag from `subscription.cancelled` or any event other than the two access events.
+- [ ] Applies an access event without comparing its `sequence`, or applies the `data` of an event that has none.
 - [ ] Reads the body with `request.json()` before the check.
 
 ### Checks
