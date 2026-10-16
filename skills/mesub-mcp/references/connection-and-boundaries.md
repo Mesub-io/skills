@@ -37,7 +37,7 @@ What follows from it:
 
 - **No API key, anywhere.** If a step seems to need one, the step is wrong.
 - **All or nothing.** A connected agent can use every tool. There is no read-only connection, which is why this skill asks before every change.
-- **One project per connection.** No tool takes a project id. For another project the merchant connects again and chooses it.
+- **One project per connection.** No tool takes a project id, and none switches. For another project the merchant connects again and chooses it on the consent page.
 - **A connection ends by itself after a day without use**, and stays open while it is used.
 - **The merchant can cut it at any time**: in the dashboard, under Developers then Connected agents, each connection has a Revoke. The very next call is refused. Cutting a connection undoes nothing that was changed.
 
@@ -53,10 +53,12 @@ No tool does any of these, and Mesub gives an agent no other way to them. Asking
 | Close a plan, or change the end of a plan already signed | The dashboard |
 | Change which wallet a signed plan pays | The dashboard, signed by the merchant, and only among the wallets locked at signature when there is a list |
 | Resend an old webhook delivery | The dashboard, on the endpoint's deliveries |
+| Change where the mails to subscribers send them (`manage_url`) | The dashboard. `get_project` shows it, read only |
+| See a customer's email | Nowhere through the server: no result carries one. `check_access` takes an email as input only |
 | Cancel or change a customer's subscription | Nowhere on the merchant's side, the dashboard included: only the subscriber's own wallet can |
 | Refund a charge | Not through Mesub, which never holds the money. The merchant sends it back from their own wallet if they choose |
 
-When asked for one of them: say it cannot be done through the server, say where it is done, and stop. Do not look for a tool that comes close. `update_project` renames and does nothing else; `update_retry_policy` changes retries and nothing else of a plan; `delete_webhook` is not a way to "reset" anything.
+When asked for one of them: say it cannot be done through the server, say where it is done, and stop. Do not look for a tool that comes close. `update_project` renames the project in the dashboard and does nothing else (published plans keep the old name on chain until the merchant signs an update); `update_retry_policy` changes retries and nothing else of a plan; `delete_webhook` is not a way to "reset" anything.
 
 Also outside it: publishing a plan (the merchant signs what `prepare_plan` filled in), charging a subscriber who is not late, charging another amount than the plan's.
 
