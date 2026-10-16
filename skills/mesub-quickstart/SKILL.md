@@ -40,7 +40,7 @@ Do them in order. Each one is detailed in `references/steps.md`: read the step b
 
 0. **Read the project, ask the user.** Find the framework and how a request learns who the user is. Check what is installed. Ask for the plan's slug, and ask the user to put `MESUB_API_KEY` in the server's environment themselves.
 1. **The API key and the one client.** `new Mesub()` reads `MESUB_API_KEY` by itself. Build it once (`assets/mesub-client.ts`) and pass it as `client` everywhere. Without the key it throws at import: under Next.js the build needs the key too. Confirm the env file is ignored by git.
-2. **Install** `@mesub/node` (in `dependencies`) and `@mesub/react` with the project's own package manager.
+2. **Install** `@mesub/node` from npm (in `dependencies`) with the project's package manager. `@mesub/react` is not on npm yet: `references/steps.md`.
 3. **Mount the routes the widget calls** at `/api/mesub`, after the app's login: `assets/express-mesub.ts` or `assets/next-mesub-route.ts`.
 4. **Gate one paid route** on the server: `assets/express-mesub.ts`, `assets/next-paid-route.ts` or `assets/nest-paid.controller.ts`.
 5. **The provider and the button**: `assets/mesub-provider.tsx`, then `assets/subscribe-button.tsx`. The provider's `endpoint` is exactly the path of step 3. Its `chain` is the test network by default: set it to the network of the plans.
@@ -54,7 +54,7 @@ Copy an asset, then adapt the lines marked `ADAPT`. What each framework needs be
 - **Never give the key a browser prefix** (`NEXT_PUBLIC_`, `VITE_` and the like), never import it in client code, never log it. Say "API key".
 - **`customer` comes from a session the app verified, never from the request itself**: not the query, the body, a header or a wallet the page sends. Why: every subscription and every paid route hangs on it, so an id read from the request lets anyone type a subscriber's id and get their access. Return `null` when nobody is signed in.
 - **Name the customer the same way everywhere**, by `external_id`, the app's own id for the user. Otherwise a subscription made under one name is not found under the other.
-- **If the install says the package does not exist, stop and tell the user** where it comes from meanwhile: `references/steps.md`, step 2. Do not install a lookalike, copy the SDK's source, or call the HTTP API instead. Why: a lookalike package is how a key gets stolen.
+- **If an install says a package does not exist, stop and tell the user**: `references/steps.md`, step 2. Do not install a lookalike, copy the SDK's source, or call the HTTP API instead. Why: a lookalike package is how a key gets stolen.
 - **Gate on the server.** Hiding a button is not a gate.
 - **Do not catch the check's errors as "not subscribed"**, do not cache its answer, and do not store "is subscribed" in the app's database. The SDK caches and handles an outage itself; a wrong key or slug throws on purpose.
 - **Do not build the subscribe flow or add a wallet library.** The widget does both.

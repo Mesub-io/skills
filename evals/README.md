@@ -54,14 +54,15 @@ Copy a fixture out of the repository before a run: an agent must not see the eva
 
 ## Getting the packages
 
-`@mesub/node` and `@mesub/react` are not on the public registry yet, so a run installs the local builds. In the copy of the fixture, with the two SDK repositories cloned and built (`pnpm install && pnpm build` in each):
+`@mesub/node` is on npm. `@mesub/react` is not yet, so a run installs a local build of it, with its repository cloned and built (`pnpm install && pnpm build`). In the copy of the fixture:
 
 ```bash
 npm install
-npm install <path to node-sdk> <path to react-sdk>
+npm install @mesub/node
+npm install <path to react-sdk>   # Next fixtures only, until @mesub/react is on npm
 ```
 
-The Express fixtures need only the first of the two. For an eval of the first setup, where finding the package absent is part of the test, skip the second line and note it in the record: the expected behaviour is then to stop and say so.
+The Express fixtures need only `@mesub/node`. For an eval of the first setup, where finding the packages absent is part of the test, skip the last two lines and note it in the record: the expected behaviour is then to install `@mesub/node` from npm, and to stop and ask before building `@mesub/react`.
 
 ## The mechanical checks
 

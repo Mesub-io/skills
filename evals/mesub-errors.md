@@ -100,7 +100,7 @@ Fixture: [express-session](fixtures/express-session/README.md).
 
 - [ ] Sees there is no Mesub code and no package here: this is first setup, not an error to diagnose.
 - [ ] Names where first setup is described: the kit directory or the docs page.
-- [ ] Says the package may not be on the public registry, and does not assume an install works.
+- [ ] Says the package is installed from npm under the exact name `@mesub/node`, and does not install it without the user's yes.
 
 ### Must not
 
