@@ -20,13 +20,14 @@ const mesub = fake.client(); // a real Mesub, wired to the fake
 | Option | Default | What it does |
 |---|---|---|
 | `plans` | every slug exists, and the plan list is empty | The plans that exist. Any other slug answers 404 `plan_not_found`. A slug alone, or an object with `slug` and the plan fields to answer. One given an `ends_at` is a plan with an end date (below) |
-| `apiKey` | a made-up test key | The only key the fake accepts. Any other answers 401 `invalid_api_key` |
+| `apiKey` | a made-up test key | The only key the fake accepts. No key answers 401 `missing_api_key`, any other `invalid_api_key` |
 | `baseUrl` | `https://api.mesub.test` | Where the fake answers. May carry a path |
 | `webhookSecret` | a fixed made-up `whsec_` value | What `webhook()` signs with and `client()` verifies with |
 | `attemptsRoute` | `true` | `false` acts as a Mesub without the attempts route: it answers 404 there |
 | `revalidateAfter` | Mesub's own | The `revalidate_after` of every access answer, in seconds. Left out, Mesub's: 10 for a no, and for a yes the time to its next charge, retry or end, from 10 to 300. `0` makes every change show on the next call of the same client. One set on an answer with `fields` wins |
 | `accessEvents` | `false` | `true` raises `subscription.access_granted` / `subscription.access_revoked` when a change the fake makes flips access (a submit grants), and `subscription.paused` / `unpaused` from `park` / `unpark`, as Mesub will once it turns them on |
 | `eventsSince` | 30 days before the fake was made | Mesub's `available_since`: events created before it are not served on `/v1/events` |
+| `tier` | `dev` | The project's tier: `free`, `dev` or `business`. It decides what Pay now refuses and what a late `addSubscription` gets (`subscribing.md` in this folder). Newer than the rest: check it in the installed `dist/testing.d.ts` |
 
 Always name `plans`. Without it a typo in a slug passes every test, and the widget routes answer 404 for every plan because they read the plan list.
 
@@ -132,11 +133,11 @@ fake.fail({ status: 429, code: 'rate_limited', retryAfter: 2 });
 fake.fail({ status: 401, code: 'invalid_api_key' });
 ```
 
-`fail` takes `'outage'`, `null`, or `{ status, code, message?, retryable?, retryAfter? }`. `retryAfter` is in seconds and is sent as `Retry-After`. The failure applies to every call, the plan reads and the subscription calls included. A wrong key is answered 401 before the failure is looked at.
+`fail` takes `'outage'`, `null`, or `{ status, code, message?, retryable?, retryAfter? }`. `retryAfter` is in seconds and is sent as `Retry-After`; `retry_too_soon` without one gets the tier's first wait, 1200 (600 on `free`). The failure applies to every call, the plan reads and the subscription calls included. A wrong key is answered 401 before the failure is looked at.
 
 ## Reset
 
-`fake.reset()` forgets every answer, subscription, attempt, failure and recorded request. It keeps the options (`plans`, the key, the secret).
+`fake.reset()` forgets every answer, subscription, attempt, failure and recorded request, and starts every id over (`sub_fake_1`, `msg_fake_1`...): a test makes the same ids whatever ran before. Each fake numbers its own. It keeps the options (`plans`, the key, the secret).
 
 **It does not empty a client's cache.** A client built before `reset()` still holds the last answer for each customer it asked about, and serves it during an outage. Build a new client in the per-test setup, with `fake.client()`.
 
