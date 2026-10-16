@@ -27,7 +27,7 @@ This skill makes an agent gate a route or a page on a plan: the right question, 
 
 ### Start here
 
-1. Check what is installed: `package.json`, the lockfile, `node_modules/@mesub/node/package.json`. The package may not be on the public registry: if it is missing, stop and tell the user where it comes from (`references/docs.md`). Never install a lookalike.
+1. Check what is installed: `package.json`, the lockfile, `node_modules/@mesub/node/package.json`. If it is missing, stop and tell the user how it is installed (`references/docs.md`). Never install a lookalike.
 2. Find the code already there: the `customer` function the widget routes use, and any `new Mesub(`. Reuse both.
 3. Ask the user for the plan's slug, as the dashboard shows it. Never guess one from the name.
 
