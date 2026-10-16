@@ -382,6 +382,16 @@ function judgeFlow(file, text, wrappers = new Set()) {
     }
   }
 
+  // A helper a Mesub call is handed to, whose catch answers "no" to every error.
+  for (const name of wrappers) {
+    const head = text.match(new RegExp(`\\bfunction\\s+${name}\\b[^(]*\\(|\\b(?:const|let|var)\\s+${name}\\s*=`))
+    if (!head) continue
+    const open = text.indexOf('{', head.index + head[0].length)
+    if (open === -1) continue
+    const denying = catchBlocks(text.slice(open, blockEnd(text, open))).find((block) => DENIES.test(unconditional(block)))
+    if (denying) find('FAIL', 'fallback', file, lineOf(text, head.index), `${name} is handed Mesub calls and its catch answers false or null to every error: an access check through it reads a refused key, a wrong slug or an outage as "not subscribed". Let it throw; the client already serves its last answer in an outage`)
+  }
+
   // An access check whose every error is answered "no".
   for (const match of text.matchAll(/\.\s*(hasAccess|accessList|access)\s*\(/g)) {
     if (match[1] === 'access' && !/\bmesub\w*\s*$/i.test(text.slice(Math.max(0, match.index - 24), match.index))) continue

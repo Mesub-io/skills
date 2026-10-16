@@ -222,3 +222,12 @@ test('a helper that uses the app client, not the package, is read', () => {
     rmSync(root, { recursive: true, force: true })
   }
 })
+
+test('a helper with no loop whose catch answers false, handed an access check, fails', () => {
+  const { status, out } = check(
+    'export async function safeCall(fn) { try { return await fn() } catch (error) { console.error(error); return false } }',
+    `export const isPro = (id) => safeCall(() => mesub.hasAccess({ external_id: id }, 'pro'))`,
+  )
+  assert.equal(status, 1, out)
+  assert.match(out, /FAIL  mesub\.ts:2: safeCall is handed Mesub calls and its catch answers false or null/)
+})
