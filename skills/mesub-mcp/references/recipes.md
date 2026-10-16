@@ -6,7 +6,9 @@ Before the first one in a conversation, call `get_project` and say which project
 
 ## "Why does this customer have no access?"
 
-1. **`check_access`**, naming the customer by exactly one of their wallet, the merchant's own id for them (`external_id`) or their email, with the plan's slug when the merchant named a plan. Ask for the last charges (`attempts`) when the question is about a payment.
+1. **`check_access`**, naming the customer by exactly one of their wallet, the app's own id for them (`external_id`) or their email, with the plan's slug when the merchant named a plan. Ask for the last charges (`attempts`) when the question is about a payment.
+   - **The id the app sends first.** With the codebase at hand, read how its `customer` function builds `external_id` (a session's `user.id`, which may be `user_ben` for the merchant's "ben") and ask with that. Nothing there: the bare name, then the email.
+   - **Found only under another name** (the bare name or the email, not the id the code sends): that is a cause in itself. The app's gate asks under its own id and cannot see the subscription, whatever its status. Say so, even when the subscription has a problem of its own. A newer server also shows `external_id` on a subscription row: compare it with the code's.
 2. Read the answer before anything else. **`access` decides; the rest explains it.** Never conclude from `status` alone: a subscription can read `active` with `access` false (a plan past its end date, charges blocked past `access_until`).
 
 | Answer | It means | Say |
@@ -80,13 +82,13 @@ To change or remove an endpoint later: state the old and the new value, or the U
 
 ## "This customer paid late, retry the charge"
 
-1. Find the subscription. A name the merchant uses for a customer (`ben`) is the app's own id for them: call **`check_access`** with it as `external_id` (or with their email) before asking the merchant who they are. Then **`list_subscriptions`** with `q` set to the wallet that answer names. Never pick among the late ones by guessing.
+1. Find the subscription, as in the first recipe: **`check_access`** with the id the app's code sends for that customer, then the bare name, then the email, before asking the merchant who they are. Then **`get_subscription`** with the `subscription_id` it answers, or **`list_subscriptions`** with `q` set to the wallet it names. Never pick among the late ones by guessing.
 2. Read the row before any retry (`get_subscription` has the same, and every attempt):
    - the status: only a subscription behind on its payment (`UNPAID`) can be retried;
    - `late_reason`: on `APPROVAL_REVOKED` or `AUTHORITY_CLOSED` a retry fails again whatever the wallet holds. Say so instead of retrying;
-   - `retry_available_at`: in the past means now, a date ahead means wait until then, null means it would be refused;
+   - `retry_available_at`: null means it would be refused; a date well ahead means wait until then. It is Mesub's clock, not yours, and no tool tells Mesub's time: near or past, the call itself decides, and a refusal states the wait;
    - `amount_display`: what would leave the subscriber's wallet.
-3. **Say what will happen and wait for a yes**: which subscription, which wallet, how much. "Retry this one" from the merchant, about one named subscription, is that yes. A general remark that some customers are late is not.
+3. **Say what will happen and wait for a yes**: which subscription, which wallet, how much, in your message before the call. "Charge him again" about one customer the merchant named is that yes once you have named those three back, in the same message as the call. A general remark that some customers are late is not.
 4. **`retry_charge`**, once. The answer says the charge was queued, not that it was paid.
 5. **`get_subscription`** again a moment later: the newest attempt is the outcome. Report it as it is.
 
