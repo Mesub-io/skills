@@ -3,6 +3,6 @@ import type { ReactNode } from 'react';
 import { MesubProvider } from '@mesub/react';
 import '@mesub/react/styles.css';
 
-export function Mesub({ children }: { children: ReactNode }) {
+export function MesubRoot({ children }: { children: ReactNode }) {
     return <MesubProvider endpoint="/api/mesub">{children}</MesubProvider>;
 }

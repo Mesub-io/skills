@@ -35,7 +35,7 @@ npm install @mesub/react
 
 `@mesub/node` goes in `dependencies`, not `devDependencies`: the server needs it in production. It has no runtime dependency. `@mesub/react` brings what it needs for wallets: install nothing for Solana by hand.
 
-If the install answers that the package does not exist, **stop and tell the user**: the packages are in early 0.x and may not be published yet. Do not install a package with a similar name, do not copy the SDK's source into the project, and do not rewrite the calls against the HTTP API to get around it. Why: a lookalike package on a registry is the classic way a key gets stolen.
+If the install answers that the package does not exist, **stop and tell the user**: the packages are in early 0.x and may not be published yet. Until they are on the public registry (no date is set), they come from their public source repositories, `Mesub-io/node-sdk` and `Mesub-io/react-sdk`: built there and packed (`pnpm install && pnpm build && npm pack` in each clone), then installed from the tarball (`npm install /path/to/mesub-node-<version>.tgz`, which lands in `package.json` and the lockfile as a `file:` dependency), or linked as a package of the same workspace. Tell the user that, and let them choose; do not clone, build or pack them yourself without their yes, and never install a tarball or a folder of unknown origin. Do not install a package with a similar name, do not copy the SDK's source into the project, and do not rewrite the calls against the HTTP API to get around it. Why: a lookalike package on a registry is the classic way a key gets stolen.
 
 ## Step 3: mount the routes the widget calls
 
