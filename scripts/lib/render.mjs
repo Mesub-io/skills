@@ -28,6 +28,7 @@ export function handOff(catalog, skill) {
     `- Installed if \`${skill.id}\` is among your available skills, or if \`npx -y skills list\` names it.`,
     ...distributionsOf(catalog).map((renderer) => `- ${renderer.installOne(catalog, skill)}`),
     `- If it cannot be installed, read ${docsLink(catalog, skill)} instead.`,
+    ...(skill.rule ? [`- Without it, its one rule still holds: ${skill.rule}.`] : []),
   ].join('\n')
 }
 
@@ -41,12 +42,13 @@ export function relatedBlock(catalog, skill) {
   const lines = [NOTE]
   if (others.length === 0) {
     lines.push('This skill works alone and is the only one of the kit so far.')
-  } else {
-    lines.push(
-      `This skill works alone: never assume another one is installed. The other skills of the kit: ${others.map((other) => `\`${other.id}\``).join(', ')}.`,
-    )
+    return lines.join('\n')
   }
-  lines.push('', `For a task outside this skill, find its owner in \`${DIRECTORY_FILE}\` (what each skill covers, how to install it alone, its docs page), and say which skill owns it.`)
+  lines.push(
+    `This skill works alone: never assume another is installed. A task outside it: name its owner, from \`${DIRECTORY_FILE}\`. Owner not installed and not installable: stop and say so. Going on without it is the user's call, keeping its rule:`,
+    '',
+    ...others.map((other) => `- \`${other.id}\`${other.rule ? `: ${other.rule}` : ''}.`),
+  )
   return lines.join('\n')
 }
 

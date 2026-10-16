@@ -11,7 +11,7 @@ const TOP_KEYS = [
   'schema', 'name', 'version', 'description', 'repository', 'docs_url',
   'license', 'directory', 'distributions', 'groups', 'skills',
 ]
-const SKILL_KEYS = ['id', 'group', 'status', 'version', 'issue', 'docs', 'description']
+const SKILL_KEYS = ['id', 'group', 'status', 'version', 'issue', 'docs', 'description', 'rule']
 
 /** @typedef {{ rule: string, file: string, message: string }} Finding */
 
@@ -112,6 +112,10 @@ export function validateCatalog(catalog, renderers) {
       add('catalog/skill', `${label}: a shipped skill needs a version X.Y.Z`)
     }
     if ('issue' in skill && !Number.isInteger(skill.issue)) add('catalog/skill', `${label}: issue must be a number`)
+    // The one rule a neighbour must keep when this skill is not installed: rendered into every hand-off.
+    if ('rule' in skill && (!isText(skill.rule) || skill.rule.length > 90 || /\n/.test(skill.rule) || /[.]$/.test(skill.rule))) {
+      add('catalog/skill', `${label}: rule must be one line of at most 90 characters, with no final full stop`)
+    }
   }
   for (const group of groups) {
     if (!skills.some((skill) => skill?.group === group?.id)) add('catalog/group', `group "${group?.id}" has no skill`)

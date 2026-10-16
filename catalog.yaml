@@ -44,6 +44,7 @@ groups:
 # status: stable or experimental (shipped, with a folder and a version) or
 # planned (no folder: listed as coming, never as installable).
 # description: the one-line territory. docs: the page to fall back on.
+# rule: the one rule a neighbour keeps when it goes on without this skill installed.
 skills:
   - id: mesub-quickstart
     group: start
@@ -52,6 +53,7 @@ skills:
     docs: /docs/quickstart
     description: From an empty project to a first paying subscriber, on Express, Next.js or NestJS, and the directory of the kit.
     version: 0.1.0
+    rule: "never ask for the API key; `customer` from the verified session"
   - id: mesub-gate-access
     group: build
     status: experimental
@@ -59,6 +61,7 @@ skills:
     docs: /docs/access
     description: Gate a route or a page on a plan with the guards and hasAccess, and answer 402 and 503 correctly.
     version: 0.1.0
+    rule: "gate on the server; an error is never \"not subscribed\""
   - id: mesub-subscribe-and-manage
     group: build
     status: experimental
@@ -66,6 +69,7 @@ skills:
     docs: /docs/subscribe
     description: The wallet side with @mesub/react, the server routes it calls, and subscribing from the server.
     version: 0.1.0
+    rule: "the widget subscribes; never hand-make that flow"
   - id: mesub-webhooks
     group: build
     status: experimental
@@ -73,6 +77,7 @@ skills:
     docs: /docs/webhooks
     description: Receive Mesub's events, verify the signature, deduplicate and handle retries.
     version: 0.1.0
+    rule: "verify the raw body's signature; deduplicate on the event id"
   - id: mesub-testing
     group: verify
     status: experimental
@@ -80,6 +85,7 @@ skills:
     docs: /docs/testing
     description: Test an integration without touching the chain with @mesub/node/testing.
     version: 0.1.0
+    rule: "never mock `@mesub/node`: a seam and `FakeMesub`"
   - id: mesub-errors
     group: verify
     status: experimental
@@ -87,6 +93,7 @@ skills:
     docs: /reference/errors
     description: Diagnose a failure from an error code, a reason or an attempt's outcome, and fix it.
     version: 0.1.0
+    rule: "branch on `apiCode`, never a message; never loop on `retryable`"
   - id: mesub-mcp
     group: tools
     status: experimental
@@ -94,3 +101,4 @@ skills:
     docs: /docs/mcp
     description: "Act on a merchant's live project through the Mesub MCP server: read it, diagnose, manage webhooks, retry a charge, prepare a plan."
     version: 0.1.0
+    rule: "ask before any change; never an API key"

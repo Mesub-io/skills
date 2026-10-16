@@ -69,8 +69,9 @@ const CASES = [
   ['source outside the docs layout', ['skill-yaml/sources', 'content/docs-link'], { after: (root) => edit(root, `${BETA}/skill.yaml`, '- src/docs/beta.mdx', '- docs/beta') }],
 
   // Hand-offs: a skill works alone
-  ['hand-off block edited by hand', 'render/drift', { after: (root) => edit(root, `${BETA}/SKILL.md`, 'never assume another one is installed', 'assume nothing') }],
-  ['a neighbour missing from the hand-off block', ['related/missing', 'render/drift'], { after: (root) => edit(root, `${BETA}/SKILL.md`, '`mesub-alpha`.', 'nobody.') }],
+  ['hand-off block edited by hand', 'render/drift', { after: (root) => edit(root, `${BETA}/SKILL.md`, 'never assume another is installed', 'assume nothing') }],
+  ['a neighbour rule too long', 'catalog/skill', { after: (root) => edit(root, 'catalog.yaml', 'rule: never do the alpha thing by hand', `rule: ${'x'.repeat(91)}`) }],
+  ['a neighbour missing from the hand-off block', ['related/missing', 'render/drift'], { after: (root) => edit(root, `${BETA}/SKILL.md`, '- `mesub-alpha`: never do the alpha thing by hand.', 'nobody.') }],
   ['hand-off markers removed', 'render/markers', { after: (root) => edit(root, `${ALPHA}/SKILL.md`, '<!-- related:start -->', '') }],
   ['kit directory missing from a skill', ['related/directory', 'render/drift', 'links/broken'], { after: (root) => rmSync(join(root, ALPHA, 'references/kit-directory.md')) }],
   ['kit directory edited by hand', 'render/drift', { after: (root) => edit(root, `${ALPHA}/references/kit-directory.md`, '# Kit directory', '# Directory') }],
