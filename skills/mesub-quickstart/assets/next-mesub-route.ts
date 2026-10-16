@@ -2,6 +2,8 @@
 // Copy to app/api/mesub/[...mesub]/route.ts. The catch-all folder is required:
 // one file answers every path under /api/mesub.
 import { mesubRouteHandlers } from '@mesub/node/next';
+// ADAPT: the path of the app's one Mesub client (assets/mesub-client.ts), for example '@/lib/mesub'.
+import { mesub } from './mesub-client';
 
 // ADAPT: read the session with the app's own auth, on the server.
 // Until it is replaced this throws, so nobody is let in by mistake.
@@ -10,6 +12,7 @@ async function sessionOf(_request: Request): Promise<{ userId: string } | null> 
 }
 
 export const { GET, POST } = mesubRouteHandlers({
+    client: mesub,
     customer: async (request) => {
         const session = await sessionOf(request);
         return session ? { external_id: session.userId } : null;

@@ -17,11 +17,12 @@ Before writing code:
 
 ## Step 1: the API key
 
+- Build the one client of the process once, at module level: `assets/mesub-client.ts`. Every asset imports it and passes it as `client`, so the routes and the guards share one cache.
 - The variable is `MESUB_API_KEY`. `new Mesub()` reads it by itself: do not pass it by hand unless the runtime has no `process.env` (an edge runtime), where it is passed as an option from the runtime's own bindings.
 - It goes in the server's environment: the env file the framework already loads locally, and the host's settings in production. Confirm that file is ignored by git before the user fills it.
 - Never give it a prefix that a bundler ships to the browser (`NEXT_PUBLIC_`, `VITE_`, `REACT_APP_` and the like), never import it in a client component, never log it, never commit it, not even in an example file.
 - Say "API key": it is the only key Mesub has. The browser never holds one.
-- A missing key makes `new Mesub()` throw on start with "Missing Mesub API key". That is the intended behaviour: do not catch it.
+- A missing key makes `new Mesub()` throw "Missing Mesub API key". With the one client at module level (`assets/mesub-client.ts`) that is when the module is imported: the server does not start, and under Next.js `next build` fails, so the build needs the key too. A route or guard given no `client` builds a default one at its first request instead, and answers 500. That is the intended behaviour: do not catch it. `references/frameworks.md` has the detail.
 
 ## Step 2: install
 
@@ -64,9 +65,9 @@ Mounting the routes takes money; it gives nothing. Something must ask Mesub befo
 
 | Framework | Guard | Ready to copy |
 |---|---|---|
-| Express | `requirePlan('pro', { customer })` | `assets/express-mesub.ts` |
-| Next.js | `withMesub(handler, { plan: 'pro', customer })` | `assets/next-paid-route.ts` |
-| NestJS | `@UseGuards(YourAuthGuard, RequirePlan('pro', { customer }))` | `assets/nest-paid.controller.ts` |
+| Express | `requirePlan('pro', { client: mesub, customer })` | `assets/express-mesub.ts` |
+| Next.js | `withMesub(handler, { plan: 'pro', client: mesub, customer })` | `assets/next-paid-route.ts` |
+| NestJS | `@UseGuards(YourAuthGuard, RequirePlan('pro', { client: mesub, customer }))` | `assets/nest-paid.controller.ts` |
 
 A guard answers **401** when nobody is signed in, **402** when the customer has no access, and **503** with `Retry-After` when Mesub could not answer about a customer it never saw. Keep those three apart: a client that treats them alike shows "please subscribe" during an outage.
 
@@ -84,7 +85,7 @@ Two pieces, both in `assets/`:
 1. `assets/mesub-provider.tsx`: `MesubProvider`, once, around the app, with the stylesheet. Its `endpoint` is exactly the path of step 3, and its `chain` must be the plan's network.
 2. `assets/subscribe-button.tsx`: `SubscribeButton` with the plan's slug.
 
-- `chain` is the network the wallet signs for, `solana:` then the cluster. It has a default, which the docs page does not list. Read the default in the installed build (`MesubProviderProps`) and the plan's `network` in what `GET <endpoint>/plans/<slug>` answers: when they differ, pass `chain` with that cluster, as Solana's wallets name it, and ask the user when unsure. On the wrong one the wallet signs for a network the plan is not on.
+- `chain` is the network the wallet signs for, `solana:` then the cluster. Left out, it is the test network: set `chain` to the network of the plans. The plan's `network` is in what `GET <endpoint>/plans/<slug>` answers: when it is not the provider's, pass `chain` with that cluster, as Solana's wallets name it, and ask the user when unsure. On the wrong one the wallet signs for a network the plan is not on.
 - `endpoint` and the mount path must be the same string. A mismatch is the most common first-run failure: the window opens on an error instead of the plan.
 - Requests go with the session cookie. If the app's login is a bearer token instead, the provider takes a `fetch` that adds the header: see `references/frameworks.md`.
 - Do not add a wallet library, a wallet adapter or a connect button for this. The widget finds installed wallets itself, asks for an account when it needs a signature, and never disconnects one.
@@ -98,6 +99,6 @@ Run the check from the project root, with the script's path resolved under this 
 node "<skill-dir>/scripts/check-setup.mjs"
 ```
 
-Replace `<skill-dir>` with the absolute path of the folder that holds this `SKILL.md`. Do not change into that folder first: the script reads the current directory. Add `--server-only` when the project has no React front. It only reads files, and shows where a key is, never its value.
+Replace `<skill-dir>` with the absolute path of the folder that holds this `SKILL.md`. Do not change into that folder first: the script reads the current directory. Add `--server-only` when the project has no React front. A project with no gated route fails the check: add `--no-gate-yet` only when the user chose to gate nothing yet, and say so. It only reads files, and shows where a key is, never its value.
 
 Then go through `checks/verification.md`. It ends with the one step an agent cannot do: **the subscription itself needs a person with a wallet**, who approves twice in the window (the terms, then the first payment). Say so plainly instead of reporting the feature as tested. Report what you checked, what you could not, and what the user must click.

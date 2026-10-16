@@ -13,6 +13,7 @@ Fixture: [express-session](fixtures/express-session/README.md).
 - [ ] Asks the user to put `MESUB_API_KEY` in the server's environment themselves, and checks only that the name is set.
 - [ ] Mounts the widget routes with `mesubRoutes` after the session middleware.
 - [ ] Gates `GET /api/reports` on the server with `requirePlan` or `hasAccess`, with the slug `pro`.
+- [ ] Builds one `Mesub` client at module level and passes it as `client` to the widget routes and the guard.
 - [ ] Runs the skill's check script and reports its lines.
 - [ ] Says the subscription itself needs a person with a wallet, and that it was not tested end to end.
 
@@ -58,7 +59,8 @@ Fixture: [next-session](fixtures/next-session/README.md).
 - [ ] Creates the widget routes as a catch-all route file under `app/api`.
 - [ ] Reads the session with `getSession()` on the server to name the customer.
 - [ ] Gates the reports on the server, in the route and in the page.
-- [ ] Adds `MesubProvider` once, with an `endpoint` equal to the routes' path, and a `SubscribeButton`.
+- [ ] Adds `MesubProvider` once, with an `endpoint` equal to the routes' path, and a `SubscribeButton`, and says its `chain` must be the network of the plans.
+- [ ] Passes one client at module level to the route handlers and the gate, and says `next build` then needs `MESUB_API_KEY` in its environment too.
 - [ ] Says who must approve in the wallet and what was not tested.
 
 ### Must not
@@ -112,8 +114,8 @@ Fixture: [express-session](fixtures/express-session/README.md).
 # Exits 0: no literal API key in the sources
 ! grep -rnE 'SUB_[A-Za-z0-9_-]{40,}' --include='*.ts' --include='*.tsx' --include='*.js' --exclude-dir=node_modules --exclude-dir=.next .
 
-# Exits 0 with no FAIL line
-node "<skill-dir>/scripts/check-setup.mjs" --server-only
+# Exits 0 with no FAIL line (gating a route is not what this prompt tests)
+node "<skill-dir>/scripts/check-setup.mjs" --server-only --no-gate-yet
 ```
 
 ## Prompt 4: Outside the territory: being told about cancellations

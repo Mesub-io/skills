@@ -8,11 +8,12 @@ Works on Express 4 and 5. Copy `assets/express-mesub.ts`.
 
 ```ts
 import { mesubRoutes, requirePlan } from '@mesub/node/express';
+import { mesub } from './mesub'; // the one client: assets/mesub-client.ts
 
 const customer = (req) => (req.user ? { external_id: req.user.id } : null);
 
-app.use('/api/mesub', yourLogin, mesubRoutes({ customer }));
-app.get('/api/analytics', yourLogin, requirePlan('pro', { customer }), handler);
+app.use('/api/mesub', yourLogin, mesubRoutes({ client: mesub, customer }));
+app.get('/api/analytics', yourLogin, requirePlan('pro', { client: mesub, customer }), handler);
 ```
 
 - **Order.** Mount after the middleware that fills the session (`yourLogin` above), so `customer` can read it. Mounted before, `customer` always returns `null` and every call answers 401.
@@ -22,19 +23,23 @@ app.get('/api/analytics', yourLogin, requirePlan('pro', { customer }), handler);
 - **Without the guard.** `hasAccess` is the same question, for a route that serves something different to subscribers rather than refusing:
 
 ```ts
-// mesub.ts: the one client of the process. It reads MESUB_API_KEY.
-import { Mesub } from '@mesub/node';
-export const mesub = new Mesub();
-
-// Give that same client to the routes and the guards.
-app.use('/api/mesub', yourLogin, mesubRoutes({ client: mesub, customer }));
+// The same client the routes and the guards are given.
 app.get('/api/feed', yourLogin, async (req, res) => {
     const paid = await mesub.hasAccess({ external_id: req.user.id }, 'pro');
     res.json(paid ? fullFeed(req.user) : preview());
 });
 ```
 
-Build one `Mesub` per process, at module level, never one per request: the outage fallback lives in its memory. Once the app has its own, pass it as `client` to `mesubRoutes`, `requirePlan` and `withMesub` too: left out, they share a default client of their own, a second cache, and a webhook verified on one client leaves the other's answers stale.
+## One client, and when a missing key throws
+
+Build one `Mesub` per process, at module level (`assets/mesub-client.ts`), and pass it as `client` to `mesubRoutes`, `mesubRouteHandlers`, `requirePlan`, `withMesub` and `RequirePlan`, as the assets do. Never one per request: the outage fallback lives in its memory. A route or a guard given no `client` uses a default one of its own: a second cache, and a webhook verified on one client leaves the other's answers stale.
+
+`new Mesub()` throws "Missing Mesub API key" when `MESUB_API_KEY` is not set. When depends on where the client is built:
+
+- **At module level, as the assets do:** when that module is first imported. Under Express and NestJS the app does not start. Under Next.js, `next build` imports the route files to collect them, so the build fails ("Collecting page data"): the build's environment needs the key too, in CI as on the host.
+- **The default client of a route or a guard given none:** at its first request. The app starts, then every widget route and every guard answers 500, signed in or not.
+
+Either way it is a missing key, not a refused one. Do not catch it.
 
 ## Next.js
 
@@ -77,12 +82,12 @@ NestJS 10 or later, on the Express platform. Copy `assets/express-mesub.ts` for 
 ```ts
 import { mesubRoutes } from '@mesub/node/express';
 
-app.use('/api/mesub', yourLogin, mesubRoutes({ customer }));
+app.use('/api/mesub', yourLogin, mesubRoutes({ client: mesub, customer }));
 ```
 
   `yourLogin` here is an Express middleware. A Nest guard does not run for `app.use` routes: if the app's login exists only as a guard, the session read must also be available as a middleware or a plain function `customer` can call.
 - **A global prefix does not apply** to `app.use`. With `app.setGlobalPrefix('api')`, the path above is still exactly `/api/mesub` as written, and the controllers are under `/api/...` by the prefix.
-- **Paid controllers** use `RequirePlan` after the app's own auth guard, in that order: `@UseGuards(YourAuthGuard, RequirePlan('pro', { customer }))`. `@MesubAccess()` injects who asked and which plan let them in.
+- **Paid controllers** use `RequirePlan` after the app's own auth guard, in that order: `@UseGuards(YourAuthGuard, RequirePlan('pro', { client: mesub, customer }))`. `@MesubAccess()` injects who asked and which plan let them in.
 
 ## Naming the customer
 
@@ -112,7 +117,7 @@ The widget sends its requests with the session cookie (`credentials: 'include'`)
 
 ## What the routes answer
 
-Useful when checking by hand. Paths are under the mount point.
+Useful when checking by hand, with the key set. Paths are under the mount point.
 
 | Call | Signed out | Signed in |
 |---|---|---|
@@ -120,6 +125,7 @@ Useful when checking by hand. Paths are under the mount point.
 | `GET /subscriptions` | 401 `unauthenticated` | 200 with that customer's subscriptions |
 | `POST /subscriptions` | 401 `unauthenticated` | 201 with the terms and a transaction to sign |
 | any path, key refused by Mesub | 500, thrown to the framework | 500 |
+| any path, no key in the environment | the app did not start (one client at module level), else 500 | the same |
 
 Under Express the guards and `mesubRoutes` hand a `MesubError` of a 4xx to `next()` as a copy of status 500, the original as its `cause`, so a refused key or an unknown slug ends as a 500, never as a 401 the widget would read as "sign in first". A copy of `@mesub/node` older than that passes the error's own status (401, 404) to Express's default handler: if a refused key answers 401, the package is behind; an error handler of the app's that answers 500 for a `MesubError` covers both.
 
