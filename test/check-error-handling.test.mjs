@@ -100,17 +100,17 @@ test('a switch on stop_reason is judged case by case', () => {
 
 const LOOP = /WARN .*a loop on retryable/
 
-test('a loop on retryable around an access check that falls back to false is caught', () => {
+test('a loop on retryable around an access check that falls back to false fails', () => {
   const { status, out } = check(
     `export async function hasPro(id) { for (;;) { try { return await mesub.hasAccess({ customer: { external_id: id }, plan: 'pro' }) } catch (error) { if (error instanceof MesubError && error.retryable) continue; return false } } }`,
   )
-  assert.equal(status, 0, out)
-  assert.match(out, LOOP)
-  assert.match(out, /WARN .*hasAccess sits in a try whose catch answers "no"/)
+  assert.equal(status, 1, out)
+  assert.match(out, /FAIL .*a loop around a Mesub call whose catch answers false or null/)
+  assert.match(out, /FAIL .*hasAccess sits in a try whose catch answers "no" to every error/)
 })
 
-test('the try and catch to false alone warn', () => {
-  const { out } = check(
+test('the try and catch to false alone fail', () => {
+  const { status, out } = check(
     'export async function hasPro(id: string) {',
     '  try {',
     `    return await mesub.hasAccess({ customer: { external_id: id }, plan: 'pro' })`,
@@ -119,8 +119,70 @@ test('the try and catch to false alone warn', () => {
     '  }',
     '}',
   )
-  assert.match(out, /WARN  mesub\.ts:4: hasAccess sits in a try whose catch answers "no"/)
+  assert.equal(status, 1, out)
+  assert.match(out, /FAIL  mesub\.ts:4: hasAccess sits in a try whose catch answers "no" to every error/)
   assert.doesNotMatch(out, LOOP)
+})
+
+test('a catch that picks its errors before answering "no" only warns', () => {
+  const { status, out } = check(
+    `export async function hasPro(id) { try { return await mesub.hasAccess({ customer: { external_id: id }, plan: 'pro' }) } catch (error) { if (error.apiCode === 'plan_not_found') return false; throw error } }`,
+  )
+  assert.equal(status, 0, out)
+  assert.match(out, /WARN .*hasAccess sits in a try whose catch answers "no" to some errors/)
+})
+
+test('a loop on retryable that rethrows the rest only warns', () => {
+  const { status, out } = check(
+    `export async function load(id) { while (true) { try { return await mesub.subscriptions.retrieve(id) } catch (error) { if (error.retryable) { await sleep(error.retryAfter); continue } throw error } } }`,
+  )
+  assert.equal(status, 0, out)
+  assert.match(out, LOOP)
+})
+
+test('a helper that retries every error, in a file of its own, fails', () => {
+  const root = mkdtempSync(join(tmpdir(), 'check-error-handling-'))
+  try {
+    writeFileSync(join(root, 'mesub.ts'), `import { Mesub } from '@mesub/node'\nimport { withRetry } from './retry'\nexport const mesub = new Mesub()\nexport const isPro = (id) => withRetry(() => mesub.hasAccess({ customer: { external_id: id }, plan: 'pro' }))\n`)
+    writeFileSync(join(root, 'retry.ts'), [
+      'export async function withRetry<T>(fn: () => Promise<T>, tries = 5): Promise<T | false> {',
+      '  for (let attempt = 0; attempt < tries; attempt++) {',
+      '    try {',
+      '      return await fn()',
+      '    } catch (error) {',
+      '      console.error(error)',
+      '      await new Promise((resolve) => setTimeout(resolve, 1000))',
+      '    }',
+      '  }',
+      '  return false',
+      '}',
+      '',
+    ].join('\n'))
+    const ran = spawnSync('node', [SCRIPT], { cwd: root, encoding: 'utf8' })
+    assert.equal(ran.status, 1, ran.stdout)
+    assert.match(ran.stdout, /FAIL  retry\.ts:2: a loop around a Mesub call that sends every error again/)
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('a helper that calls itself again from its catch fails', () => {
+  const { status, out } = check(
+    'export async function retryForever(task) {',
+    '  try { return await task() } catch { await sleep(1000); return retryForever(task) }',
+    '}',
+  )
+  assert.equal(status, 1, out)
+  assert.match(out, /FAIL  mesub\.ts:2: retryForever calls itself again that sends every error again/)
+})
+
+test('a loop over pages with no retry, and a catch that rethrows, pass', () => {
+  const { status, out } = check(
+    'for (let page = 0; page < 3; page++) { try { await mesub.events.list({ limit: 100 }) } catch (error) { log(error); throw error } }',
+    'while (queue.length) { try { await db.save(queue.shift()) } catch { continue } }',
+  )
+  assert.equal(status, 0, out)
+  assert.match(out, /PASS  nothing loops on a retryable error/)
 })
 
 test('a catch to false on the promise fails', () => {
@@ -155,7 +217,7 @@ test('a helper that uses the app client, not the package, is read', () => {
     writeFileSync(join(root, 'access.ts'), `import { mesub } from './mesub'\nexport async function ok(id) { try { return await mesub.hasAccess({ customer: { external_id: id }, plan: 'pro' }) } catch { return false } }\n`)
     const ran = spawnSync('node', [SCRIPT], { cwd: root, encoding: 'utf8' })
     assert.match(ran.stdout, /2 files importing a Mesub package read|2 files/)
-    assert.match(ran.stdout, /WARN  access\.ts:2: hasAccess sits in a try/)
+    assert.match(ran.stdout, /FAIL  access\.ts:2: hasAccess sits in a try/)
   } finally {
     rmSync(root, { recursive: true, force: true })
   }

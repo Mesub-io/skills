@@ -5,11 +5,13 @@
 // of Mesub's errors is silently broken: a code that can never match, a reason
 // spelt the way another field spells it or an older Mesub spelt it, a branch on
 // a message or on the sentence of a `reason`, a wait counted in the wrong unit,
-// a loop that retries on `retryable`, an access check whose error becomes "no".
+// a loop or a helper that retries a Mesub call (on `retryable` or on any error),
+// an access check whose error becomes "no".
 // Run it from the project root.
 //
-// It only reads the files that import @mesub/node or @mesub/react, or that ask
-// Mesub through the app's own client (hasAccess, retryable, MesubError). No write, no
+// It only reads the files that import @mesub/node or @mesub/react, that ask
+// Mesub through the app's own client (hasAccess, retryable, MesubError), or that
+// define a helper a Mesub call is handed to (`withRetry(() => mesub...)`). No write, no
 // install, no network. It prints file names, line numbers and the names of
 // codes, never the content of an env file nor the value of a key.
 //
@@ -234,8 +236,97 @@ function blockEnd(text, open) {
   return text.length
 }
 
-/** The loops on `retryable`, and the access checks whose error becomes "no". */
-function judgeFlow(file, text) {
+// A call to Mesub: the client's methods, or `mesub.<anything>`.
+const MESUB_CALL = /\.\s*(hasAccess|accessList)\s*\(|\bmesub\w*\s*\.\s*\w+/i
+// Calls that wait or fetch, never the call a retry helper was handed.
+const NOT_A_TASK = new Set(['setTimeout', 'sleep', 'delay', 'wait', 'fetch', 'resolve', 'reject', 'Promise', 'Error', 'String', 'Number', 'Boolean', 'console', 'if', 'for', 'while', 'switch', 'catch', 'return'])
+const DENIES = /\breturn\s+(false|null|undefined)\b|\breturn\s*(;|\}|$)|=\s*false\b/m
+const DISCRIMINATES = /\bretryable\b|\.\s*(code|apiCode|status|statusCode|name)\b|\binstanceof\b/
+const RETRYABLE = /\bretryable\b/
+
+/** The `catch` blocks of a piece of code: the text of each block. */
+function catchBlocks(text) {
+  const found = []
+  for (const match of text.matchAll(/\bcatch\s*(\([^)]*\))?\s*\{/g)) {
+    const open = match.index + match[0].length - 1
+    found.push(text.slice(open, blockEnd(text, open)))
+  }
+  return found
+}
+
+/** A catch block with its conditional statements taken out: what it always does. */
+function unconditional(block) {
+  let rest = block.slice(1, -1)
+  for (let index = rest.search(/\bif\s*\(/); index !== -1; index = rest.search(/\bif\s*\(/)) {
+    let depth = 0
+    let close = rest.indexOf('(', index)
+    for (; close < rest.length; close++) {
+      if (rest[close] === '(') depth += 1
+      else if (rest[close] === ')' && (depth -= 1) === 0) break
+    }
+    const after = rest.slice(close + 1)
+    const lead = after.match(/^\s*/)[0].length
+    let stop
+    if (after[lead] === '{') stop = close + 1 + blockEnd(after, lead)
+    else stop = close + 1 + (after.slice(lead).search(/[;\n}]/) + lead + 1 || after.length)
+    let tail = rest.slice(stop)
+    const otherwise = tail.match(/^\s*else\b\s*/)
+    if (otherwise) {
+      const more = tail.slice(otherwise[0].length)
+      const end = more[0] === '{' ? blockEnd(more, 0) : more.search(/[;\n}]/) + 1 || more.length
+      tail = tail.slice(otherwise[0].length + end)
+    }
+    rest = rest.slice(0, index) + tail
+  }
+  return rest
+}
+
+/** The parameter names of the function that encloses `index`, as far as text tells. */
+function parametersAround(text, index) {
+  const before = text.slice(Math.max(0, index - 800), index)
+  const heads = [...before.matchAll(/\bfunction\b[^(]*\(([^)]*)\)|\(([^()]*)\)\s*(?::\s*[^=;{]+)?=>/g)]
+  const head = heads.at(-1)
+  if (!head) return new Set()
+  const list = head[1] ?? head[2] ?? ''
+  return new Set(list.split(',').map((part) => part.trim().match(/^[.\s]*([A-Za-z_$][\w$]*)/)?.[1]).filter(Boolean))
+}
+
+/** Does this try, or the loop around it, call Mesub or the task a helper was handed? */
+function callsTheTask(code, params, wrapper) {
+  if (MESUB_CALL.test(code)) return true
+  for (const call of code.matchAll(/(?<![.\w$])([A-Za-z_$][\w$]*)\s*\(/g)) {
+    if (NOT_A_TASK.has(call[1])) continue
+    if (params.has(call[1]) || wrapper) return true
+  }
+  return false
+}
+
+/**
+ * Judges how a retry handles a failed call: `catches` are its catch blocks.
+ * Returns true when it said something.
+ */
+function judgeRetry(file, line, catches, what) {
+  for (const block of catches) {
+    const always = unconditional(block)
+    if (DENIES.test(block)) {
+      find('FAIL', 'loop', file, line, `${what} whose catch answers false or null: a failed call then reads as "not subscribed" and hides a broken key or slug. Let it throw; the SDK already retried what is safe and serves its last answer in an outage`)
+      return true
+    }
+    if (/\b(throw|return)\b/.test(always)) continue
+    if (!DISCRIMINATES.test(block)) {
+      find('FAIL', 'loop', file, line, `${what} that sends every error again: a refused key, a bad request or a wrong slug is retried for nothing, and a write sent again is a second write. Let it throw, and branch on apiCode`)
+      return true
+    }
+    if (RETRYABLE.test(block)) {
+      find('WARN', 'loop', file, line, 'a loop on retryable: the SDK already retried what is safe to retry, and a write sent again is a second write. Show the wait (retryAfter) instead')
+      return true
+    }
+  }
+  return false
+}
+
+/** The loops and helpers that retry Mesub calls, and the access checks whose error becomes "no". */
+function judgeFlow(file, text, wrappers = new Set()) {
   // A loop: its head (the condition) and its body, or a do's body and its while.
   for (const match of text.matchAll(/\b(for|while)\s*\(|\bdo\s*\{/g)) {
     let head = ''
@@ -264,8 +355,30 @@ function judgeFlow(file, text) {
     if (!match[1]) body += (text.slice(end).match(/^\s*while\s*\([^)]*\)/) ?? [''])[0]
     // A for...of walks a list: only its head counts.
     const walksList = /^for\s*\(\s*(const|let|var)?\s*[\w{}\[\],\s]+\s+(of|in)\s/.test(head)
+    const line = lineOf(text, match.index)
+    if (!walksList) {
+      const params = parametersAround(text, match.index)
+      const inWrapper = [...wrappers].some((name) => new RegExp(`\\b${name}\\b`).test(text.slice(Math.max(0, match.index - 800), match.index)))
+      if (/\btry\s*\{/.test(body) && callsTheTask(body, params, inWrapper) && judgeRetry(file, line, catchBlocks(body), 'a loop around a Mesub call')) continue
+    }
     if (/\bretryable\b/.test(head) || (!walksList && /\bretryable\b/.test(body))) {
-      find('WARN', 'loop', file, lineOf(text, match.index), 'a loop on retryable: the SDK already retried what is safe to retry, and a write sent again is a second write. Show the wait (retryAfter) instead')
+      find('WARN', 'loop', file, line, 'a loop on retryable: the SDK already retried what is safe to retry, and a write sent again is a second write. Show the wait (retryAfter) instead')
+    }
+  }
+
+  // A helper that calls itself again from its catch: a loop written as recursion.
+  for (const match of text.matchAll(/\bfunction\s+([A-Za-z_$][\w$]*)[^(]*\(|\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?(?:function\b[^(]*)?\(/g)) {
+    const name = match[1] ?? match[2]
+    const open = text.indexOf('{', match.index + match[0].length)
+    if (open === -1) continue
+    const body = text.slice(open, blockEnd(text, open))
+    const again = catchBlocks(body).filter((block) => new RegExp(`(?<![.\\w$])${name}\\s*\\(`).test(block))
+    if (again.length === 0) continue
+    // The call again is the retry: judged as if the catch went round a loop.
+    const asLoop = again.map((block) => block.replace(new RegExp(`\\breturn\\s+(await\\s+)?${name}\\s*\\(`, 'g'), `${name}(`))
+    const params = parametersAround(text, open + 1)
+    if (callsTheTask(body.replace(new RegExp(`\\b${name}\\s*\\(`, 'g'), ''), params, wrappers.has(name))) {
+      judgeRetry(file, lineOf(text, match.index), asLoop, `${name} calls itself again`)
     }
   }
 
@@ -282,20 +395,51 @@ function judgeFlow(file, text) {
     const before = text.slice(Math.max(0, match.index - 600), match.index)
     const opened = [...before.matchAll(/\btry\s*\{/g)].at(-1)
     if (opened === undefined || /\bcatch\b/.test(before.slice(opened.index))) continue
-    if (/\bcatch\s*(\([^)]*\))?\s*\{[^}]*?\b(return\s+(false|null)\b|=\s*false\b|return\s*;)/.test(after)) {
-      find('WARN', 'fallback', file, line, `${match[1]} sits in a try whose catch answers "no": a refused key or a wrong slug would lock every subscriber out, silently. Rethrow what is not an outage; the client already serves its last answer in one`)
+    const block = catchBlocks(after)[0]
+    if (!block || !DENIES.test(block)) continue
+    // A "no" only under a condition may be judging the error: open it. One that answers "no" to the rest fails.
+    if (!DENIES.test(unconditional(block))) {
+      find('WARN', 'fallback', file, line, `${match[1]} sits in a try whose catch answers "no" to some errors: if one is an outage or a refused key, every subscriber is locked out. Rethrow what is not Mesub saying no; the client already serves its last answer in an outage`)
+    } else {
+      find('FAIL', 'fallback', file, line, `${match[1]} sits in a try whose catch answers "no" to every error: a refused key or a wrong slug would lock every subscriber out, silently. Let it throw; the client already serves its last answer in an outage`)
     }
   }
+}
+
+/** Names of helpers handed a Mesub call: `withRetry(() => mesub.hasAccess(...))`. */
+function wrappersIn(text) {
+  const names = new Set()
+  for (const match of text.matchAll(/(?<![.\w$])([A-Za-z_$][\w$]*)\s*\(\s*(?:async\s*)?(?:\([^)]*\)|[A-Za-z_$][\w$]*)\s*=>/g)) {
+    const rest = text.slice(match.index + match[0].length, match.index + match[0].length + 300)
+    const call = rest.match(/^\s*\{?[^;]*?(\.\s*(hasAccess|accessList)\s*\(|\bmesub\w*\s*\.\s*\w+)/i)
+    if (call && !NOT_A_TASK.has(match[1])) names.add(match[1])
+  }
+  return names
 }
 
 const files = walk(root)
 let read_ = 0
 
+// First the helpers a Mesub call is handed to, wherever they are defined.
+const texts = new Map()
+const wrappers = new Set()
 for (const file of files) {
   const text = read(file)
-  if (text === null || !(USES_MESUB.test(text) || ASKS_MESUB.test(text))) continue
+  if (text === null) continue
+  texts.set(file, text)
+  if (USES_MESUB.test(text) || ASKS_MESUB.test(text)) for (const name of wrappersIn(withoutComments(text))) wrappers.add(name)
+}
+const DEFINES = (name) => new RegExp(`\\bfunction\\s+${name}\\b|\\b(?:const|let|var)\\s+${name}\\s*=`)
+
+for (const file of files) {
+  const text = texts.get(file)
+  if (text === undefined) continue
+  const mesubFile = USES_MESUB.test(text) || ASKS_MESUB.test(text)
+  const defined = new Set([...wrappers].filter((name) => DEFINES(name).test(text)))
+  if (!mesubFile && defined.size === 0) continue
   read_++
-  judgeFlow(file, withoutComments(text))
+  judgeFlow(file, withoutComments(text), defined)
+  if (!mesubFile) continue
 
   // The field a `switch` is on, for the `case` lines under it.
   let switched = null
