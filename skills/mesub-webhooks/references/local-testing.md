@@ -40,7 +40,7 @@ node --env-file=.env "<skill-dir>/scripts/send-test-delivery.mjs" http://localho
 - `--env-file` names the env file the server itself reads, so both sign with the same secret. The script reads `MESUB_WEBHOOK_SECRET` from the environment and never shows it.
 - It refuses any URL that is not on localhost.
 - By default every delivery is a `test` event about `sub_test`, with `"test": true`: a handler that ignores test deliveries has no side effect, and none of its branches runs.
-- `--type <event type>` (one of the `subscription.*` types) sends that real type instead, without `test`, so the handler's branch runs: use it against a development database only. `--external-id <id>` (default `user_123`) and `--subscription <id>` (default `sub_test`) name who it is about, for a per-user branch.
+- `--type <event type>` (one of the `subscription.*` types) sends that real type instead, without `test`, so the handler's branch runs: use it against a development database only. `--external-id <id>` (default `user_123`) and `--subscription <id>` (default `sub_local_1` with `--type`: never `sub_test`, which the handler drops as a test) name who it is about, for a per-user branch. `--sequence <n>` (default 1) places it: to send `subscription.access_revoked` after an `access_granted` about the same subscription, give it a higher one, or the handler rightly skips it.
 
 ```bash
 node --env-file=.env "<skill-dir>/scripts/send-test-delivery.mjs" http://localhost:3000/webhooks/mesub --type subscription.cancelled --external-id user_42

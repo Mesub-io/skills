@@ -9,7 +9,7 @@ type Subscription = WebhookEvent['data'];
 export interface Work {
     /** ADAPT: the app's own names, such as 'notify_support'. */
     kind: string;
-    payload: Record<string, unknown>;
+    payload: object; // stored as JSON
 }
 
 // ADAPT: back this with the app's own database. `claim` is ONE atomic write: in one transaction,
