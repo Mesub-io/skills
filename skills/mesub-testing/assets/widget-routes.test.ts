@@ -10,8 +10,9 @@ import { createApp } from './create-app';
 
 // The routes read the plan list: without `plans` it is empty and every plan read is a 404.
 const fake = new FakeMesub({ plans: ['pro'] });
-// Any string: the fake does not check that a wallet is an address.
-const WALLET = 'wallet-of-user-42';
+// A base58 Solana address: like Mesub, the fake answers 400 invalid_request to any other string.
+const WALLET = '7EcDhSYGxXyscszYEp35KHN8vvw3svAuLKTzXwCFLtV';
+const OTHER_WALLET = '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM';
 
 let signedIn: string | null;
 let app: Express;
@@ -52,7 +53,7 @@ describe('the widget routes', () => {
 
     it('list only the subscriptions of who is signed in, without their id or email', async () => {
         fake.addSubscription({ wallet: WALLET, plan: 'pro', external_id: 'user_42' });
-        fake.addSubscription({ wallet: 'another-wallet', plan: 'pro', external_id: 'user_7' });
+        fake.addSubscription({ wallet: OTHER_WALLET, plan: 'pro', external_id: 'user_7' });
 
         const response = await request(app).get('/api/mesub/subscriptions').expect(200);
 
@@ -63,7 +64,7 @@ describe('the widget routes', () => {
 
     it("answer 404 for another customer's subscription, as for one that does not exist", async () => {
         const theirs = fake.addSubscription({
-            wallet: 'another-wallet',
+            wallet: OTHER_WALLET,
             plan: 'pro',
             external_id: 'user_7',
         });
