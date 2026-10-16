@@ -61,8 +61,8 @@ The body above is the contract since `api_version` `2026-10-02`. What `verify` r
 | `subscription.resumed` | A cancellation was undone | empty |
 | `subscription.ended` | It is over. `data.end_reason` says why: `plan_ended` at the end date of its plan, `closed_elsewhere` when the subscription account was closed outside Mesub | empty |
 | `subscription.expired` | A checkout was started and never signed | empty |
-| `subscription.access_granted` | Access started: the subscription grants access now and did not just before. **Not sent yet**: see "Order and access" | `changed_at` |
-| `subscription.access_revoked` | Access ended: it grants none now and did just before. **Not sent yet** | `changed_at` |
+| `subscription.access_granted` | Access started: the subscription grants access now and did not just before. **Not sent yet**: see "Order and access" | `changed_at`, `blocked_reason`, `access_until` |
+| `subscription.access_revoked` | Access ended: it grants none now and did just before. **Not sent yet** | `changed_at`, `blocked_reason`, `access_until` |
 | `test` | Sent from the dashboard with no event picked | empty |
 
 Three things that are easy to get wrong:
@@ -85,6 +85,9 @@ Sent exactly when the access a subscription grants changes (`data.access`), what
 
 - **Drive the customer's access from these two alone**, applied by `sequence`: the access of the highest one applied stands. The other events say why (a payment, a cancellation, a stop), never whether.
 - `detail.changed_at`: when access changed. For a date that passed (the end of a paid period, of a cancellation, of the plan) it is that date to the millisecond, though the event is written seconds or hours later.
+- `detail.blocked_reason`: why the charges were held when access changed, in the words of `data.blocked_reason`; null when they were not. Keep a default branch: Mesub may add a value.
+- `detail.access_until`: on `access_granted`, the date access ends if a held subscription collects nothing by then, null otherwise (a charge renews it). On `access_revoked`, the date access ended (a paid period, a cancellation, the plan, or a held subscription's access), never after `changed_at`; null when it ended with no date of its own, a stop for example.
+- Both are absent on an event written before Mesub added them: read them as optional, never require them.
 - `data` is the subscription at that moment: `data.access`, `data.access_until`, and on a collection blocked on Mesub's or the merchant's side, `data.blocked_since` and `data.blocked_reason`.
 - Granted: the first access, a payment that gives access back after it ended, a comeback, a resume after a cancellation ended. Revoked: stopped, ended, a failed payment on Free, a cancellation or a plan reaching its end, a blocked collection reaching `access_until`.
 - **A renewal paid on time, or a resume while the period runs, sends neither**: access did not change.

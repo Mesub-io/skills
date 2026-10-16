@@ -69,6 +69,7 @@ async function applyAccess(event: WebhookEvent, access: AccessStore): Promise<bo
         await access.refresh(event.data.id);
         return true;
     }
+    // detailOf(event) also holds blocked_reason and access_until on newer events: optional, null or absent.
     const changedAt = detailOf(event).changed_at;
     await access.apply(
         event.data.id,
