@@ -40,7 +40,7 @@ Every delivery is a `POST` of this body, the same one `GET /v1/events` serves (`
 
 The body above is the contract since `api_version` `2026-10-02`. What `verify` returns depends on the copy of `@mesub/node` installed: read its `WebhookEvent` type in the `.d.ts` files of `node_modules/@mesub/node/dist` before writing a branch.
 
-- **`event.id`**: a package written for this body gives the event's `id`. An older one puts the `webhook-id` header there instead. Both stay the same on every retry to one endpoint, so either deduplicates; only the event's id matches `GET /v1/events` and the other endpoints.
+- **`event.id`**: a package written for this body gives the event's `id`, typed `string | null`: null on a body written before `available_since`, and `event.delivery_id` holds the `webhook-id` header. Deduplicate on `event.id ?? event.delivery_id`. An older package puts the `webhook-id` header in `event.id` instead. Both stay the same on every retry to one endpoint, so either deduplicates; only the event's id matches `GET /v1/events` and the other endpoints.
 - **`detail`**: an older package expects it under `data` and throws `unexpected` (a `MesubError`, not `invalid_webhook`) on a body that has it at the top. The route then answers 500, Mesub retries, and after three days disables the endpoint. That is a package to update, not a handler to fix: tell the user.
 - `assets/handle-event.ts` reads `detail` at the top first, then under `data`, so it works with both.
 
@@ -59,7 +59,7 @@ The body above is the contract since `api_version` `2026-10-02`. What `verify` r
 | `subscription.stopped` | Mesub stopped charging after missed payments. `data.stop_reason` says why: `out_of_retries`, `retry_deadline_passed` or `authority_closed` | `reason` |
 | `subscription.cancelled` | The customer cancelled. Access runs to the period's end | empty |
 | `subscription.resumed` | A cancellation was undone | empty |
-| `subscription.ended` | It is over. `data.end_reason` says why: `cancelled` when a cancellation reached its end (**not sent yet**), `closed` when the account is closed, `plan_ended` at the end date of its plan, `closed_elsewhere` when the account was closed outside Mesub | empty, `changed_at` on a cancellation's end |
+| `subscription.ended` | It is over. `data.end_reason` says why: `cancelled` when a cancellation reached its end (**not sent yet**), `closed` when the account is closed, `plan_ended` at the end date of its plan, `plan_removed` or `plan_replaced` when the merchant removed or replaced the plan, `closed_elsewhere` when the account was closed outside Mesub | empty; on a cancellation's end, `changed_at` and `end_reason` `cancelled` |
 | `subscription.expired` | A checkout was started and never signed | empty |
 | `subscription.access_granted` | Access started: the subscription grants access now and did not just before. **Not sent yet**: see "Order and access" | `changed_at`, `blocked_reason`, `access_until` |
 | `subscription.access_revoked` | Access ended: it grants none now and did just before. **Not sent yet** | `changed_at`, `blocked_reason`, `access_until` |
@@ -185,6 +185,6 @@ A plan can have an end date (`ends_at` on the plan). Nobody has access after it,
 A delivery sent with **Send test** in the dashboard is signed like a real one, in the same body. It carries `"test": true` at the top of its body and a made-up subscription whose id is `sub_test`. With an event picked, it has that event's type, so the type alone does not tell a test from a real event.
 
 - Ignore it before any side effect: `assets/handle-event.ts` checks both the flag and the id.
-- `test` is not in the SDK's types at 0.1.0 either: read it as `(event as { test?: unknown }).test`.
+- The SDK types it as `test?: true` on `WebhookEvent`. An older copy does not: read it as `(event as { test?: unknown }).test`, which works with both.
 - Never look up `sub_test` in the app's database or mail its made-up address.
 - Its event `id` is made up as well: it is not in `GET /v1/events`.

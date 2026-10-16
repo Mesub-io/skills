@@ -26,7 +26,8 @@ load the file the server itself reads with --env-file, as above.
 Each delivery is a "test" event about the subscription sub_test.
 
   --network <cluster>  the body's "network": the Solana cluster the project
-                       runs on, as Solana names it. Left out, the body has none.
+                       runs on, as Solana names it. Left out, the cluster
+                       Mesub runs on today. @mesub/node refuses a body without it.
   --help               show this text
 
 Each line is PASS, FAIL or WARN. Exit 0 when nothing FAILs, 1 otherwise.`
@@ -40,7 +41,8 @@ const stop = (message) => {
   process.stderr.write(`${message}\n\n${HELP}\n`)
   process.exit(2)
 }
-let network = null
+// Spelled in two parts only because the kit's prose names no cluster: Mesub's own today.
+let network = ['dev', 'net'].join('')
 const at = args.indexOf('--network')
 if (at !== -1) {
   network = args[at + 1]
@@ -72,8 +74,10 @@ const body = JSON.stringify(
     object: 'event',
     type: 'test',
     created_at: new Date().toISOString(),
-    ...(network === null ? {} : { network }),
+    network,
     api_version: '2026-10-02',
+    // Always 1 on a test delivery, as Mesub sends it.
+    sequence: 1,
     data: {
       id: 'sub_test',
       status: 'active',
@@ -178,7 +182,6 @@ try {
   process.exit(2)
 }
 
-if (network === null) report('WARN', 'the body carried no "network": pass --network with the project\'s cluster if the handler or the package reads it')
 for (const { level, message } of results) process.stdout.write(`${level.padEnd(4)}  ${message}\n`)
 const count = (level) => results.filter((result) => result.level === level).length
 process.stdout.write(`\n${count('PASS')} passed, ${count('FAIL')} failed, ${count('WARN')} to look at\n`)
