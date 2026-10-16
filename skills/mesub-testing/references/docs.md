@@ -13,6 +13,6 @@ This skill holds what testing an integration needs. The docs hold the rest.
 Where this skill says more than the page, each point read in the SDK's source and run:
 
 - `reset()` does not empty a client's cache.
-- Under Express, an integration error is answered with the status the error carries (401, 404), not 500, unless the app's error handler says otherwise.
+- Under Express, an integration error is answered 500: the SDK hands a 4xx `MesubError` to `next()` as a 500. An older copy passes its own status (401, 404).
 - `fake.webhook('test')` does not set the top-level `test: true` nor the `sub_test` id that a delivery sent from the dashboard carries.
 - `fake.webhook` takes `subscription.renewal_upcoming` only in a copy of the package that types the event.

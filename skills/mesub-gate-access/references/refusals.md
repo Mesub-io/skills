@@ -6,7 +6,7 @@
 |---|---|---|
 | 401 | | `{ "access": false, "reason": "unauthenticated" }` |
 | 402 | | `{ "access": false, "reason": "no_access", "status": "none" }` |
-| 503 | `Retry-After: 30` | `{ "access": false, "reason": "unavailable" }` |
+| 503 | `Retry-After`: the seconds Mesub sent with its 429 or 503, 30 when it sent none | `{ "access": false, "reason": "unavailable" }` |
 
 - `status` in the 402 is the subscription's status for the first plan asked (`none`, `stopped`, `ended`, `unpaid` and so on). It is there only when Mesub gave an answer.
 - A 402 only ever means Mesub said no. During an outage, a customer whose last known answer was "no" still gets 402: that answer is the fallback's.
@@ -52,7 +52,7 @@ A guard and `hasAccess` turn exactly one thing into an answer: Mesub being unrea
 | `MesubError`, `code: 'plan_not_found'` | No plan of this project under that slug | Compare the slug with the dashboard |
 | `MesubError`, `code: 'invalid_request'` | A wallet that is not an address, an email that is not one | Fix what `customer` returns |
 
-Where it goes: Express hands it to `next(err)`, Next.js and NestJS let it end as a 500. Under Express the default error handler answers a thrown error's own status, so without an error handler of the app's own a refused key shows as 401 and an unknown slug as 404. Give the app an error handler that answers 500 for a `MesubError`. Leave it there. Do not map it to 401 or 402: a refused key answered as 402 tells every subscriber to pay again.
+Where it goes: Express hands it to `next(err)`, Next.js and NestJS let it end as a 500. Under Express the guard hands a `MesubError` of a 4xx to `next()` as a copy of status 500, the original as its `cause`, so a refused key or an unknown slug ends as a 500. A copy of `@mesub/node` older than that passes the error's own status (401, 404): if a refused key answers 401, the package is behind; an error handler of the app's that answers 500 for a `MesubError` covers both. Leave it there. Do not map it to 401 or 402: a refused key answered as 402 tells every subscriber to pay again.
 
 `access` and `accessList` throw in one more case: `MesubError` with `code: 'unavailable'` or `'rate_limited'` when Mesub cannot answer. They have no fallback. On a screen, catch only those:
 

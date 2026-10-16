@@ -105,9 +105,9 @@ describe('GET /api/analytics', () => {
 
         const response = await request(app).get('/api/analytics');
 
-        // The guard hands the error to Express, which answers with the status the
-        // error carries (401 here) unless the app's own error handler says 500.
-        expect([401, 500]).toContain(response.status);
+        // The guard hands a 4xx MesubError to Express as a 500. An older @mesub/node
+        // passes its own status (401 here): a front would read that as signed out.
+        expect(response.status).toBe(500);
         expect(response.body.reason).toBeUndefined();
     });
 });

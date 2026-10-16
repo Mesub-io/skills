@@ -26,7 +26,7 @@ This is why the guards, the widget routes and the webhook handler must share one
 | Asked through | Customer seen before | Customer never seen |
 |---|---|---|
 | `hasAccess` | the last answer known | `false` |
-| A guard | the last answer known | 503 with `Retry-After: 30` |
+| A guard | the last answer known | 503 with `Retry-After`: Mesub's own, else 30 |
 | `access`, `accessList` | throws a `MesubError` | throws a `MesubError` |
 
 - "Seen" is per customer **and per plan**, as the customer was named: asked by `external_id` before, asked by `wallet` now, is never seen.

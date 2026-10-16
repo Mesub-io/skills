@@ -75,5 +75,5 @@ Say these as not covered, whatever the test results. They need the real Mesub an
 
 - The test files you created or changed, and the one change made to the code that ships, if any.
 - Each check above as passed, failed or not run, with the reason for any not run.
-- Anything the tests showed about the app: for instance a refused key answered 401 by Express's default error handler.
+- Anything the tests showed about the app: for instance a refused key answered 401 under Express by an older `@mesub/node`.
 - The list above, as what the tests do not prove.
