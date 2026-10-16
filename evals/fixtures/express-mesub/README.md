@@ -21,4 +21,4 @@ Sign in with `curl -c jar -H 'content-type: application/json' -d '{"user":"ada"}
 
 ## Mesub
 
-`@mesub/node` and `@mesub/react` are imported but not in `package.json`: neither is on the public registry yet. A run installs the local builds first, as [the evals README](../../README.md) says. `MESUB_API_KEY` is read from `.env`, which is ignored by git and which this fixture does not ship. Without a real key and a plan with the slug `pro`, the app starts but every call to Mesub fails: a run then checks what the agent wrote, not a live subscription.
+`@mesub/node` and `@mesub/react` are imported but not in `package.json`: neither is on the public registry yet. A run installs the local builds first, as [the evals README](../../README.md) says. `MESUB_API_KEY` is read from `.env`, which is ignored by git and which this fixture does not ship. Without any `MESUB_API_KEY` the app does not start: `src/mesub.ts` builds the client at module level, and `new Mesub()` throws `Missing Mesub API key`, on import as in a test. With a made-up key (never a real one) the app starts but every call to Mesub fails: a run then checks what the agent wrote, not a live subscription.

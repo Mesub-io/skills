@@ -21,6 +21,7 @@ await request(app).post('/webhooks/mesub').set(headers).set('content-type', 'app
 ```
 
 - The handler under test must verify with `fake.webhookSecret`: build it on `fake.client()`, or set `MESUB_WEBHOOK_SECRET` to `fake.webhookSecret` in the test's environment.
+- **Importing the app can throw before any test runs.** An app that builds its client at module level (`export const mesub = new Mesub()`) throws `Missing Mesub API key` on import when `MESUB_API_KEY` is unset, as in CI. Either set a made-up key in the test's environment before the app is imported (a test setup file, or `process.env.MESUB_API_KEY = 'SUB_test'` above a dynamic `import()`; never a real key, never `SUB_` followed by 40 characters), or give the app a seam that takes the client (`createApp({ mesub })`) and pass `fake.client()`. The seam is better: nothing then reaches Mesub by accident.
 - `fake.webhook(type, { subscription, detail, id, timestamp })`: pass the same `id` twice to test deduplication, and an old `timestamp` (Unix seconds) to test a replay.
 - `signWebhook(payload, { secret })`, from the same subpath, signs a body of your own. Use it for `subscription.renewal_upcoming` when the installed types do not accept that name in `fake.webhook`.
 - Send `body` as a string. A test client that parses and writes it again breaks the signature.
