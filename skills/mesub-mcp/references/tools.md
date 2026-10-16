@@ -36,7 +36,7 @@ They change the project. Say what will happen and wait for a yes before each one
 | `create_webhook` | Registers an endpoint. Returns its signing secret | From then on subscribers' identifiers are posted to that URL: only a URL the merchant gave and owns |
 | `update_webhook` | Changes an endpoint's URL or events, switches it on or off | A new URL sends subscribers' data elsewhere. Disabling mails the account owner |
 | `delete_webhook` | Deletes an endpoint for good | Its secret and delivery history are gone, and a live integration stops hearing events, silently. To pause, `update_webhook` with `enabled: false` |
-| `regenerate_webhook_secret` | Replaces a signing secret | The old one stops at once, with no overlap: the server refuses every delivery until it holds the new one |
+| `regenerate_webhook_secret` | Replaces a signing secret | `overlap_hours` (0 to 24) keeps the old one signing beside the new one, two signatures per delivery; 0 or left out stops it at once, so ask the merchant, and use none when the secret leaked |
 | `send_test_webhook` | Posts one signed test delivery to an endpoint | It reaches the merchant's server, which may act on it. Five a minute, one at a time per endpoint |
 | `update_project` | Renames the project | The name only |
 
