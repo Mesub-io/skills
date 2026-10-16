@@ -15,7 +15,9 @@ const mesub = fake.client(); // a real client that verifies with fake.webhookSec
 const { body, headers } = await fake.webhook('subscription.renewed', {
     subscription: { external_id: 'user_42' },
 });
-// Post `body` with `headers` to the route under test, as they are.
+// With supertest: `body` as a string, `headers`, and a content type. The headers carry none,
+// and express.raw({ type: 'application/json' }) leaves a body without one unread.
+await request(app).post('/webhooks/mesub').set(headers).set('content-type', 'application/json').send(body);
 ```
 
 - The handler under test must verify with `fake.webhookSecret`: build it on `fake.client()`, or set `MESUB_WEBHOOK_SECRET` to `fake.webhookSecret` in the test's environment.
@@ -36,7 +38,12 @@ node --env-file=.env "<skill-dir>/scripts/send-test-delivery.mjs" http://localho
 - `<skill-dir>` is the absolute path of the folder that holds `SKILL.md`. Run it from the project root.
 - `--env-file` names the env file the server itself reads, so both sign with the same secret. The script reads `MESUB_WEBHOOK_SECRET` from the environment and never shows it.
 - It refuses any URL that is not on localhost.
-- Every delivery is a `test` event about `sub_test`, with `"test": true`: a handler that ignores test deliveries has no side effect.
+- By default every delivery is a `test` event about `sub_test`, with `"test": true`: a handler that ignores test deliveries has no side effect, and none of its branches runs.
+- `--type <event type>` (one of the `subscription.*` types) sends that real type instead, without `test`, so the handler's branch runs: use it against a development database only. `--external-id <id>` (default `user_123`) and `--subscription <id>` (default `sub_test`) name who it is about, for a per-user branch.
+
+```bash
+node --env-file=.env "<skill-dir>/scripts/send-test-delivery.mjs" http://localhost:3000/webhooks/mesub --type subscription.cancelled --external-id user_42
+```
 - It cannot tell whether a repeat was handled once: that is read in the handler.
 - The body has today's shape: `id` `evt_test`, `object`, `network`, `api_version`, `sequence` 1, `detail` at the top. `network` is the cluster Mesub runs on today unless `--network <cluster>` names another, as Solana names it: `@mesub/node` refuses a body without it.
 

@@ -47,6 +47,7 @@ Fixture: [next-mesub](fixtures/next-mesub/README.md).
 - [ ] Says that only `subscription.access_revoked` tells when a cancellation reaches its end, and that Mesub does not send it yet, so a flag kept from the other events is never cleared.
 - [ ] Proposes asking `hasAccess` on each request until the access events arrive, and keeps the other branches for side effects.
 - [ ] If it writes access branches, applies `subscription.access_granted` and `subscription.access_revoked` by `sequence`, skipping one at or below the last applied for that subscription.
+- [ ] If it keeps a per-user flag, keeps one row per subscription with the user it names, and reads the user's flag over all of their subscriptions.
 - [ ] Reads the body with `request.text()` in the route handler.
 
 ### Must not
@@ -93,7 +94,8 @@ Fixture: [express-mesub](fixtures/express-mesub/README.md).
 
 - [ ] Reads the missed events from `GET /v1/events` (or the installed package's events call), filtered on `subscription.payment_failed`.
 - [ ] Pages with `starting_after` set to the last event's `id` while `has_more` is true.
-- [ ] Feeds each event to the same handler as the deliveries, deduplicated on the same event `id`.
+- [ ] Feeds each event to the same handler as the deliveries, deduplicated on the same event `id` (an `events.list` item through `fromEventsList`, or the same mapping).
+- [ ] Hands the message to an outbox, or the app's queue, drained after the 2xx, and says what can still repeat.
 - [ ] Says the API keeps 30 days of events, and none before `available_since`.
 - [ ] Keeps the API key on the server: in the `Authorization` header, never in a URL or a log.
 

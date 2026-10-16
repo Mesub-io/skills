@@ -12,6 +12,8 @@ So the route must:
 - **never redirect.** Common causes: the app's login middleware sending signed-out requests to a sign-in page, a trailing-slash rule, a forced host or scheme change in front of the app.
 - **be reachable without a session.** Mesub sends no cookie and no token of the app. Leave the route out of the login, and out of CSRF protection: the signature is what proves who sent it.
 
+**No database or queue in the app yet.** The deduplication needs a durable store anyway, and the smallest one serves both. A single SQLite file is enough for one instance: `node:sqlite` is built in from Node 22.13 (behind a flag before), otherwise a SQLite library or the app's existing database. Then an outbox instead of a queue: in the same write as the claim, insert a row for the work (a mail, a post to a chat); answer 2xx; drain the rows after the answer, from the same process or a timer, marking each done with one conditional update so two drainers never send one row twice. A send can still repeat if the process dies between sending and marking: make the effect safe to repeat where it can be, or say so. Several instances need a shared database, not a file each.
+
 ## Retries
 
 When the answer is not a 2xx, the same event is tried again after 1 minute, 5 minutes, 30 minutes, 2 hours, then every 12 hours, for about three days in all. Each try carries the same bytes (the event's `id` among them), the same `webhook-id` header and a new `webhook-timestamp`.
@@ -103,7 +105,8 @@ const page = await fetch('https://api.mesub.io/v1/events?limit=100', {
 
 - **Newest first**, 25 a page by default, `limit` 1 to 100. The next page: `starting_after` set to the `id` of the last event of this one, while `has_more` is true.
 - **Filters**: `type` (one event name) and `subscription` (one subscription's id).
-- **Feed each body to the same handler**, deduplicated on the same event `id`: what was already handled by a delivery is skipped. The same `sequence` rule applies: the list is newest first, so feed one subscription's events oldest first.
+- **Feed each body to the same handler**, deduplicated on the same event `id`: what was already handled by a delivery is skipped. The same `sequence` rule applies: the list is newest first, so feed one subscription's events oldest first. An item of `mesub.events.list` is typed `MesubEvent`, with no `delivery_id`: `assets/handle-event.ts` has `fromEventsList(event)`, which sets `delivery_id` to the event's `id` for `receiveEvent`.
+- **A bounded window** ("since Saturday"): page until an event's `created_at` is older than its start, then stop.
 - **Polling for what is new: do not stop at the first id you know.** An event's `created_at` is set a moment before it becomes visible, so one can appear below an event already read. Page on until `created_at` is a minute older than the newest you held, and skip the ids already seen.
 - **30 days, counted from each call.** Events before `available_since` are not served at all, whatever the window: their deliveries carried the older shape.
 - An event whose capture failed is missing until Mesub recovers it: Mesub is alerted and never serves it with a later state.
