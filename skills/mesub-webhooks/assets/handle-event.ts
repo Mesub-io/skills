@@ -109,9 +109,18 @@ async function react(event: WebhookEvent): Promise<void> {
         return;
     }
 
+    // Not typed by an older SDK: compare strings. A seat parked over the project's own tier cap
+    // (paused) or back under it (unpaused), never the subscriber's choice: tell the merchant, not
+    // the customer. Access follows from the access events. Not sent until Mesub turns them on.
+    const type = event.type as string;
+    if (type === 'subscription.paused' || type === 'subscription.unpaused') {
+        return;
+    }
+
     switch (event.type) {
         case 'subscription.created':
-            // The first payment landed. event.data is the subscription.
+            // The first payment landed. event.data is the subscription; detailOf(event).first_payment
+            // is { amount, mint, signature }, null when none was recorded, absent on older events.
             break;
         case 'subscription.renewed':
             // detailOf(event): amount, mint, period_start, period_end, signature
@@ -131,6 +140,7 @@ async function react(event: WebhookEvent): Promise<void> {
             break;
         case 'subscription.ended':
             // event.data.end_reason says why: 'cancelled', 'closed', 'closed_elsewhere', 'plan_ended', ...
+            // One subscription can end twice: 'cancelled' at a cancellation's end, then 'closed'.
             break;
         case 'subscription.expired':
             break;

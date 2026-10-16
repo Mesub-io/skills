@@ -52,22 +52,25 @@ The body above is the contract since `api_version` `2026-10-02`. What `verify` r
 
 | `type` | Sent when | `detail` |
 |---|---|---|
-| `subscription.created` | The first payment landed | empty, or `previous_id` on a wallet coming back after a stop |
+| `subscription.created` | The first payment landed | `first_payment`, and `previous_id` on a wallet coming back after a stop |
 | `subscription.renewal_upcoming` | A renewal is near, and whether it can pay | see below |
 | `subscription.renewed` | A period was paid | `amount`, `mint`, `period_start`, `period_end`, `signature` |
 | `subscription.payment_failed` | A charge missed | `reason`, `amount`, `mint`, `period_start`, `period_end`, `next_retry_at`, `retry_deadline`, `retries_left`, `retry_mode` |
 | `subscription.stopped` | Mesub stopped charging after missed payments. `data.stop_reason` says why: `out_of_retries`, `retry_deadline_passed` or `authority_closed` | `reason` |
 | `subscription.cancelled` | The customer cancelled. Access runs to the period's end | empty |
 | `subscription.resumed` | A cancellation was undone | empty |
-| `subscription.ended` | It is over. `data.end_reason` says why: `plan_ended` at the end date of its plan, `closed_elsewhere` when the subscription account was closed outside Mesub | empty |
+| `subscription.ended` | It is over. `data.end_reason` says why: `cancelled` when a cancellation reached its end (**not sent yet**), `closed` when the account is closed, `plan_ended` at the end date of its plan, `closed_elsewhere` when the account was closed outside Mesub | empty, `changed_at` on a cancellation's end |
 | `subscription.expired` | A checkout was started and never signed | empty |
 | `subscription.access_granted` | Access started: the subscription grants access now and did not just before. **Not sent yet**: see "Order and access" | `changed_at`, `blocked_reason`, `access_until` |
 | `subscription.access_revoked` | Access ended: it grants none now and did just before. **Not sent yet** | `changed_at`, `blocked_reason`, `access_until` |
+| `subscription.paused` | A seat was parked: the project holds more subscribers than its tier allows. **Not sent yet** | empty |
+| `subscription.unpaused` | A parked seat is back: the tier has room again. **Not sent yet** | empty |
 | `test` | Sent from the dashboard with no event picked | empty |
 
-Three things that are easy to get wrong:
+Things that are easy to get wrong:
 
-- **A cancellation reaching its end sends no event of its own.** `subscription.cancelled` arrives when the customer cancels, while access still runs until `data.access_until`. The day it runs out, only `subscription.access_revoked` tells, and Mesub does not send it yet. Code that waits for another event to take access away never takes it away: ask `hasAccess` on each request until the access events arrive.
+- **A cancellation reaching its end is told late, and not yet.** `subscription.cancelled` arrives when the customer cancels, while access still runs until `data.access_until`. At the expiry, `subscription.access_revoked` is sent first; `subscription.ended` with `end_reason: cancelled` follows once Mesub reads the chain, usually within half an hour, `detail.changed_at` the expiry. Closing the account later sends `ended` again, with `closed`. Mesub sends none of these yet: ask `hasAccess` on each request until they arrive.
+- **`subscription.paused` is not the subscriber's choice.** The project went over its tier's cap (a smaller tier, or a late confirmation filled it) and Mesub stopped charging the newest seats. Nothing changed on chain, the status stays, `data.paused` is true and `data.next_charge_at` null; access runs to the end of the paid period, then `subscription.access_revoked` follows. Tell the merchant (a bigger tier brings the seats back, with `subscription.unpaused`), never mail the customer as if they paused. An older SDK does not type either name: compare `event.type` as a string.
 - **Mesub may add a type.** The SDK hands back a type it does not know, with its subscription checked. Keep a `default` branch that acknowledges it.
 - **An endpoint receives only the events selected for it** in the dashboard. A missing event is first a selection to check, not a bug in the handler. Events missed while the endpoint was down or disabled are in `GET /v1/events` for 30 days.
 
@@ -95,6 +98,8 @@ Sent exactly when the access a subscription grants changes (`data.access`), what
 - Once they drive access, a row kept from them is the app's own answer: still ask `hasAccess` for an event without `sequence`, and after a catch-up with `GET /v1/events` apply what it returns by `sequence` too.
 
 ## The details
+
+`subscription.created`: `first_payment`, `{ amount, mint, signature }`, what the subscriber's own transaction paid; null when Mesub recorded none (a period paid only in part, which the next charge collects); absent on events written before Mesub added it. Sent with or without the access events.
 
 Amounts are strings, in the token's smallest unit: never read them as floats. Dates are ISO 8601.
 
