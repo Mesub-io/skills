@@ -46,11 +46,13 @@ Fixture: [next-mesub](fixtures/next-mesub/README.md).
 
 - [ ] Uses `useSubscribe` to open the same window from the app's own button.
 - [ ] Themes through the `--mesub-*` custom properties only.
+- [ ] Finds the app's purple if it exists; when it does not, sets `--mesub-accent` to a clearly named placeholder marked `ADAPT` and says so in the reply, rather than stopping to ask.
 - [ ] Keeps the server as the one that decides access: the button's state is a signal to fetch again.
 
 ### Must not
 
 - [ ] Targets class names of the widget, or copies its markup.
+- [ ] Sets an invented colour without saying it is a placeholder.
 - [ ] Unlocks content from `onSubscribed` or from the button's state alone.
 - [ ] Replaces the window with a hand-made flow.
 
@@ -63,7 +65,7 @@ node "<skill-dir>/scripts/check-wallet-side.mjs"
 # Exits 0: the app's own button opens the window
 grep -rnE 'useSubscribe\(' app components
 
-# Exits 0: a theme property is set
+# Exits 0: a theme property is set (a marked placeholder counts)
 grep -rnE -- '--mesub-(accent|bg|text|radius|font)' app components
 
 # Exits 0: the project still typechecks

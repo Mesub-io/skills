@@ -10,7 +10,18 @@ It styles the widget only, through `data-mesub-*` attributes. There are no class
 
 ## Brand it with custom properties
 
-The stylesheet reads `--mesub-*` properties and never sets one, so a value the app sets always wins, whatever the selector. Set them on `:root`, or on a wrapper to brand one area. `assets/mesub-theme.css` is ready to copy.
+The stylesheet reads `--mesub-*` properties and never sets one, so a value the app sets always wins, whatever the selector. Set them on `:root`, or on a wrapper to brand one area. `assets/mesub-theme.css` is ready to copy: put it in the app's global stylesheet, or import it once where the provider is (in a Next App Router app with no global CSS, `import './mesub-theme.css'` in the root layout).
+
+**A colour the app does not have.** The user names "our purple" and no purple is in the project (search its CSS variables, the Tailwind config, the theme file): do not stop to ask, and do not invent a hex silently. Set the property to a clearly named placeholder, marked so it is found again, and say so in the reply:
+
+```css
+:root {
+    /* ADAPT: "our purple" was not found in the project. Placeholder: replace with the brand's value. */
+    --mesub-accent: var(--brand-purple, #7c3aed);
+}
+```
+
+The `var(--brand-purple, ...)` form picks up the app's own variable if one is added under that name later.
 
 | Property | What it colours |
 |---|---|

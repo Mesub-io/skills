@@ -56,6 +56,8 @@ const { state, subscription, signature, subscribe } = useSubscribe('pro', { onSu
 | `subscription` | The subscription once confirmed, `null` before |
 | `signature` | The transaction that paid the first period, base58, or `null` |
 
+A button of the app's own on this hook draws only what it draws: the `data-mesub-receipt` line of `SubscribeButton` (next charge, receipt link) is gone unless the app renders it from `subscription.next_charge_at` and `signature`. `assets/custom-subscribe-button.tsx` keeps the next charge and leaves the receipt link out, since the explorer link is not exported. Busy (`signing`, `confirming`), make it `aria-disabled` and ignore the click, not `disabled`, as `SubscribeButton` does: the keyboard focus stays on it.
+
 `state` goes back to `idle` when the window is closed before the end. It is this component's memory only: after a reload it is `idle` again even for a subscriber. To know whether the visitor already subscribed, ask the server or `useSubscriptions`.
 
 ## ManageButton
