@@ -11,7 +11,7 @@ const mesub = new Mesub();
 // Call it BEFORE any app.use(express.json()) and before the app's login or CSRF
 // middleware: the route needs the bytes as sent, and Mesub has no session.
 // ADAPT: the path is the one registered in the dashboard.
-// `deps` is the event store, the access store and whatever the reactions use (handle-event.ts).
+// `deps` is the event store and, optionally, the access store (handle-event.ts).
 export function mountMesubWebhook(app: Express, deps: EventDeps): void {
     app.post('/webhooks/mesub', express.raw({ type: 'application/json' }), async (req, res, next) => {
         let event;
