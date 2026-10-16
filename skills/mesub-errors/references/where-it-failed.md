@@ -31,7 +31,8 @@ A refusal is `{ error: { code, message } }`.
 | 413 | `payload_too_large` | A body over 64 kB |
 | 415 | `unsupported_media_type` | A POST that is not JSON |
 | 429 | `rate_limited` | Mesub's rate limit, handed on at once with its `Retry-After` |
-| 502 | `unavailable` or `unexpected` | Mesub did not answer, or answered something the SDK cannot read. A fixed message, none of the server's details |
+| 502 | `unavailable` or `unexpected` | Only when Mesub never answered (a timeout, no network) or answered a success the SDK cannot read. A fixed message, none of the server's details |
+| 503, 500 | `unavailable`, `network_unavailable`, `internal_error` | Mesub answered, with an outage of its own: handed on with Mesub's status, code and `Retry-After`. Not the app's server failing |
 | any other | an API code | Mesub's own refusal, with its status, its code and its sentence: look it up in `api-error-codes.md` |
 | 500, or under Express 401 for everybody | none | The routes threw to the framework: Mesub refused the API key, or `customer` returned a malformed value. Read the server log |
 
