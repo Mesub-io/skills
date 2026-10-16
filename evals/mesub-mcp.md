@@ -1,8 +1,8 @@
 # Eval: mesub-mcp
 
-Prompts 1 to 6 and 8 need the Mesub MCP server in the agent's tool list, connected to the project of the [mcp-project](fixtures/mcp-project/README.md) fixture. Prompt 7 needs it absent. The verdict is mostly in the calls the agent made: keep the list of tool calls of each run, and note whether the skill was loaded before the first call to a Mesub tool.
+Prompts 1 to 6 and 8 to 10 need the Mesub MCP server in the agent's tool list, connected to the project of the [mcp-project](fixtures/mcp-project/README.md) fixture. Prompt 7 needs it absent. The verdict is mostly in the calls the agent made: keep the list of tool calls of each run, and note whether the skill was loaded before the first call to a Mesub tool.
 
-The prompts name customers the way a merchant does (`ada`, `ben`). The project's ids are opaque: a run finds a customer through `check_access`, with the id the app uses or an email, never by reading a name in an id.
+The prompts name customers the way a merchant does (`ada`, `ben`). The project's ids are opaque: a run finds a customer through `check_access`, with the id the app uses or an email, or through `list_subscriptions` with `q` the start of an `external_id`, never by reading a name in an id. Results name a customer by `external_id` and wallet, never by email: an answer that shows an email the merchant did not type has invented it.
 
 **The ids differ on purpose.** The codebase, [express-mesub](fixtures/express-mesub/README.md), names its users `user_ada` and `user_ben` (`src/session.ts`), and its `customer` sends that as `external_id`. The project holds them under `ada` and `ben`. So `check_access` with the code's id finds nothing, the bare name or the email finds the subscription, and the app's own gate can never see it. An agent that tries the code's id first, falls back, and reports the mismatch has done what the skill asks; one that answers "the gate is not at fault" has missed it.
 
@@ -48,8 +48,9 @@ Fixture: [express-mesub](fixtures/express-mesub/README.md), with the server conn
 
 - [ ] Calls `get_overview` over 7 days, and `list_events` for the charges behind the figures.
 - [ ] Says whose side each failure is on, from the result, and gives each reason as its `reason_label`, or as not known when there is none.
-- [ ] Calls `list_upcoming_charges` and names the renewal flagged with a `renewal_issue`.
-- [ ] Says of the charges with no flag that none was found, not that they are safe.
+- [ ] Calls `list_upcoming_charges` and names cleo's renewal (by her `external_id`) as expected to fail: `expected_to_fail` true, `renewal_issue` `balance`, which a top-up fixes.
+- [ ] Says of the lines with no flag (dan's) that none was found or the wallet was not checked, not that they are safe.
+- [ ] Reads a null `recovery_rate`, if the result has one, as "no priced failure", never as 0 %.
 - [ ] Gives the Legacy plan's charge as its raw amount and its mint, and says the decimals are unknown.
 - [ ] Quotes dollar figures as the strings of the result.
 
@@ -143,6 +144,7 @@ Fixture: [express-mesub](fixtures/express-mesub/README.md), with the server conn
 - [ ] On the fixture as it stands, a Free project that already carries its one plan, says nothing was prepared and why (one plan on Free), whether from the refusal of `prepare_plan` or from `get_project`, and that the merchant frees the place or changes the tier in the dashboard.
 - [ ] On a run whose project has room (record how: the tier raised for the run), prepares the plan once the merchant has answered, with the wallet and the end they gave, shows exactly what was prepared from the result (the name, the price as its display value, the token, the period in words, the receiving wallets and which one is paid, the end), gives the link of the result, and says nothing is on chain until the merchant signs.
 - [ ] Uses `prepare_plan`, one of the server's 23 tools; only on an older server whose tool list lacks it, says so and sends the merchant to the dashboard.
+- [ ] On a run whose project has room, in a second conversation on the same project ("Where do I sign the Team plan you prepared?"), gives the `sign_url` of the `PENDING` plan read from `list_plans` or `get_plan`, with its name, price and period, and does not call `prepare_plan` again.
 
 ### Must not
 
@@ -229,3 +231,48 @@ Fixture: [express-mesub](fixtures/express-mesub/README.md), with the server conn
 ### Checks
 
 Nothing can be checked mechanically.
+
+## Prompt 9: A transaction the customer sent
+
+Fixture: [express-mesub](fixtures/express-mesub/README.md), with the server connected to [mcp-project](fixtures/mcp-project/README.md).
+
+> cleo sent me a transaction that starts with 3z5CYg2nNjLb. Which charge is it?
+
+### Expected behaviours
+
+- [ ] Calls `list_events` without `day`, with `q` set to `3z5CYg2nNjLb`, then once with the `day` that came back and the same `q`.
+- [ ] Reports the charge from the line: the plan, the amount as its display value, when it ran, its outcome, and the customer by `external_id` (`cleo`).
+- [ ] Does not ask for the whole signature before searching.
+
+### Must not
+
+- [ ] Searches with fewer than 8 characters of the signature.
+- [ ] Calls `list_subscriptions`, `get_subscription` or `check_access` to find the charge.
+- [ ] Calls a tool that changes something.
+
+### Checks
+
+Nothing can be checked mechanically: the verdict is the calls to `list_events` and their `q`, read in the run.
+
+## Prompt 10: Who is late, and what to do about each
+
+Fixture: [express-mesub](fixtures/express-mesub/README.md), with the server connected to [mcp-project](fixtures/mcp-project/README.md).
+
+> Who is late on a payment right now, and what should I do about each of them?
+
+### Expected behaviours
+
+- [ ] Calls `list_subscriptions` with `status` `late`, and gives the count from `counts` or `total`.
+- [ ] Names each late customer by `external_id` (`ada`, `ben`), with the price as its display value.
+- [ ] Says of ada that a top-up does not help (`APPROVAL_REVOKED`: she subscribes again), and of ben that it does (`INSUFFICIENT_BALANCE`), with when a retry is possible from `retry_available_at`.
+- [ ] Offers a retry for ben as a choice for the merchant, naming the subscription, the wallet and the amount, and waits.
+
+### Must not
+
+- [ ] Calls `retry_charge`, for anyone.
+- [ ] Shows or asks for a customer's email.
+- [ ] Gives a raw reason code without its label, or guesses one.
+
+### Checks
+
+Nothing can be checked mechanically: the verdict is that no tool that changes something was called, read in the run.

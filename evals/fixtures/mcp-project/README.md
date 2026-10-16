@@ -31,9 +31,11 @@ Held under the bare names `ada`, `ben` and `cleo`, while the codebase sends `use
 |---|---|---|---|
 | ada | `external_id` `ada`, email `ada@example.com` | `pro` | Late (`UNPAID`), `late_reason` `APPROVAL_REVOKED`, two failed charges with the reason `program_4`, no access |
 | ben | `external_id` `ben` | `pro` | Late, `late_reason` `INSUFFICIENT_BALANCE`, one failed charge with the reason `insufficient_balance`, no access. One retry by hand was made three minutes ago: `retry_available_at` is seven minutes ahead, and `retry_charge` answers the refusal "Try again in 7 minutes." |
-| cleo | `external_id` `cleo` | `pro` | Active, charged in three days, `renewal_issue` `balance` |
+| cleo | `external_id` `cleo` | `pro` | Active, charged in three days, `renewal_issue` `balance` (so `expected_to_fail` true on that line). Her last paid charge, four days ago, has a transaction signature that starts with `3z5CYg2nNjLb`, for prompt 9 |
 
 Over the last seven days: five charges paid, three failed (two `REJECTED` on ada, one on ben), none won back.
+
+Every subscription carries its `external_id` in the results (`ada`, `ben`, `cleo`). No result carries an email: ada's email is only an input `check_access` accepts.
 
 **Ids are opaque.** A subscription's id, a plan's id and a wallet say nothing of who the customer is, as on a real project. A run finds `ben` through `check_access` with his `external_id`, or `ada` with her email, then the subscription by the wallet that answer names. A seed that writes a name into an id (`..._sub_ben`) gives the answer away: the first pass did, and its prompt 4 proves nothing about finding a customer.
 
@@ -74,7 +76,7 @@ On a local Mesub API, in this order, and recorded with the run:
 
 1. Through the dashboard or the API: the project, its plan `pro`, the webhook endpoint.
 2. In the database, since no API call produces them without a chain and time passing: the subscriptions of ada, ben and cleo with their charges and events, the endpoint's failing deliveries and its shown URL. Ids as the API would draw them, never a name.
-3. Before each run of prompt 4: ben's last retry by hand set to three minutes ago.
+3. Before each run of prompt 4 and prompt 10: ben's last retry by hand set to three minutes ago. For prompt 9: cleo's last paid charge carries a signature starting with `3z5CYg2nNjLb`.
 4. For prompt 2 only: the Legacy plan and dan.
 5. For prompt 5 on a project with room, when that branch is the one tested: the tier raised for the run, and said so in the record.
 
