@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { MesubError, verifyWebhook } from '@mesub/node';
-import { type AccessStore, type EventStore, receiveEvent } from './handle-event';
+import { type AccessStore, type EventDeps, type EventStore, receiveEvent } from './handle-event';
 
 // ADAPT: the app's own store, see handle-event.ts. Inject a provider instead if the app has one.
 const store: EventStore = {
@@ -31,6 +31,9 @@ const access: AccessStore = {
         throw new Error('Read the subscription now and record its access here.');
     },
 };
+
+// ADAPT: add what the reactions in handle-event.ts use.
+const deps: EventDeps = { store, access };
 
 // ADAPT: the path is the one registered in the dashboard. A global prefix applies to it.
 @Controller('webhooks/mesub')
@@ -52,6 +55,6 @@ export class MesubWebhooksController {
         }
 
         // A throw here answers 500, and Mesub sends the event again.
-        await receiveEvent(event, store, access);
+        await receiveEvent(event, deps);
     }
 }

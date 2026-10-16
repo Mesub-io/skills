@@ -10,7 +10,7 @@ From the project root:
 node "<skill-dir>/scripts/check-setup.mjs"
 ```
 
-`<skill-dir>` is the folder that holds `SKILL.md`. Add `--server-only` for a project with no React front.
+`<skill-dir>` is the folder that holds `SKILL.md`. Add `--server-only` for a project with no React front. No gated route is a FAIL unless `--no-gate-yet` is passed, which only the user's choice to gate nothing yet justifies.
 
 Pass: no `FAIL` line. Read every `WARN` and either fix it or say why it is fine here. A `WARN` about the customer coming from the request is never fine: open the file and prove where the id comes from.
 
@@ -43,7 +43,7 @@ curl -i http://localhost:3000/api/analytics
 
 Pass:
 
-- the plan read answers 200 with the plan's name and price. This single call proves the mount path, the key and the slug at once. A 404 `plan_not_found` is a wrong slug, a 404 without that code is a wrong path, a 500 is a refused key (a 401 even when signed in, under Express with an older `@mesub/node` and no error handler of the app's own). If the app's login middleware rejects signed-out requests it answers 401 here: repeat it signed in.
+- the plan read answers 200 with the plan's name and price. This single call proves the mount path, the key and the slug at once. A 404 `plan_not_found` is a wrong slug, a 404 without that code is a wrong path, a 500 is a refused key (a 401 even when signed in, under Express with an older `@mesub/node` and no error handler of the app's own) or no key in this process, when the log says "Missing Mesub API key". If the app's login middleware rejects signed-out requests it answers 401 here: repeat it signed in.
 - the subscriptions read answers 401 `unauthenticated`. A 200 here means `customer` names somebody without a session: stop and fix it.
 - the paid route answers 401, not 200 and not 402.
 

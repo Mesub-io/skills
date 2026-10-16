@@ -47,6 +47,8 @@ Pass:
 - the delivery signed correctly is answered 2xx. A 500 or a 400 here means the body was parsed before the check, or the server runs with another secret. A 500 whose log names a webhook "this SDK cannot read" is an `@mesub/node` older than the body with `detail` at the top: the package needs updating (`references/events.md`). A 3xx, 401 or 403 means the route is behind the app's login.
 - the same delivery again is answered 2xx.
 
+Then once with `--type` and a type the handler acts on (`references/local-testing.md`), against a development database: the branch's effect is there once, not twice.
+
 ## 5. One event, one effect
 
 The script cannot see this. Read the handler, or run it in the project's tests with two deliveries carrying the same id (`references/local-testing.md`):

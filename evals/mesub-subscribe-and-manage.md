@@ -106,8 +106,8 @@ Fixture: [next-mesub](fixtures/next-mesub/README.md).
 
 ### Expected behaviours
 
-- [ ] Says testing the integration has its own owner, and names where to read: the kit directory or the docs page.
-- [ ] Does not mock the SDK to make a test pass.
+- [ ] Says testing the integration has its own owner, `mesub-testing`, and names where to read: the kit directory or the docs page.
+- [ ] When that skill is not installed, stops and says so, or goes on only with the user's agreement and keeps its rule: no mock of `@mesub/node`, a seam handing the app `FakeMesub`'s client.
 
 ### Must not
 

@@ -1,6 +1,9 @@
 // What to do with an event once its signature is verified: drop a repeat, then react.
 // Copy next to the webhook route. It imports nothing but the SDK's types.
-import type { WebhookEvent } from '@mesub/node';
+import type { MesubEvent, WebhookEvent } from '@mesub/node';
+
+// The subscription an event is about, as it stood when the event was written.
+type Subscription = WebhookEvent['data'];
 
 // ADAPT: back this with the app's own database. `claim` must be ONE atomic write
 // (an insert under a unique key on the id), never a read followed by a write:
@@ -12,14 +15,23 @@ export interface EventStore {
     release(id: string): Promise<void>;
 }
 
-// ADAPT: back this with the app's own table, one row per subscription (event.data.id).
+// ADAPT: back this with the app's own table, one row per subscription, keyed by `subscription.id`,
+// with the user it names (`subscription.external_id`, else its email or wallet) in a column.
+// A per-user flag is "any of that user's rows is granted": a wallet coming back makes a new subscription id.
 // `apply` must be ONE conditional write: set `granted` and `sequence` only where the stored
 // sequence is lower (UPDATE ... WHERE last_sequence < $sequence, or an insert when no row).
 export interface AccessStore {
     /** Record the access an access event set, unless a higher sequence was already applied. */
-    apply(subscriptionId: string, sequence: number, granted: boolean, changedAt: string): Promise<void>;
+    apply(subscription: Subscription, sequence: number, granted: boolean, changedAt: string): Promise<void>;
     /** An event without `sequence` cannot be placed: read the state now (mesub.subscriptions.retrieve) and record it. */
-    refresh(subscriptionId: string): Promise<void>;
+    refresh(subscription: Subscription): Promise<void>;
+}
+
+// What the handler needs from the app, handed in by the route.
+export interface EventDeps {
+    store: EventStore;
+    access: AccessStore;
+    // ADAPT: add what the reactions use (the app's database, its mailer, an outbox), and read it in react().
 }
 
 /** `detail` of subscription.renewal_upcoming, as the docs give it. */
@@ -66,13 +78,13 @@ async function applyAccess(event: WebhookEvent, access: AccessStore): Promise<bo
 
     const sequence = sequenceOf(event);
     if (sequence === null) {
-        await access.refresh(event.data.id);
+        await access.refresh(event.data);
         return true;
     }
     // detailOf(event) also holds blocked_reason and access_until on newer events: optional, null or absent.
     const changedAt = detailOf(event).changed_at;
     await access.apply(
-        event.data.id,
+        event.data,
         sequence,
         type === 'subscription.access_granted',
         typeof changedAt === 'string' ? changedAt : event.created_at,
@@ -84,25 +96,34 @@ async function applyAccess(event: WebhookEvent, access: AccessStore): Promise<bo
  * Call it with the event `verify` handed back, never with a body read any other way.
  * It throws when the handling failed: answer a 5xx then, and Mesub sends the event again.
  */
-export async function receiveEvent(event: WebhookEvent, store: EventStore, access: AccessStore): Promise<void> {
+export async function receiveEvent(event: WebhookEvent, deps: EventDeps): Promise<void> {
     if (isTest(event)) return;
     // The same on every retry: the event's id (what GET /v1/events serves), null on a body written
     // before api_version 2026-10-02, then the delivery's id (webhook-id). See references/delivery.md.
     const id = event.id ?? event.delivery_id;
-    if (!(await store.claim(id))) return;
+    if (!(await deps.store.claim(id))) return;
 
     try {
-        if (!(await applyAccess(event, access))) await react(event);
+        if (!(await applyAccess(event, deps.access))) await react(event, deps);
     } catch (error) {
-        await store.release(id);
+        await deps.store.release(id);
         throw error;
     }
 }
 
+/**
+ * An event read back from GET /v1/events (`mesub.events.list`, to catch up after an outage), shaped
+ * for receiveEvent. It came in no delivery, so its own id stands in for `delivery_id`: deduplication
+ * keys on `event.id` first, so a delivery of the same event is still dropped.
+ */
+export function fromEventsList(event: MesubEvent): WebhookEvent {
+    return { ...event, delivery_id: event.id } as WebhookEvent;
+}
+
 // ADAPT: keep the branches the app needs. Each one must be quick, or hand the work to a
-// queue: Mesub waits 10 seconds for the answer. Never grant or revoke access here: only the two
-// access events above do, and until Mesub sends them, ask `hasAccess` (references/delivery.md, "Order").
-async function react(event: WebhookEvent): Promise<void> {
+// queue or an outbox (references/delivery.md): Mesub waits 10 seconds for the answer. Never grant or
+// revoke access here: only the two access events above do, and until Mesub sends them, ask `hasAccess`.
+async function react(event: WebhookEvent, _deps: EventDeps): Promise<void> {
     const upcoming = renewalUpcomingOf(event);
     if (upcoming) {
         // A reading of the wallet, not a promise: the charge itself answers later.

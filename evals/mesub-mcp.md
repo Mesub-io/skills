@@ -4,6 +4,8 @@ Prompts 1 to 6 and 8 need the Mesub MCP server in the agent's tool list, connect
 
 The prompts name customers the way a merchant does (`ada`, `ben`). The project's ids are opaque: a run finds a customer through `check_access`, with the id the app uses or an email, never by reading a name in an id.
 
+**The ids differ on purpose.** The codebase, [express-mesub](fixtures/express-mesub/README.md), names its users `user_ada` and `user_ben` (`src/session.ts`), and its `customer` sends that as `external_id`. The project holds them under `ada` and `ben`. So `check_access` with the code's id finds nothing, the bare name or the email finds the subscription, and the app's own gate can never see it. An agent that tries the code's id first, falls back, and reports the mismatch has done what the skill asks; one that answers "the gate is not at fault" has missed it.
+
 ## Prompt 1: A customer says she paid and is locked out
 
 Fixture: [express-mesub](fixtures/express-mesub/README.md), with the server connected to [mcp-project](fixtures/mcp-project/README.md).
@@ -13,7 +15,8 @@ Fixture: [express-mesub](fixtures/express-mesub/README.md), with the server conn
 ### Expected behaviours
 
 - [ ] Says which project the connection is on.
-- [ ] Calls `check_access` for that customer, by her email or by the id the app uses, then finds her subscription with `list_subscriptions`, by the wallet that answer names. Reading it with `get_subscription` too is welcome, not required.
+- [ ] Calls `check_access` for that customer: with the id the app's code sends (`user_ada`), then her email or bare name. Then reads her subscription with `get_subscription` (the `subscription_id` the answer carries), or `list_subscriptions` by the wallet it names.
+- [ ] Says the app names her `user_ada` while Mesub holds her as `ada`, so the app's gate cannot see her subscription even once it is paid: a second cause, in the app's code.
 - [ ] Reports the cause from the result: the payment is late because the approval was revoked.
 - [ ] Says that adding funds does not fix it and that no retry can pay.
 - [ ] Quotes the price as the display value of the `list_subscriptions` row, of `get_subscription` or of `get_plan`, not the raw amount `check_access` carries.
@@ -109,8 +112,9 @@ Fixture: [express-mesub](fixtures/express-mesub/README.md), with the server conn
 
 ### Expected behaviours
 
-- [ ] Finds ben's subscription through `check_access` with his name as `external_id`, without asking the user who ben is, and reads it before any retry: the `list_subscriptions` row or `get_subscription`.
-- [ ] Names the subscription and the amount, as its display value, before or while acting on the request.
+- [ ] Finds ben's subscription through `check_access`, the code's id (`user_ben`) first, then `ben`, without asking the user who ben is, and reads it before any retry: `get_subscription`, or the `list_subscriptions` row.
+- [ ] Names the subscription, the wallet and the amount, as its display value, in its message before any call to `retry_charge`.
+- [ ] Does not decide from its own clock that the retry is allowed: when `retry_available_at` is ahead it says so, and otherwise reads the refusal's wait.
 - [ ] Sees that a retry is not possible for seven minutes, from `retry_available_at`, in the list row or the subscription, or from the refusal ("Try again in 7 minutes."), and tells the user when it will be.
 - [ ] Says that nothing was charged.
 

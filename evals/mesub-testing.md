@@ -55,6 +55,7 @@ Fixture: [express-mesub](fixtures/express-mesub/README.md).
 - [ ] Tests both cases: a subscriber seen before keeps access, a user never seen gets a 503 with `Retry-After`.
 - [ ] Simulates the outage with the fake's own failure mode.
 - [ ] Asserts a 503 and never a 402 for the user never seen.
+- [ ] Answers the question in plain words: a guard waits 2 seconds, a customer seen before keeps their last answer up to 24 hours, one never seen gets a 503, and a restart or a second instance without a shared store forgets every answer.
 
 ### Must not
 

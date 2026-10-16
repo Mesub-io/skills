@@ -9,7 +9,7 @@ license: Apache-2.0
 
 ## Overview
 
-This skill makes an agent write a webhook handler that cannot be forged, does not act twice on one event and survives retries and reordering: the endpoint, its secret, the check on the raw body, every event and catch-up.
+This skill makes an agent write a webhook handler that cannot be forged, acts once per event and survives retries and reordering.
 
 ## When to use this skill
 
@@ -20,7 +20,7 @@ This skill makes an agent write a webhook handler that cannot be forged, does no
 ## Do not use this skill when
 
 - The project has no Mesub code yet: the first setup is not in this skill.
-- The task is whether a request may see paid content: that is asked on each request (`hasAccess`), not an event.
+- The task is gating paid content: that is `hasAccess` on each request, not an event.
 - The task is the subscribe window or the app's test suite as a whole.
 
 ## Core guidance
@@ -36,17 +36,17 @@ This skill makes an agent write a webhook handler that cannot be forged, does no
 1. **Check what is installed.** Read `node_modules/@mesub/node/package.json` for the version, and the `.d.ts` files of `dist/` beside it for `verifyWebhook` and the event names. The package may not be on the public registry: if it is absent, stop and tell the user. Never install a lookalike or write the check by hand.
 2. **Ask the user for what only they can do.** In the dashboard, under Developers then Webhooks, they add the endpoint (a public HTTPS URL, up to 16 per project), pick its events, and put its signing secret in the server's environment as `MESUB_WEBHOOK_SECRET`.
 3. **Copy the handler**: `assets/handle-event.ts`, then the route for the framework (`assets/express-webhook.ts`, `assets/next-webhook-route.ts` or `assets/nest-webhook.controller.ts`). Adapt the lines marked `ADAPT`, after reading `references/frameworks.md`.
-4. **Write the store** behind `EventStore`, in the app's database: `references/delivery.md`.
+4. **Write the store** behind `EventStore`, in the app's database (none yet: the smallest durable one): `references/delivery.md`.
 5. **Fill the branches** the app needs: `references/events.md` has every type and field.
 6. **Check**: the two scripts below, then `checks/verification.md`.
 
 ### Rules that are never negotiable
 
-- **Verify before anything else, on the raw body.** The signature covers the exact bytes sent. A body a JSON parser read and wrote again no longer matches. Express: `express.raw` on the route. Next.js: `await request.text()`. NestJS: `req.rawBody`.
+- **Verify before anything else, on the raw body.** The signature covers the exact bytes sent: a parsed body no longer matches. Express: `express.raw` on the route. Next.js: `await request.text()`. NestJS: `req.rawBody`.
 - **Trust only the event the check returns.** Never read the request body any other way. Why: an unverified body is whatever a stranger typed, and it can name any subscriber.
 - **Answer 400 on `invalid_webhook` only, and let every other error fail.** A catch-all that answers 200 turns the check off. A `TypeError` is a fault of the server (a parsed body, a missing secret), not a bad delivery.
-- **Never ask for the signing secret in the conversation, never write its value, never log it** nor the `webhook-signature` header. No browser prefix. A secret seen in a chat or a commit is leaked: the user replaces it in the dashboard.
-- **Deduplicate on the event's `id`** with one atomic write, released when the handling fails. Why: an event can arrive twice; an id kept after a failure drops the retry. `webhook-id` names a delivery, one per endpoint; the body's `id` is the event's.
+- **Never ask for the signing secret in the conversation, never write its value, never log it** nor the `webhook-signature` header. No browser prefix. A secret seen in a chat or a commit is leaked.
+- **Deduplicate on the event's `id`** with one atomic write, released when the handling fails. Why: an event can arrive twice; an id kept after a failure drops the retry.
 - **Answer a 2xx within 10 seconds, before slow work.** Anything else, a redirect included, is a failure. Mesub retries for about three days, then disables the endpoint.
 - **Do not trust the order; trust `sequence`.** A retry can land after a newer event. Apply one subscription's events by `sequence`, skipping one at or below the last applied; without it, read the state now. `references/events.md`.
 - **`detail` sits at the top of the body, not in `data`.** An older `@mesub/node` throws `unexpected` on it: the package needs updating. `references/events.md`.
@@ -58,22 +58,27 @@ This skill makes an agent write a webhook handler that cannot be forged, does no
 
 ### The checks
 
-From the project root, with the scripts' path resolved under this skill's folder (`<skill-dir>`: the absolute path of this `SKILL.md`'s folder; do not change into it):
+From the project root (`<skill-dir>`: this skill's folder, as an absolute path; do not change into it):
 
 ```bash
 node "<skill-dir>/scripts/check-webhooks.mjs"
 node --env-file=.env "<skill-dir>/scripts/send-test-delivery.mjs" http://localhost:3000/webhooks/mesub
 ```
 
-The second needs the server running and posts to localhost only. **Neither produces a real event**: that needs the endpoint registered by the user and a public URL. Report the handler as checked locally, never as receiving events, until the user has sent a test from the dashboard.
+The second needs the server running, on localhost. **Neither produces a real event**, which needs the endpoint registered and a public URL. Report the handler as checked locally, never as receiving events, until the user has sent a test from the dashboard.
 
 ## Related skills
 
 <!-- related:start -->
 <!-- Rendered from catalog.yaml by `pnpm render`. Do not edit. -->
-This skill works alone: never assume another one is installed. The other skills of the kit: `mesub-quickstart`, `mesub-gate-access`, `mesub-subscribe-and-manage`, `mesub-testing`, `mesub-errors`, `mesub-mcp`.
+This skill works alone: never assume another is installed. A task outside it: name its owner, from `references/kit-directory.md`. Owner not installed and not installable: stop and say so. Going on without it is the user's call, keeping its rule:
 
-For a task outside this skill, find its owner in `references/kit-directory.md` (what each skill covers, how to install it alone, its docs page), and say which skill owns it.
+- `mesub-quickstart`: never ask for the API key; `customer` from the verified session.
+- `mesub-gate-access`: gate on the server; an error is never "not subscribed".
+- `mesub-subscribe-and-manage`: the widget subscribes; never hand-make that flow.
+- `mesub-testing`: never mock `@mesub/node`: a seam and `FakeMesub`.
+- `mesub-errors`: branch on `apiCode`, never a message; never loop on `retryable`.
+- `mesub-mcp`: ask before any change; never an API key.
 <!-- related:end -->
 
 ## References
@@ -83,7 +88,7 @@ For a task outside this skill, find its owner in `references/kit-directory.md` (
 - `references/frameworks.md`: the raw body per framework, the two ways to call the check, what it throws.
 - `references/local-testing.md`: signed deliveries in tests, a tunnel, a test from the dashboard.
 - `references/docs.md`: the docs pages behind this skill.
-- `references/kit-directory.md`: every skill of the kit, how to install it alone, its docs fallback.
+- `references/kit-directory.md`: every skill of the kit, its install and docs.
 
 ## Assets
 
@@ -95,8 +100,8 @@ For a task outside this skill, find its owner in `references/kit-directory.md` (
 ## Scripts
 
 - `scripts/check-webhooks.mjs`: reports on the package, the secret, the raw body, the 400 and the deduplication. Read-only, never shows a secret.
-- `scripts/send-test-delivery.mjs`: posts five made-up deliveries to a handler on localhost. Never shows the secret.
+- `scripts/send-test-delivery.mjs`: posts five made-up deliveries to a handler on localhost, `test` ones or `--type` a real type. Never shows the secret.
 
 ## Checks
 
-- `checks/verification.md`: the runbook to go through before saying the work is done.
+- `checks/verification.md`: the runbook before saying the work is done.

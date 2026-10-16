@@ -25,6 +25,8 @@ Named `Acme Reader`, on the Free tier. What that tier means for the prompts:
 
 ## The subscribers
 
+Held under the bare names `ada`, `ben` and `cleo`, while the codebase sends `user_ada` and `user_ben`: the mismatch is intended, see [the eval](../../mesub-mcp.md).
+
 | Customer | Named by | Plan | State |
 |---|---|---|---|
 | ada | `external_id` `ada`, email `ada@example.com` | `pro` | Late (`UNPAID`), `late_reason` `APPROVAL_REVOKED`, two failed charges with the reason `program_4`, no access |

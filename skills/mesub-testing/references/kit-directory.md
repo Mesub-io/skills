@@ -10,6 +10,7 @@ Every skill of the mesub-skills kit. Each one installs alone and works alone: fo
 - Installed if `mesub-quickstart` is among your available skills, or if `npx -y skills list` names it.
 - To install it alone: `npx -y skills add Mesub-io/skills --skill mesub-quickstart`.
 - If it cannot be installed, read https://docs.mesub.io/docs/quickstart instead.
+- Without it, its one rule still holds: never ask for the API key; `customer` from the verified session.
 
 ## `mesub-gate-access`
 
@@ -17,6 +18,7 @@ Every skill of the mesub-skills kit. Each one installs alone and works alone: fo
 - Installed if `mesub-gate-access` is among your available skills, or if `npx -y skills list` names it.
 - To install it alone: `npx -y skills add Mesub-io/skills --skill mesub-gate-access`.
 - If it cannot be installed, read https://docs.mesub.io/docs/access instead.
+- Without it, its one rule still holds: gate on the server; an error is never "not subscribed".
 
 ## `mesub-subscribe-and-manage`
 
@@ -24,6 +26,7 @@ Every skill of the mesub-skills kit. Each one installs alone and works alone: fo
 - Installed if `mesub-subscribe-and-manage` is among your available skills, or if `npx -y skills list` names it.
 - To install it alone: `npx -y skills add Mesub-io/skills --skill mesub-subscribe-and-manage`.
 - If it cannot be installed, read https://docs.mesub.io/docs/subscribe instead.
+- Without it, its one rule still holds: the widget subscribes; never hand-make that flow.
 
 ## `mesub-webhooks`
 
@@ -31,6 +34,7 @@ Every skill of the mesub-skills kit. Each one installs alone and works alone: fo
 - Installed if `mesub-webhooks` is among your available skills, or if `npx -y skills list` names it.
 - To install it alone: `npx -y skills add Mesub-io/skills --skill mesub-webhooks`.
 - If it cannot be installed, read https://docs.mesub.io/docs/webhooks instead.
+- Without it, its one rule still holds: verify the raw body's signature; deduplicate on the event id.
 
 ## `mesub-testing`
 
@@ -38,6 +42,7 @@ Every skill of the mesub-skills kit. Each one installs alone and works alone: fo
 - Installed if `mesub-testing` is among your available skills, or if `npx -y skills list` names it.
 - To install it alone: `npx -y skills add Mesub-io/skills --skill mesub-testing`.
 - If it cannot be installed, read https://docs.mesub.io/docs/testing instead.
+- Without it, its one rule still holds: never mock `@mesub/node`: a seam and `FakeMesub`.
 
 ## `mesub-errors`
 
@@ -45,6 +50,7 @@ Every skill of the mesub-skills kit. Each one installs alone and works alone: fo
 - Installed if `mesub-errors` is among your available skills, or if `npx -y skills list` names it.
 - To install it alone: `npx -y skills add Mesub-io/skills --skill mesub-errors`.
 - If it cannot be installed, read https://docs.mesub.io/reference/errors instead.
+- Without it, its one rule still holds: branch on `apiCode`, never a message; never loop on `retryable`.
 
 ## `mesub-mcp`
 
@@ -52,3 +58,4 @@ Every skill of the mesub-skills kit. Each one installs alone and works alone: fo
 - Installed if `mesub-mcp` is among your available skills, or if `npx -y skills list` names it.
 - To install it alone: `npx -y skills add Mesub-io/skills --skill mesub-mcp`.
 - If it cannot be installed, read https://docs.mesub.io/docs/mcp instead.
+- Without it, its one rule still holds: ask before any change; never an API key.

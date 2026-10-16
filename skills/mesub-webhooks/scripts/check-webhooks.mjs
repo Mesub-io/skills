@@ -244,6 +244,59 @@ function argsOf(text, open) {
   return text.slice(open + 1, open + 200)
 }
 
+const GLOBAL_JSON = /\.use\(\s*(express|bodyParser)\s*\.\s*json\s*\(/g
+const ROUTE_CALL = /\.\s*(post|use|all)\s*\(/g
+
+/** The names a file imports from the handler's file, by a relative import. */
+function importedFrom(text, from, target) {
+  const names = []
+  const wanted = target.replace(/\.[cm]?[jt]sx?$/, '')
+  for (const match of text.matchAll(/import\s+(?:type\s+)?([\w$]+)?\s*,?\s*(?:\{([^}]*)\})?\s*from\s*(['"])(\.{1,2}\/[^'"]+)\3/g)) {
+    const resolved = join(from, '..', match[4]).replace(/\.[cm]?[jt]sx?$/, '').replace(/[\\/]index$/, '')
+    if (resolved !== wanted && `${resolved}${sep}index` !== wanted && resolved !== wanted.replace(/[\\/]index$/, '')) continue
+    if (match[1]) names.push(match[1])
+    for (const part of (match[2] ?? '').split(',')) {
+      const name = part.trim().split(/\s+as\s+/).at(-1)
+      if (name && /^[\w$]+$/.test(name) && !/^type\s/.test(part.trim())) names.push(name)
+    }
+  }
+  return names
+}
+
+/**
+ * For each file with a global JSON parser: whether the webhook route is registered
+ * before it (true), after it (false), or that cannot be read (null).
+ */
+function parserOrder(handlerPath, handlerCode, verifyIndex) {
+  const orders = []
+  for (const { path, text } of sources) {
+    if (isTest(path)) continue
+    const clean = code(text)
+    const parser = [...clean.matchAll(GLOBAL_JSON)][0]
+    if (!parser) continue
+    const at = `${shown(path)}:${lineOf(clean, parser.index)}`
+    let registered = -1
+    if (path === handlerPath) {
+      // The route call that holds the verify, in this same file.
+      const route = [...clean.slice(0, verifyIndex).matchAll(ROUTE_CALL)].at(-1)
+      if (route) registered = route.index
+    } else {
+      // The handler's file, reached by a name imported from it.
+      for (const name of importedFrom(clean, path, handlerPath)) {
+        const use = new RegExp(`(^|[^\\w$.])${name.replace(/\$/g, '\\$')}(?![\\w$])`, 'g')
+        for (const match of clean.matchAll(use)) {
+          // The import line itself is not a registration.
+          const line = clean.slice(clean.lastIndexOf('\n', match.index) + 1, clean.indexOf('\n', match.index) === -1 ? undefined : clean.indexOf('\n', match.index))
+          if (/^\s*import\b/.test(line) || /\bfrom\s*['"]/.test(line)) continue
+          if (registered === -1 || match.index < registered) registered = match.index
+        }
+      }
+    }
+    orders.push({ parser: at, before: registered === -1 ? null : registered < parser.index })
+  }
+  return orders
+}
+
 for (const { path, text } of handlers) {
   const clean = code(text)
   const file = shown(path)
@@ -268,8 +321,12 @@ for (const { path, text } of handlers) {
       if (!raw) {
         rawProblem = true
         report('FAIL', `${at} verifies ${body}, and nothing reads it raw: put express.raw({ type: 'application/json' }) on this route`)
-      } else if (/\.use\(\s*(express|bodyParser)\s*\.\s*json\s*\(/.test(allCode)) {
-        report('WARN', `${at} verifies ${body} and the app also has a global JSON parser: the webhook route must be registered before it`)
+      } else {
+        for (const order of parserOrder(path, clean, call.index)) {
+          if (order.before) report('PASS', `${at} is registered before the global JSON parser (${order.parser})`)
+          else if (order.before === false) report('WARN', `${at} is registered after the global JSON parser (${order.parser}): the parser consumes the body first, so the check gets no raw bytes. Register the webhook route before it`)
+          else report('WARN', `the app also has a global JSON parser (${order.parser}): check that the route of ${at} is registered before it (the order cannot be read here)`)
+        }
       }
     } else if (/\brawBody\b/.test(body) && !/rawBody\s*:\s*true/.test(allCode)) {
       rawProblem = true

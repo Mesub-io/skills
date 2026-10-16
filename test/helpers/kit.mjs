@@ -30,6 +30,7 @@ skills:
     version: 1.0.0
     docs: /docs/alpha
     description: Does the alpha thing.
+    rule: never do the alpha thing by hand
   - id: mesub-beta
     group: one
     status: experimental

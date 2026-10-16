@@ -4,7 +4,8 @@
 // Reads the project in the current directory and reports how its tests use
 // Mesub: whether the fake of @mesub/node/testing is there, whether the SDK is
 // mocked instead, whether the fake or a test door leaked into the code that
-// ships, and which cases no test covers. Run it from the project root.
+// ships, and which cases no test covers. A test's local helpers (relative
+// imports, two levels deep) count as part of it. Run it from the project root.
 //
 // It only reads files. No write, no install, no network, and it runs no test.
 // It never shows the value of a key or of a signing secret: only the file and
@@ -118,14 +119,50 @@ if (!existsSync(manifestPath)) {
   else report('FAIL', `@mesub/node ${version} is installed but has no "./testing" entry: this version has no fake, tell the user`)
 }
 
-// --- Who imports the fake ---
+// --- Who imports the fake, here or through a local helper ---
 const FAKE = /['"]@mesub\/node\/testing['"]/
-const withFake = tests.filter(({ text }) => FAKE.test(text))
-const leaked = shipped.filter(({ text }) => FAKE.test(text))
-if (withFake.length > 0) report('PASS', `${withFake.length} test file(s) use the fake of @mesub/node/testing`)
-else report('FAIL', 'no test file imports @mesub/node/testing: nothing tests the integration against the fake')
+const byPath = new Map(sources.map((source) => [source.path, source]))
+const LOCAL_IMPORT = /(?:\bfrom\s+|\bimport\s*\(\s*|\brequire\(\s*|^\s*import\s+)(['"])(\.{1,2}\/[^'"]+)\1/gm
+
+/** The project file a relative import names: as written, with an extension, or its index. */
+function resolveLocal(from, spec) {
+  const base = join(from, '..', spec)
+  const bare = base.replace(/\.[cm]?js$/, '')
+  const candidates = [base, ...['.ts', '.tsx', '.mts', '.cts', '.js', '.jsx', '.mjs', '.cjs'].flatMap((ext) => [bare + ext, join(base, `index${ext}`)])]
+  return candidates.find((path) => byPath.has(path)) ?? null
+}
+
+/** The local files a file imports, two levels deep, itself left out. */
+function helpersOf(source, depth = 2, seen = new Set([source.path])) {
+  const found = []
+  if (depth === 0) return found
+  for (const match of source.text.matchAll(LOCAL_IMPORT)) {
+    const path = resolveLocal(source.path, match[2])
+    if (!path || seen.has(path)) continue
+    seen.add(path)
+    const helper = byPath.get(path)
+    found.push(helper, ...helpersOf(helper, depth - 1, seen))
+  }
+  return found
+}
+
+// Each test file with the text it runs: its own and its local helpers'.
+const contextOf = new Map(tests.map((source) => [source, [source, ...helpersOf(source)]]))
+const usesFake = (source) => contextOf.get(source).some(({ text }) => FAKE.test(text))
+const withFake = tests.filter(usesFake)
+// A helper that imports the fake, outside a test folder, that only tests import: not shipped code.
+const testOnly = new Set(
+  [...contextOf.values()].flat().filter((source) => !source.test && !shipped.some((other) => helpersOf(other).includes(source))),
+)
+const leaked = shipped.filter((source) => FAKE.test(source.text))
+if (withFake.length > 0) report('PASS', `${withFake.length} test file(s) use the fake of @mesub/node/testing${withFake.some((source) => !FAKE.test(source.text)) ? ' (some through a local helper)' : ''}`)
+else report('FAIL', 'no test file imports @mesub/node/testing, directly or through a local helper: nothing tests the integration against the fake')
 for (const { path, text } of leaked) {
-  report('FAIL', `${shown(path)}:${linesOf(text, FAKE)[0]} imports @mesub/node/testing from code that ships: the fake grants whatever it is told`)
+  if (testOnly.has(byPath.get(path))) {
+    report('WARN', `${shown(path)}:${linesOf(text, FAKE)[0]} imports @mesub/node/testing and only tests import it: move it under a test folder, so no build ever ships it`)
+  } else {
+    report('FAIL', `${shown(path)}:${linesOf(text, FAKE)[0]} imports @mesub/node/testing from code that ships: the fake grants whatever it is told`)
+  }
 }
 
 // --- The SDK mocked, or its methods stubbed ---
@@ -190,11 +227,13 @@ if (exposed === 0) report('PASS', 'no key, no signing secret and no call to the 
 
 // --- How the fake is used ---
 if (withFake.length > 0) {
-  const all = withFake.map(({ text }) => text).join('\n')
+  const all = [...new Set(withFake.flatMap((source) => contextOf.get(source)))].map(({ text }) => text).join('\n')
 
-  for (const { path, text } of withFake) {
+  for (const source of withFake) {
+    const { path, text } = source
+    const context = contextOf.get(source).map((item) => item.text).join('\n')
     const cases = linesOf(text, /^\s*(?:it|test)(?:\.\w+)*\(/m).length
-    if (cases > 1 && !/\.reset\(\)/.test(text) && !/^\s+(?:const|let)\s+\w+\s*=\s*new FakeMesub\(/m.test(text)) {
+    if (cases > 1 && !/\.reset\(\)/.test(context) && !/^\s+(?:return\s+|(?:const|let)\s+\w+\s*=\s*)new FakeMesub\(/m.test(context)) {
       report('WARN', `${shown(path)} has ${cases} tests on one fake and never calls reset(): what one test grants, the next one still sees`)
     }
     const shared = linesOf(text, /^(?:export\s+)?(?:const|let|var)\s+\w+\s*=\s*\w+\.client\(/m)[0]
@@ -203,8 +242,10 @@ if (withFake.length > 0) {
     }
   }
 
-  if (/\.grant\(/.test(all) && (/\.deny\(/.test(all) || /\b402\b/.test(all))) report('PASS', 'a test grants access and a test covers the refusal')
-  else report('WARN', 'no test covers both a subscriber let through (grant) and a refusal (402): a guard that lets everybody in would pass')
+  // Let through by a grant, or by subscribing: a submit grants in the fake.
+  const letThrough = /\.(grant|grantLastPeriod)\(/.test(all) || (/subscriptions\.create\(|\/subscriptions['"`]/.test(all) && /\.submit\(|\/submit\b/.test(all))
+  if (letThrough && (/\.deny\(/.test(all) || /\b402\b/.test(all))) report('PASS', 'a test lets a subscriber through (a grant, or a create then a submit) and a test covers the refusal')
+  else report('WARN', 'no test covers both a subscriber let through (grant, or create then submit) and a refusal (402): a guard that lets everybody in would pass')
 
   if (/\b401\b/.test(all)) report('PASS', 'a test covers a signed-out request (401)')
   else report('WARN', 'no test covers a signed-out request: it must answer 401, never 200')

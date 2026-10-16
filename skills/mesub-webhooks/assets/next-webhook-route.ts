@@ -2,7 +2,7 @@
 // Copy to app/webhooks/mesub/route.ts, with handle-event.ts beside it.
 // Leave this path out of the app's login in middleware.ts: a redirect counts as a failure.
 import { MesubError, verifyWebhook } from '@mesub/node';
-import { type AccessStore, type EventStore, receiveEvent } from './handle-event';
+import { type AccessStore, type EventDeps, type EventStore, receiveEvent } from './handle-event';
 
 // ADAPT: the app's own store, see handle-event.ts. Until it is replaced this throws,
 // so no event is acknowledged without being recorded.
@@ -24,6 +24,9 @@ const access: AccessStore = {
     },
 };
 
+// ADAPT: add what the reactions in handle-event.ts use.
+const deps: EventDeps = { store, access };
+
 export async function POST(request: Request): Promise<Response> {
     let event;
     try {
@@ -38,6 +41,6 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     // A throw here answers 500, and Mesub sends the event again.
-    await receiveEvent(event, store, access);
+    await receiveEvent(event, deps);
     return new Response(null, { status: 200 });
 }
