@@ -40,7 +40,7 @@ Do them in order. Each one is detailed in `references/steps.md`: read the step b
 
 0. **Read the project, ask the user.** Find the framework and how a request learns who the user is. Check what is installed. Ask for the plan's slug, and ask the user to put `MESUB_API_KEY` in the server's environment themselves.
 1. **The API key and the one client.** `new Mesub()` reads `MESUB_API_KEY` by itself. Build it once (`assets/mesub-client.ts`) and pass it as `client` everywhere. Without the key it throws at import: under Next.js the build needs the key too. Confirm the env file is ignored by git.
-2. **Install** `@mesub/node` from npm (in `dependencies`) with the project's package manager. `@mesub/react` is not on npm yet: `references/steps.md`.
+2. **Install** `@mesub/node` (in `dependencies`) and `@mesub/react` from npm, with the project's own package manager.
 3. **Mount the routes the widget calls** at `/api/mesub`, after the app's login: `assets/express-mesub.ts` or `assets/next-mesub-route.ts`.
 4. **Gate one paid route** on the server: `assets/express-mesub.ts`, `assets/next-paid-route.ts` or `assets/nest-paid.controller.ts`.
 5. **The provider and the button**: `assets/mesub-provider.tsx`, then `assets/subscribe-button.tsx`. The provider's `endpoint` is exactly the path of step 3. Its `chain` is the test network by default: set it to the network of the plans.

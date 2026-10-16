@@ -129,7 +129,7 @@ The validator refuses, in every file of a skill:
 
 Two facts every author must write around, today:
 
-- `@mesub/node` is on npm; `@mesub/react` is not yet, and comes from its source repository until it is. A skill says how to check what is installed (`package.json`, the lockfile, `node_modules/@mesub/*/package.json` for the version) before using it, installs nothing without the user's yes unless its own setup step says so, and never assumes `npm install @mesub/react` will work.
+- `@mesub/node` and `@mesub/react` are on npm, in early 0.x. A skill says how to check what is installed (`package.json`, the lockfile, `node_modules/@mesub/*/package.json` for the version) before using it, and installs nothing without the user's yes unless its own setup step says so.
 - docs.mesub.io is not hosted yet. Link only to pages that exist in the docs repository, declare them in `sources`, and put what the agent needs in the skill itself or its `references/` rather than behind a link.
 
 Style: direct, operational, exact about the product. Explain the reason behind a rule. Prefer one small example that is safe to copy. Comments in examples: one line, on what is not obvious.
