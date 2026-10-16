@@ -20,7 +20,7 @@ What `fields` may set:
 
 | Field | Default | What it is |
 |---|---|---|
-| `subscription` | active, paid, on `pro`, a made-up wallet, `external_id` and `email` null, id `sub_fake_1` and up | Any field of the subscription the event carries (`event.data`) |
+| `subscription` | the one the fake holds under `subscription.id`, else active, paid, on `pro`, a made-up wallet, `external_id` and `email` null, id `sub_fake_event_1` and up; for `test`, Mesub's sample (`sub_test`, `user_123`) | Any field of the subscription the event carries (`event.data`), on top |
 | `detail` | a plausible one for the type | The event's own fields: at the top of the body in Mesub's deliveries since `api_version` `2026-10-02`, under `data` in an older package's fake |
 | `created_at` | now | When the event happened |
 | `id` | a new `evt_fake_...`, `evt_test` for `test` | The event's id: `event.id` after verification |
@@ -69,16 +69,16 @@ What verification throws, so the handler can be read against it: a `MesubError` 
 ```ts
 import { signWebhook } from '@mesub/node/testing';
 
-const { body } = await fake.webhook('test');
+const { body } = await fake.webhook('subscription.renewed');
 const delivery = await signWebhook(
-    { ...JSON.parse(body), test: true },
+    { ...JSON.parse(body), test: true }, // a sample of a real type, as the dashboard sends
     { secret: fake.webhookSecret },
 );
 ```
 
 Differences from what the docs describe, to know when the handler depends on them:
 
-- A test delivery sent from the dashboard carries `"test": true` at the top of its body and a subscription whose id is `sub_test`. `fake.webhook('test')` sets neither. Build it as above when the handler recognises tests that way. A handler that skips test deliveries, as it should, answers 2xx and does nothing: such a case tests only the skip, never the handling, so the handling needs a real type.
+- A test delivery sent from the dashboard carries `"test": true` at the top of its body and a subscription whose id is `sub_test`. `fake.webhook('test')` builds it so; a sample of another type, also `test: true`, is built as above. An older copy's `fake.webhook('test')` sets neither: check its body before relying on it. A handler that skips test deliveries, as it should, answers 2xx and does nothing: such a case tests only the skip, never the handling, so the handling needs a real type.
 - The contract names two more, `subscription.access_granted` and `subscription.access_revoked` (detail `changed_at`, and `blocked_reason` and `access_until` on newer bodies), and a `sequence` on every body: the subscription's events numbered 1, 2, 3. Mesub does not send the two access events yet, nor `subscription.paused` / `subscription.unpaused` (a seat parked over the tier cap, back) or `subscription.ended` with `end_reason: cancelled`; `subscription.created` carries `detail.first_payment` (`amount`, `mint`, `signature`, or null). When the installed copy does not type them, or `fake.webhook` sets no `sequence`, sign the body with `signWebhook`, `sequence` included. To test the order, send `sequence` 2 then 1 for one subscription: the access of 2 must stand, and a body without `sequence` must read the subscription rather than apply its `data`.
 - The docs list an event `subscription.renewal_upcoming`. `fake.webhook('subscription.renewal_upcoming')` makes one when the installed copy types the event: search the `.d.ts` files of `node_modules/@mesub/node/dist` for the name. With an older copy, sign one with `signWebhook`: verification still hands back a type it does not know.
 

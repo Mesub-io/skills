@@ -11,7 +11,7 @@ const subscription = fake.addSubscription({ wallet, plan: 'pro', external_id: 'u
 fake.setAttempts(subscription.id, [{}, { outcome: 'skipped', reason: 'insufficient_balance' }]);
 ```
 
-- `addSubscription(fields)` needs `wallet` and `plan`. It takes any string as the wallet, but `access`, `list` and `create` answer 400 `invalid_request` to a wallet that is not a base58 address (32 to 44 characters), as Mesub does: use a real-shaped one. The rest defaults to an active, paid subscription with id `sub_fake_1` and up, `external_id` and `email` null. `retrieve` and `list` then answer it.
+- `addSubscription(fields)` needs `wallet` and `plan`, and throws for a wallet that is not a base58 address (32 to 44 characters), as Mesub refuses one. Its plan may be one `plans` leaves out: Mesub serves the rows of a plan it no longer has. The rest is dated by `status`, `active` by default: active, paid for a period ending in 30 days and charged then (`access_until` and `next_charge_at` at that end); `unpaid`, that period just over, `late`, with access to its one retry tomorrow, or on `free` no access and a `retry_deadline`; `cancelled`, access to the end of the period; `stopped` (`out_of_retries`) and `ended` (`closed`), no access. Id `sub_fake_1` and up, `external_id` and `email` null. `retrieve` and `list` then answer it. A copy older than these dates gives an active row no period end, which a cancel then reads as over: set `current_period_end` and `access_until` by hand there.
 - **It does not change the access answer.** A subscription added this way is not let through a guard until `fake.grant(...)` says so. The two are set apart on purpose.
 - `setAttempts(id, attempts)` gives it its charges. Each defaults to `outcome` `paid`, `amount` `"9990000"`, `reason` null, `retry` false. An attempt Mesub answers also carries `amount_usd` (a decimal string, null until priced): check the installed types for whether the fake's attempts take it before setting it. `subscriptions.attempts(id)` answers them newest first with `paid: { count, amount }` over all of them. It throws for an id the fake does not hold.
 - Outcomes: `paid`, `skipped`, `rejected`, `blocked`.
@@ -88,6 +88,18 @@ const over = fake.addSubscription({
     access_until: new Date(Date.now() - 1000).toISOString(),
 });
 ```
+
+## Pay now
+
+`subscriptions.retry(id)` answers 202 with the row still `unpaid`: the fake pulls nothing. It refuses as Mesub does from what it holds: `subscription_paused` (a seat parked with `park`), `subscription_not_late`, `plan_ended`, and `retry_too_soon` with `retryAfter` (on `dev` and `business` the first at once, then 20 minutes doubling; on `free` 10 minutes apart), and on `free` `retry_deadline_passed` and `retries_spent` after three. What only the chain decides (`insufficient_balance`, `retry_cannot_succeed`) is set with `fake.fail(...)`, which answers every call: test it on the SDK call, or on a route that makes no other.
+
+```ts
+const late = fake.addSubscription({ wallet, plan: 'pro', status: 'unpaid' });
+await mesub.subscriptions.retry(late.id); // 202, still unpaid
+await mesub.subscriptions.retry(late.id); // 409 retry_too_soon
+```
+
+These refusals are newer than the rest: on a copy that answers the second call 202, say so rather than assert it.
 
 ## Asserting a refusal
 
