@@ -10,7 +10,7 @@ Before writing code:
 2. If there is no login at all, stop and say so. Mesub ties a subscription to a customer the app names: without a verified identity there is nothing safe to tie it to. Do not invent one, and do not take an id from the browser.
 3. Check what is installed: `package.json`, the lockfile, and `node_modules/@mesub/node/package.json` for the version. Neither package may be on the public registry yet, so do not assume an install will succeed (step 2).
 4. Ask the user for two things an agent cannot produce:
-   - **The plan's slug.** They create the plan in the dashboard, under Plans, and their wallet signs it. The plan's Implement tab shows the slug. If they have no plan yet, they make one first: code written against a slug that does not exist answers 404.
+   - **The plan's slug.** They create the plan in the dashboard, under Plans, and their wallet signs it. The plan's Implement tab shows the slug; `mesub.plans.list()` returns every plan's `slug` too, and so does the Mesub MCP server's `list_plans` when it is connected. Never derive a slug from the plan's name: the merchant may have given it another one. If they have no plan yet, they make one first: code written against a slug that does not exist answers 404.
    - **That the API key is in the server's environment.** They create it in the dashboard, under Developers. It starts with `SUB_` and is shown once.
 
 **Never ask the user to paste the API key into the conversation, and never write its value anywhere.** Ask them to add `MESUB_API_KEY` to the server's environment themselves, then check that the name is set without reading the value (the script below does). Why: a key pasted in a chat or committed to a file must be treated as leaked and rotated.
@@ -33,7 +33,7 @@ npm install @mesub/node
 npm install @mesub/react
 ```
 
-`@mesub/node` goes in `dependencies`, not `devDependencies`: the server needs it in production. It has no runtime dependency. `@mesub/react` brings what it needs for wallets: install nothing for Solana by hand.
+`@mesub/node` goes in `dependencies`, not `devDependencies`: the server needs it in production. It has no runtime dependency. `@mesub/react` brings what it needs for wallets: install nothing for Solana by hand. `@mesub/react` 0.1.x works with the routes of `@mesub/node` 0.1.x: keep the two at the same minor, and upgrade them together.
 
 If the install answers that the package does not exist, **stop and tell the user**: the packages are in early 0.x and may not be published yet. Until they are on the public registry (no date is set), they come from their public source repositories, `Mesub-io/node-sdk` and `Mesub-io/react-sdk`: built there and packed (`pnpm install && pnpm build && npm pack` in each clone), then installed from the tarball (`npm install /path/to/mesub-node-<version>.tgz`, which lands in `package.json` and the lockfile as a `file:` dependency), or linked as a package of the same workspace. Tell the user that, and let them choose; do not clone, build or pack them yourself without their yes, and never install a tarball or a folder of unknown origin. Do not install a package with a similar name, do not copy the SDK's source into the project, and do not rewrite the calls against the HTTP API to get around it. Why: a lookalike package on a registry is the classic way a key gets stolen.
 

@@ -11,7 +11,11 @@ This skill holds what a webhook handler needs. The docs hold the rest, and they 
 | [Test your integration](https://docs.mesub.io/docs/testing) | Everything else the fake of `@mesub/node/testing` does |
 
 - **The installed package decides what compiles.** Before using an event name, a field or an option, search the `.d.ts` files of `node_modules/@mesub/node/dist` and `node_modules/@mesub/node/README.md`. Never write a call from memory.
-- The docs can be ahead of the package. Known at `@mesub/node` 0.1.0: the package's types do not name the `test` flag the docs list, and a copy installed before `subscription.renewal_upcoming` was typed does not name that event either. Both arrive at runtime all the same: `references/events.md` says how to read them.
-- `subscription.access_granted` and `subscription.access_revoked` are in the API contract before the docs have a page for them, and Mesub does not send them yet: `references/events.md`, "Order and access", holds what the contract says. A package that types neither them nor `sequence` still hands them back: read them by hand as `assets/handle-event.ts` does.
+- The docs can be ahead of the package. Known: a copy of `@mesub/node` installed before the `test` flag or `subscription.renewal_upcoming` was typed does not name them. Both arrive at runtime all the same: `references/events.md` says how to read them.
+- `subscription.access_granted` and `subscription.access_revoked` have their pages in the docs and in the API contract, but Mesub does not send them yet: `references/events.md`, "Order and access", holds what the contract says. A package that types neither them nor `sequence` still hands them back: read them by hand as `assets/handle-event.ts` does.
 - If a docs page cannot be reached, say so and work from the installed package. Do not guess what the page said.
 - When you finish, give the user the Webhooks link, so they can check the work against it.
+
+## Where the package comes from
+
+`@mesub/node` is in early 0.x and may not be on the public npm registry yet: when `npm install` answers that a package does not exist, that is why. Until it is published, it comes from its public source repository, `Mesub-io/node-sdk`: built and packed in a clone (`pnpm install && pnpm build && npm pack`), then installed from the tarball (`npm install /path/to/mesub-node-<version>.tgz`, a `file:` dependency), or linked from the same workspace. Tell the user that and let them choose; do it only on their yes. Never install a package with a similar name, a tarball or a folder of unknown origin, and never copy the SDK's source into the project.
