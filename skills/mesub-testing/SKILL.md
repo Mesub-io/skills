@@ -65,13 +65,13 @@ Copy an asset, then adapt the lines marked `ADAPT`.
 ### Rules that keep a test honest
 
 - **Never mock `@mesub/node`, a guard, `hasAccess` or `webhooks.verify`.** Why: the test then checks the mock, and passes on a route open to everybody.
-- **Never import the fake from code that ships, nor branch on the test environment around a guard or a signature.** Why: the fake grants whatever it is told.
-- **The test hands in who is signed in. Never read it from a header the test invented.** Why: a shipped `customer` that trusts `x-test-user` lets anyone be any subscriber.
+- **Never import the fake from code that ships, nor branch on the test environment around a guard or a signature.** The fake grants whatever it is told.
+- **The test hands in who is signed in, never through a header the test invented.** Why: a shipped `customer` trusting `x-test-user` lets anyone be any subscriber.
 - **No real API key or signing secret in a test, a test env file or CI.** The fake has its own (`fake.apiKey`, `fake.webhookSecret`). Never write or show either value.
 - **Grant under the name the app uses.** A customer granted by wallet is not found by `external_id`.
 - **Always name `plans`.** Without it every slug exists, so a typo passes, and the widget routes answer 404 for every plan.
-- **One client per test.** `reset()` empties the fake, not a client's cache: an older client serves another test's answer during an outage.
-- **Test the refusals, not only the 200**, which passes with no guard at all. An outage for a user never seen is a 503 with `Retry-After`, never a 402; a user seen before keeps their last answer.
+- **One client per test, built after fake timers.** `reset()` empties the fake, not a client's cache. The client keeps the clock it saw when built: `references/cases.md`.
+- **Test the refusals, not only the 200**, which passes with no guard at all. An outage for a user never seen is a 503 with `Retry-After`, never a 402; one seen before keeps their last answer.
 - **A broken integration is an error, never a refusal.** The guard throws on a refused key or an unknown slug: assert what the app really answers, a 500 under Express (401 or 404 with an older `@mesub/node`).
 - **Send a webhook's body as the string that was signed**, never the parsed object, and always send one delivery that must be refused.
 - **A webhook adds nothing to the fake.** For "the event lands and the user is out", set the answer with `fake.deny`, then send the event.
@@ -92,7 +92,7 @@ node "<skill-dir>/scripts/check-tests.mjs"
 
 <!-- related:start -->
 <!-- Rendered from catalog.yaml by `pnpm render`. Do not edit. -->
-This skill works alone: never assume another is installed. A task outside it: name its owner, from `references/kit-directory.md`. Owner not installed and not installable: stop and say so. Going on without it is the user's call, keeping its rule:
+This skill works alone: never assume another is installed. A task outside it: name its owner, from `references/kit-directory.md`. Not installed: install it only on the user's yes, else stop and say so. Going on without it is the user's call, keeping its rule:
 
 - `mesub-quickstart`: never ask for the API key; `customer` from the verified session.
 - `mesub-gate-access`: gate on the server; an error is never "not subscribed".
@@ -106,7 +106,7 @@ This skill works alone: never assume another is installed. A task outside it: na
 
 - `references/fake-mesub.md`: everything the testing entry exports, with defaults.
 - `references/seams.md`: handing the fake's client and the signed-in user to the app.
-- `references/cases.md`: every case of a paid route and the widget routes, with its answer.
+- `references/cases.md`: every case of a paid route and the widget routes, fake timers.
 - `references/webhooks.md`: signed test deliveries and the cases to send.
 - `references/subscribing.md`: subscriptions, payments and their refusals in the fake.
 - `references/limits.md`: what no test against the fake proves.
@@ -123,7 +123,7 @@ This skill works alone: never assume another is installed. A task outside it: na
 
 ## Scripts
 
-- `scripts/check-tests.mjs`: reports whether tests use the fake, mock the SDK, leak the fake or a test door into shipped code, hold a key, and which cases are missing. Read-only, no network, shows no key. Usage above.
+- `scripts/check-tests.mjs`: reports whether tests use the fake, mock the SDK, leak the fake or a test door into shipped code, hold a key, and which cases are missing. Read-only, shows no key.
 
 ## Checks
 

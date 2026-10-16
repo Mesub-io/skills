@@ -21,9 +21,22 @@ What the guards and the widget routes of `@mesub/node` answer in each situation,
 | Mesub rate-limits, customer never seen | `fake.fail({ status: 429, code: 'rate_limited' })` | 503, the same |
 | Mesub down, customer let through before | grant, one request, then `fake.fail('outage')` | 200, from the last answer |
 | Mesub down, customer refused before | deny, one request, then `fake.fail('outage')` | 402, from the last answer |
-| Mesub down, customer last seen in a plan's last period | `grantLastPeriod`, one request, then `fake.fail('outage')` | 200 until that answer's `access_until`, 402 after: an answer with no charge or retry ahead is not served past it. Needs the test framework's timers to cross the date |
+| Mesub down, customer last seen in a plan's last period | `grantLastPeriod`, one request, then `fake.fail('outage')` | 200 until that answer's `access_until`, 402 after: an answer with no charge or retry ahead is not served past it. Needs the test framework's timers to cross the date, turned on before the client is built (below) |
 | Mesub refuses the API key | `fake.fail({ status: 401, code: 'invalid_api_key' })` | An error, never a refusal (below) |
 | The slug is not a plan | `new FakeMesub({ plans: ['pro'] })` and a guard on another slug | An error, never a refusal (below) |
+
+**Fake timers start before the client is built.** The client reads `Date.now` once, when it is built, and keeps that function for the 24 hours of `maxStaleMs` and a last period's `access_until`. A client built in `beforeEach` before `vi.useFakeTimers()` (or `jest.useFakeTimers()`) keeps the real clock: moving the timers then changes nothing, and the test of an answer that should expire passes or fails for the wrong reason. Turn the fake timers on first, then call `fake.client()` and build the app; restore the real timers after the test.
+
+```ts
+beforeEach(() => {
+    vi.useFakeTimers();
+    fake.reset();
+    app = createApp({ mesub: fake.client(), customer: () => signedIn }); // built after the fake clock
+});
+afterEach(() => vi.useRealTimers());
+```
+
+The fake itself has no clock: it compares an end date with `Date.now()` at each call, so it follows the fake timers whenever they are on.
 
 **An outage in plain words**, for a user who asks what their customers see. A guard gives Mesub 2 seconds (`guardTimeout`), retries included. A customer the client answered before keeps that answer for up to 24 hours (`maxStaleMs`), or until a last period's `access_until`. A customer it never answered gets a 503 with `Retry-After`, never a 402. Those answers live in the client's memory: after a restart, or on a second instance without a shared `cache` store, everyone gets that 503 until Mesub answers again.
 
