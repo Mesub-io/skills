@@ -3,7 +3,8 @@
 // React: a list of the customer's subscriptions drawn by the app itself.
 // useSubscriptions gives the data and opens the Mesub window for the action; the
 // wallet part stays the widget's. Place it under MesubProvider.
-import { useSubscriptions, type MesubHeldSubscription } from '@mesub/react';
+import { useEffect, useState } from 'react';
+import { useSubscriptions, type MesubHeldSubscription, type PayNowResult } from '@mesub/react';
 
 // ADAPT: the app's own wording. Keep the default: a newer status may appear.
 function statusLabel(held: MesubHeldSubscription): string {
@@ -25,8 +26,43 @@ function statusLabel(held: MesubHeldSubscription): string {
 
 const ACTION_LABELS = { cancel: 'Cancel', resume: 'Resume', close: 'Close and get the deposit back' };
 
+// Pay a late payment now: nothing to sign. payNow never throws, a refusal is its `message`.
+function PayNowButton({ pay }: { pay: () => Promise<PayNowResult> }) {
+    const [busy, setBusy] = useState(false);
+    const [said, setSaid] = useState<PayNowResult | null>(null);
+    // Mesub was busy: the seconds before pressing again can work.
+    const [wait, setWait] = useState(0);
+
+    useEffect(() => {
+        if (wait <= 0) return;
+        const timer = setTimeout(() => setWait(wait - 1), 1000);
+        return () => clearTimeout(timer);
+    }, [wait]);
+
+    async function click() {
+        setBusy(true);
+        try {
+            const result = await pay();
+            setSaid(result);
+            setWait(result.retryAfter ?? 0);
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    return (
+        <>
+            <button type="button" disabled={busy || wait > 0} onClick={() => void click()}>
+                {wait > 0 ? `Pay again in ${wait} s` : 'Pay now'}
+            </button>
+            {/* ok means sent, not paid: the list reads again, the outcome comes with the charge. */}
+            {said ? <span role={said.ok ? 'status' : 'alert'}>{said.message}</span> : null}
+        </>
+    );
+}
+
 export function MySubscriptions() {
-    const { state, subscriptions, error, reload, manage } = useSubscriptions();
+    const { state, subscriptions, error, reload, payNow, manage } = useSubscriptions();
 
     if (state === 'loading') return <p>Loading your subscriptions</p>;
     // The app's routes answered 401: nobody is signed in on the site.
@@ -56,6 +92,8 @@ export function MySubscriptions() {
                             {ACTION_LABELS[held.action]}
                         </button>
                     ) : null}
+                    {/* A late payment paying now can settle; Mesub refuses the rest anyway. */}
+                    {held.payable ? <PayNowButton pay={() => payNow(held.id)} /> : null}
                 </li>
             ))}
         </ul>

@@ -121,7 +121,7 @@ Amounts are strings, in the token's smallest unit: never read them as floats. Da
 | `next_retry_at` | When Mesub retries. Null when it will not (the plan ends before the retry, among others), or when retries are by hand |
 | `retry_deadline` | When retries by hand close, on the Free tier only. The plan's end when that comes first |
 | `retries_left` | Charges still to come before the subscription stops, the next one included. 0 with `next_retry_at` null when the plan ends before any |
-| `retry_mode` | `scheduled` (Mesub retries), `manual` (you retry by hand) or null once none is left |
+| `retry_mode` | `scheduled` (Mesub retries), `manual` (a retry by hand: the user's from the dashboard, or the customer's Pay now) or null once none is left |
 
 `subscription.stopped`: `reason`, the last charge's reason when its retries ran out (for example `insufficient_balance`), or `retry_deadline_passed` on Free. An older Mesub hyphenated the first and said `grace-ended` for the second. To decide what the customer can do, branch on `data.stop_reason` instead:
 

@@ -10,7 +10,9 @@ Each action is two calls from the server with the wallet in between. `assets/ser
 | Take a cancellation back before its end | `resume(id)` | `confirmResume(id, { signature })` | `active` |
 | Close one that is over, and return its deposit | `close(id)` | `confirmClose(id, { signature })` | `ended`, `end_reason: "closed"`. Only while `closable` is true |
 
-All six are methods of `mesub.subscriptions`.
+All six are methods of `mesub.subscriptions`, and so is the one action that needs no wallet:
+
+- **Pay a late payment now**: `retry(id)`. It charges the missed period at once, with nothing to sign, since the wallet approved the plan when it subscribed. It answers the subscription, still `unpaid`: the outcome comes with the charge, as `subscription.renewed` or `subscription.payment_failed`. On Free it is one of the missed period's three retries by hand, whoever fires it. Mesub refuses it first when it cannot succeed (`subscription_not_late`, `insufficient_balance`, `retry_too_soon` with `retryAfter`, `retries_spent`, `retry_cannot_succeed`, `pull_running`, `subscription_paused`), so a refusal spends no retry. Sent once and never retried: a second call is a second retry. Offer it only to the customer it belongs to, on an `unpaid` subscription.
 
 ## The three steps
 
