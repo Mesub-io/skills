@@ -22,6 +22,7 @@ The window goes through `plan`, `wallet`, `review`, `approve`, `confirming` and 
 | 429 | Says how long to wait | The API key's rate limit |
 | Nothing landed (`reason` on submit) | "Payment did not go through", Mesub's reason, Try again | |
 | No answer on what became of the payment (90 s passed, or a 5xx) | "Still confirming", and Check again | Check again sends the same request: it never pays twice. See the host limit in the routes reference |
+| Mesub is busy at submit (503 `unavailable` with `Retry-After`) | Waits (2 seconds, 10 at most) and sends the same request once more. Still busy: says how long to wait, and Check again | Nothing was signed or sent. A 503 without `Retry-After` is "Still confirming" |
 | Double click | One window, one subscription prepared, the wallet asked once | |
 
 ### A plan with an end date
@@ -56,6 +57,19 @@ The window goes through `confirm`, `wallet`, `approve`, `confirming` and `done`.
 A subscription in the last period of a plan with an end date has no next charge. The lists and the manage window show "Access until" with the date where they show "Next charge" on any other active one, and the action stays Cancel.
 
 Only the wallet that pays a subscription can sign for it. A subscriber who lost that wallet cannot cancel from the app, and neither can the app: the API key alone changes nothing.
+
+## Pay now
+
+`ManageSubscriptions` offers **Pay now** on a late row whose `payable` is true: nothing to sign, no window. Its outcome is one line under the button. An app's own list gets the same words from `payNow(id)`.
+
+| What happens | What the button and its line say |
+|---|---|
+| Sent | "Payment sent. It shows here once the network confirms it." The list reads again |
+| The wallet holds too little | Mesub's message, then "Add funds, then pay again: no retry was spent." |
+| Too soon after the last one | "You can pay again in N minutes." |
+| No retries left, or too late for this period (Free) | "No retries are left for this period.", or "It is too late to pay this period: the subscription stops at its end." |
+| Mesub is busy (503 `unavailable` with `Retry-After`) | "Mesub can't take the payment right now. Nothing was charged." The button reads "Pay again in N s" and counts down, then can be pressed again |
+| Any other refusal | Mesub's message, as written |
 
 ## Timings
 

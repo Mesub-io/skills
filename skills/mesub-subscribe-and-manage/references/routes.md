@@ -31,7 +31,7 @@ Paths are under the mount point.
 
 `reason_code` and `transaction_expires_at` are Mesub's, handed on as Mesub answered them: present when the Mesub behind the routes serves them, whatever the installed package's types say. Code reading these answers branches on `reason_code`, never on the words of `reason`.
 
-The fresh-transaction route and the Pay now route came after the others. A widget that asks for it against an older `@mesub/node` gets a 404 `not_found`: check both installed versions when a user reports it, and say which package is behind.
+The fresh-transaction route and the Pay now route came after the others. A widget that asks for it against an older `@mesub/node` gets a 404 `not_found`: check both installed versions when a user reports it, and say which package is behind. The rule: `@mesub/react` 0.1.x works with the routes of `@mesub/node` 0.1.x, so upgrade both to the same minor together.
 
 What the routes guarantee, so the app does not add it on top:
 
