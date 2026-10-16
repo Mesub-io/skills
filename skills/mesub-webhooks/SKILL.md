@@ -79,7 +79,7 @@ For a task outside this skill, find its owner in `references/kit-directory.md` (
 ## References
 
 - `references/events.md`: the event body, every type and detail, order and access, test deliveries.
-- `references/delivery.md`: retries, deduplication, order, catching up with `GET /v1/events`.
+- `references/delivery.md`: retries, secret rotation, deduplication, order, catching up with `GET /v1/events`.
 - `references/frameworks.md`: the raw body per framework, the two ways to call the check, what it throws.
 - `references/local-testing.md`: signed deliveries in tests, a tunnel, a test from the dashboard.
 - `references/docs.md`: the docs pages behind this skill.

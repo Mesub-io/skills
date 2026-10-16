@@ -56,7 +56,7 @@ Name the env file the server really reads in place of `.env`.
 - You did not read or print the env file: it holds the API key.
 - The user was told where it was written, that it sits in this conversation too, and to regenerate it if the conversation is shared.
 
-Pass: all five. If the value went anywhere else, tell the user it must be regenerated, even if the file was fixed since. Regenerating breaks deliveries until the server holds the new one: it is their decision.
+Pass: all five. If the value went anywhere else, tell the user it must be regenerated, even if the file was fixed since. Regenerating with no overlap breaks deliveries until the server holds the new one; with `overlap_hours` the old one keeps signing until then, but a leaked secret gets none: it is their decision.
 
 ## 6. A change is confirmed by a read
 

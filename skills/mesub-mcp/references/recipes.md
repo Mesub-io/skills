@@ -75,7 +75,7 @@ If `truncated` is true, the list holds the soonest ones only: narrow the window 
 
 The handler itself (the route, the check on the raw body, deduplication) is code, and the `mesub-webhooks` skill owns it: hand over to it once the endpoint and its secret are in place. `references/kit-directory.md` says how to check it is installed, how to install it alone, and which docs page to read otherwise. An endpoint registered before its handler is deployed fails every delivery, and Mesub turns an endpoint off after three days of failures: say so when the handler does not exist yet. A test is refused on a disabled endpoint and while another test to it is pending.
 
-To change or remove an endpoint later: state the old and the new value, or the URL being deleted, and wait for a yes. Prefer `enabled: false` to a deletion. Regenerate a secret only when the new one can be deployed right away.
+To change or remove an endpoint later: state the old and the new value, or the URL being deleted, and wait for a yes. Prefer `enabled: false` to a deletion. Regenerate a secret only when the new one can be deployed before the old one stops: within the `overlap_hours` the merchant chose, or right away with none. During the overlap each delivery carries both signatures, and `@mesub/node`'s `verify` accepts either.
 
 ## "This customer paid late, retry the charge"
 
