@@ -15,7 +15,7 @@ test('every skill names its neighbours and carries the directory with the three 
   const beta = readFileSync(join(root, 'skills/mesub-beta/SKILL.md'), 'utf8')
   assert.match(beta, /name its owner, from `references\/kit-directory\.md`/)
   // When the owner is missing: stop and say so, or keep its one rule.
-  assert.match(beta, /not installable: stop and say so/)
+  assert.match(beta, /install it only on the user's yes, else stop and say so/)
   assert.match(beta, /^- `mesub-alpha`: never do the alpha thing by hand\.$/m)
   // A planned skill is never named in a SKILL.md: only the directory lists it, as not available.
   assert.doesNotMatch(beta, /mesub-gamma/)

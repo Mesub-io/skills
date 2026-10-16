@@ -27,7 +27,7 @@ export function handOff(catalog, skill) {
     `- Territory: ${skill.description}`,
     `- Installed if \`${skill.id}\` is among your available skills, or if \`npx -y skills list\` names it.`,
     ...distributionsOf(catalog).map((renderer) => `- ${renderer.installOne(catalog, skill)}`),
-    `- If it cannot be installed, read ${docsLink(catalog, skill)} instead.`,
+    `- If the user declines or it cannot be installed, read ${docsLink(catalog, skill)} instead.`,
     ...(skill.rule ? [`- Without it, its one rule still holds: ${skill.rule}.`] : []),
   ].join('\n')
 }
@@ -45,7 +45,7 @@ export function relatedBlock(catalog, skill) {
     return lines.join('\n')
   }
   lines.push(
-    `This skill works alone: never assume another is installed. A task outside it: name its owner, from \`${DIRECTORY_FILE}\`. Owner not installed and not installable: stop and say so. Going on without it is the user's call, keeping its rule:`,
+    `This skill works alone: never assume another is installed. A task outside it: name its owner, from \`${DIRECTORY_FILE}\`. Not installed: install it only on the user's yes, else stop and say so. Going on without it is the user's call, keeping its rule:`,
     '',
     ...others.map((other) => `- \`${other.id}\`${other.rule ? `: ${other.rule}` : ''}.`),
   )
@@ -59,7 +59,7 @@ export function directoryFile(catalog) {
     '',
     '# Kit directory',
     '',
-    `Every skill of the ${catalog.name} kit. Each one installs alone and works alone: for a task outside the skill you are reading, find its owner here, check it is installed, install it if not, or read its docs.`,
+    `Every skill of the ${catalog.name} kit. Each one installs alone and works alone: for a task outside the skill you are reading, find its owner here and check it is installed. If it is not, install it only once the user agrees; otherwise, or when it cannot be installed, stop and say so, and read its docs. Going on without it is the user's call, and its one rule below still holds.`,
     '',
     ...catalog.skills.flatMap((skill) => [handOff(catalog, skill).replace(/^###/, '##'), '']),
   ].join('\n')
