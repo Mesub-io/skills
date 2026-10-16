@@ -12,5 +12,6 @@ This skill holds what a webhook handler needs. The docs hold the rest, and they 
 
 - **The installed package decides what compiles.** Before using an event name, a field or an option, search the `.d.ts` files of `node_modules/@mesub/node/dist` and `node_modules/@mesub/node/README.md`. Never write a call from memory.
 - The docs can be ahead of the package. Known at `@mesub/node` 0.1.0: the package's types do not name the `test` flag the docs list, and a copy installed before `subscription.renewal_upcoming` was typed does not name that event either. Both arrive at runtime all the same: `references/events.md` says how to read them.
+- `subscription.access_granted` and `subscription.access_revoked` are in the API contract before the docs have a page for them, and Mesub does not send them yet: `references/events.md`, "Order and access", holds what the contract says. A package that types neither them nor `sequence` still hands them back: read them by hand as `assets/handle-event.ts` does.
 - If a docs page cannot be reached, say so and work from the installed package. Do not guess what the page said.
 - When you finish, give the user the Webhooks link, so they can check the work against it.

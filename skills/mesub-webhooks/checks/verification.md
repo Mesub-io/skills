@@ -62,7 +62,7 @@ Pass: all three, each shown in the code or by a test. If the store is a stub or 
 - No call to another service, mail or long query sits between the request and the answer. Slow work is handed off first.
 - A type the code does not handle is answered 2xx, by a `default` branch.
 - A test delivery (`"test": true`, `sub_test`) has no side effect.
-- No branch grants or revokes access from the event alone.
+- Only `subscription.access_granted` and `subscription.access_revoked` grant or revoke access, applied by `sequence` with one conditional write per subscription; an event without `sequence` reads the state now. No other branch grants or revokes access, and until Mesub sends the access events, the paid routes ask `hasAccess`.
 - The event's own fields are read from `detail` at the top of the body (with `data.detail` only as the fallback for an older body), and a stop is read from `data.stop_reason`.
 
 Pass: all five, read in the code.
@@ -71,7 +71,7 @@ Pass: all five, read in the code.
 
 An agent cannot register an endpoint, read its secret or receive a delivery from Mesub. Tell the user exactly this:
 
-1. In the dashboard, under Developers then Webhooks, add the endpoint's public HTTPS URL and select its events. `subscription.renewal_upcoming` is only sent if selected.
+1. In the dashboard, under Developers then Webhooks, add the endpoint's public HTTPS URL and select its events. `subscription.renewal_upcoming`, `subscription.access_granted` and `subscription.access_revoked` are only sent if selected (the last two not before Mesub turns them on).
 2. Put that endpoint's signing secret in the server's environment as `MESUB_WEBHOOK_SECRET`, without pasting it anywhere else, and restart the server.
 3. On the endpoint, click **Send test**, once with no event picked and once for each event the handler has a branch for.
 4. Confirm each one reached the handler and was answered with a 2xx.

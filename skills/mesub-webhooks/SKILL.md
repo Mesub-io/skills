@@ -1,6 +1,6 @@
 ---
 name: mesub-webhooks
-description: Use this skill when a server must receive Mesub's events and react to a renewal, a missed payment or a cancellation, even if the user just says "tell me when someone stops paying" or "my webhook says bad signature". Covers MESUB_WEBHOOK_SECRET (whsec_), verifyWebhook and mesub.webhooks.verify on the raw body, invalid_webhook, the event body (id, detail), event types (subscription.renewal_upcoming), deduplication, retries, order, GET /v1/events, with @mesub/node.
+description: Use this skill when a server must receive Mesub's events and react to a renewal, a missed payment or a cancellation, even if the user just says "tell me when someone stops paying" or "my webhook says bad signature". Covers MESUB_WEBHOOK_SECRET (whsec_), verifyWebhook and mesub.webhooks.verify on the raw body, invalid_webhook, the event body (id, detail), event types (subscription.renewal_upcoming, subscription.access_granted, subscription.access_revoked), sequence, deduplication, retries, order, GET /v1/events, with @mesub/node.
 compatibility: Node 22 or later, with @mesub/node installed (check node_modules/@mesub/node/package.json). Express 4 or 5, Next.js App Router or NestJS on Express. A public HTTPS URL for the endpoint.
 license: Apache-2.0
 ---
@@ -9,7 +9,7 @@ license: Apache-2.0
 
 ## Overview
 
-This skill makes an agent write a webhook handler that cannot be forged, does not act twice on one event and survives retries and reordering: the endpoint, its secret, the check on the raw body, every event, its delivery and catch-up.
+This skill makes an agent write a webhook handler that cannot be forged, does not act twice on one event and survives retries and reordering: the endpoint, its secret, the check on the raw body, every event and catch-up.
 
 ## When to use this skill
 
@@ -27,7 +27,7 @@ This skill makes an agent write a webhook handler that cannot be forged, does no
 
 ### What to hold first
 
-1. **An event says something changed, not what is true now.** Access is decided by asking `hasAccess`. A handler is for side effects: a mail, a row for support.
+1. **Only two events say whether a customer has access**: `subscription.access_granted` and `subscription.access_revoked`, applied by `sequence`. Mesub does not send them yet: until then, ask `hasAccess`. The others are for side effects: a mail, a row for support.
 2. **The route is public**, so the signature is the only thing that tells Mesub from anyone else.
 3. **The signing secret is per endpoint**, starts with `whsec_` and is not the API key.
 
@@ -48,7 +48,7 @@ This skill makes an agent write a webhook handler that cannot be forged, does no
 - **Never ask for the signing secret in the conversation, never write its value, never log it** nor the `webhook-signature` header. No browser prefix. A secret seen in a chat or a commit is leaked: the user replaces it in the dashboard.
 - **Deduplicate on the event's `id`** with one atomic write, released when the handling fails. Why: an event can arrive twice; an id kept after a failure drops the retry. `webhook-id` names a delivery, one per endpoint; the body's `id` is the event's.
 - **Answer a 2xx within 10 seconds, before slow work.** Anything else, a redirect included, is a failure. Mesub retries for about three days, then disables the endpoint.
-- **Do not trust the order.** A retry can land after a newer event. Before granting or revoking, ask `hasAccess`. Do not keep "is subscribed" from events: a cancellation reaching its end sends no event at all.
+- **Do not trust the order; trust `sequence`.** A retry can land after a newer event. Apply one subscription's events by `sequence`, skipping one at or below the last applied; without it, read the state now. `references/events.md`.
 - **`detail` sits at the top of the body, not in `data`.** An older `@mesub/node` throws `unexpected` on it: the package needs updating. `references/events.md`.
 - **Catch up with `GET /v1/events`** after an outage or a disabled endpoint: the same bodies, 30 days. `references/delivery.md`.
 - **Keep a `default` branch that acknowledges.** Mesub may add a type, and a 500 on an unknown type ends with a disabled endpoint.
@@ -78,24 +78,24 @@ For a task outside this skill, find its owner in `references/kit-directory.md` (
 
 ## References
 
-- `references/events.md`: the event body, event id and `webhook-id`, every type, each detail, `stop_reason`, test deliveries.
-- `references/delivery.md`: what counts as received, retries, deduplication, order, catching up with `GET /v1/events`.
-- `references/frameworks.md`: the raw body on Express, Next.js and NestJS, the two ways to call the check, what it throws.
-- `references/local-testing.md`: signed deliveries in tests, the local script, a tunnel and a test from the dashboard.
+- `references/events.md`: the event body, every type and detail, order and access, test deliveries.
+- `references/delivery.md`: retries, deduplication, order, catching up with `GET /v1/events`.
+- `references/frameworks.md`: the raw body per framework, the two ways to call the check, what it throws.
+- `references/local-testing.md`: signed deliveries in tests, a tunnel, a test from the dashboard.
 - `references/docs.md`: the docs pages behind this skill.
-- `references/kit-directory.md`: every skill of the kit, how to install each one alone, and its docs fallback.
+- `references/kit-directory.md`: every skill of the kit, how to install it alone, its docs fallback.
 
 ## Assets
 
-- `assets/handle-event.ts`: deduplication, test deliveries, one branch per type. The routes import it.
+- `assets/handle-event.ts`: deduplication, test deliveries, access by `sequence`, one branch per type.
 - `assets/express-webhook.ts`: the Express route, with `express.raw`.
 - `assets/next-webhook-route.ts`: the App Router route.
 - `assets/nest-webhook.controller.ts`: the NestJS controller, on the raw body.
 
 ## Scripts
 
-- `scripts/check-webhooks.mjs`: reads the project and reports on the package, the secret, the raw body, the 400 and the deduplication. Read-only, no network, never shows a secret.
-- `scripts/send-test-delivery.mjs`: posts five made-up deliveries to a handler on localhost and reports its answers. Reads the signing secret from the environment, never shows it.
+- `scripts/check-webhooks.mjs`: reports on the package, the secret, the raw body, the 400 and the deduplication. Read-only, never shows a secret.
+- `scripts/send-test-delivery.mjs`: posts five made-up deliveries to a handler on localhost. Never shows the secret.
 
 ## Checks
 

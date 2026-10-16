@@ -2,7 +2,7 @@
 // Copy to app/webhooks/mesub/route.ts, with handle-event.ts beside it.
 // Leave this path out of the app's login in middleware.ts: a redirect counts as a failure.
 import { MesubError, verifyWebhook } from '@mesub/node';
-import { type EventStore, receiveEvent } from './handle-event';
+import { type AccessStore, type EventStore, receiveEvent } from './handle-event';
 
 // ADAPT: the app's own store, see handle-event.ts. Until it is replaced this throws,
 // so no event is acknowledged without being recorded.
@@ -11,6 +11,17 @@ const store: EventStore = {
         throw new Error('Record the event id in the app\'s database here.');
     },
     release: async () => {},
+};
+
+// ADAPT: the app's access table, see handle-event.ts. Mesub does not send the access events yet;
+// until this is replaced, one that arrives throws and is retried rather than dropped.
+const access: AccessStore = {
+    apply: async () => {
+        throw new Error('Record the access in the app\'s database here.');
+    },
+    refresh: async () => {
+        throw new Error('Read the subscription now and record its access here.');
+    },
 };
 
 export async function POST(request: Request): Promise<Response> {
@@ -27,6 +38,6 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     // A throw here answers 500, and Mesub sends the event again.
-    await receiveEvent(event, store);
+    await receiveEvent(event, store, access);
     return new Response(null, { status: 200 });
 }

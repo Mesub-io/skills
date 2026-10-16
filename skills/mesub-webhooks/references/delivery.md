@@ -62,10 +62,10 @@ Make the effects themselves safe to repeat where you can (set a value rather tha
 
 Order is not guaranteed. A retry of an old event can land after a newer one: `subscription.payment_failed` after the `subscription.renewed` that fixed it.
 
-- **Before granting or revoking anything, ask `hasAccess`**, rather than trusting the last event seen. An event says something changed. Mesub says what is true now.
+- **Apply one subscription's events in the order of `sequence`**: keep, per subscription, the highest `sequence` applied, and skip an event at or below it. One conditional write does it (`UPDATE ... SET last_sequence = $1 ... WHERE subscription_id = $2 AND last_sequence < $1`). `created_at` does not order events: it is when Mesub wrote them.
+- **An event without `sequence`** (a body written before Mesub numbered events, or one it could not number) cannot be placed: read the state now with `mesub.subscriptions.retrieve` or `hasAccess` rather than applying its `data`.
+- **Access comes from `subscription.access_granted` and `subscription.access_revoked` alone**, applied by `sequence`; every other event says why, not whether. Mesub does not send these two yet (`events.md`, "Order and access"): until an endpoint receives them, ask `hasAccess` before granting or revoking anything, and do not keep "is subscribed" from the other events, since a cancellation reaching its end sends none of them yet.
 - `event.data` is the subscription as it stood right after the change that raised the event, however late the delivery: on a retry hours later it is hours old. (A body written before `available_since` carries it as it was at the delivery's first attempt instead.)
-- Do not keep "is subscribed" in the app's database from events. Besides the order, a cancellation reaching its end sends no event at all.
-- Compare `event.created_at` if the app keeps a history, and never let an older event overwrite a newer state.
 
 `mesub.webhooks.verify` helps here: once the event is verified, the client drops every answer it had cached for that subscription's customer, so the next `hasAccess` in that process asks Mesub again. The bare `verifyWebhook` function has no client and drops nothing. Where the same process gates routes, prefer the client's method.
 
@@ -85,7 +85,7 @@ const page = await fetch('https://api.mesub.io/v1/events?limit=100', {
 
 - **Newest first**, 25 a page by default, `limit` 1 to 100. The next page: `starting_after` set to the `id` of the last event of this one, while `has_more` is true.
 - **Filters**: `type` (one event name) and `subscription` (one subscription's id).
-- **Feed each body to the same handler**, deduplicated on the same event `id`: what was already handled by a delivery is skipped.
+- **Feed each body to the same handler**, deduplicated on the same event `id`: what was already handled by a delivery is skipped. The same `sequence` rule applies: the list is newest first, so feed one subscription's events oldest first.
 - **Polling for what is new: do not stop at the first id you know.** An event's `created_at` is set a moment before it becomes visible, so one can appear below an event already read. Page on until `created_at` is a minute older than the newest you held, and skip the ids already seen.
 - **30 days, counted from each call.** Events before `available_since` are not served at all, whatever the window: their deliveries carried the older shape.
 - An event whose capture failed is missing until Mesub recovers it: Mesub is alerted and never serves it with a later state.
