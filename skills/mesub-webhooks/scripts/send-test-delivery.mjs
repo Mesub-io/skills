@@ -49,8 +49,7 @@ which a handler must ignore: it proves the check, not a branch.
                           send a later access event about the same subscription
   --network <cluster>     the body's "network": the Solana cluster the project
                           runs on, as Solana names it. Left out, mainnet-beta,
-                          production's; devnet for a project of the dev
-                          environment. @mesub/node refuses a body without it.
+                          where Mesub runs. @mesub/node refuses a body without it.
   --help                  show this text
 
 Each line is PASS, FAIL or WARN. Exit 0 when nothing FAILs, 1 otherwise.`
@@ -73,7 +72,7 @@ function option(name, fallback) {
   args.splice(at, 2)
   return value
 }
-// Production's cluster by default. A project of the dev environment (api-dev.mesub.io) is on devnet.
+// The cluster Mesub runs on.
 const network = option('--network', 'mainnet-beta')
 const type = option('--type', 'test')
 const externalId = option('--external-id', 'user_123')

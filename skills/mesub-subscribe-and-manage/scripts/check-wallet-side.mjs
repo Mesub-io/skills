@@ -176,18 +176,17 @@ if (widgetFiles.length === 0) {
     report('PASS', `<MesubProvider> is rendered (${at(providers[0].file, providers[0].index)})`)
     if (providers.length > 1) report('WARN', `${providers.length} <MesubProvider> found: one around the app is enough, and each renders its own window`)
   }
-  // chain: solana:devnet unless set. A plan lives on one network, and the wallet signs for the provider's.
-  // The wallet chains, and the network field of a plan on each: mainnet-beta is solana:mainnet to a wallet.
-  const CHAINS = { 'solana:mainnet': 'mainnet-beta', 'solana:devnet': 'devnet', 'solana:testnet': 'testnet', 'solana:localnet': 'a local validator' }
+  // chain: Mesub runs on mainnet, and the provider's default is not. A plan's network field reads
+  // mainnet-beta; to a wallet that is solana:mainnet.
   for (const { file, index, tag } of providers) {
     const literal = tag.match(/\bchain=(?:\{\s*)?(["'`])([^"'`]*)\1/)
     if (literal) {
       const chain = literal[2]
       if (chain === 'solana:mainnet-beta') report('FAIL', `${at(file, index)} sets chain to solana:mainnet-beta, which no wallet knows: a plan on mainnet-beta is signed for as solana:mainnet`)
-      else if (Object.hasOwn(CHAINS, chain)) report('PASS', `${at(file, index)} sets chain to ${chain}: the plans must be on ${CHAINS[chain]} (their network field)`)
-      else report('WARN', `${at(file, index)} sets chain to ${chain}, which is no Solana wallet chain: use solana:mainnet for plans on mainnet-beta, solana:devnet for plans on devnet`)
+      else if (chain === 'solana:mainnet') report('PASS', `${at(file, index)} sets chain to solana:mainnet, where Mesub runs`)
+      else report('WARN', `${at(file, index)} sets chain to ${chain}: Mesub runs on mainnet, so chain="solana:mainnet"`)
     } else if (/\bchain=/.test(tag)) report('PASS', `${at(file, index)} sets chain: check it is the plans' network`)
-    else if (!/\{\s*\.\.\./.test(tag)) report('WARN', `${at(file, index)} sets no chain, so the wallet signs on the test network, solana:devnet: set chain to the network of the plans (their network field, solana:mainnet for mainnet-beta) before a real subscription, and ask the user when unsure`)
+    else if (!/\{\s*\.\.\./.test(tag)) report('WARN', `${at(file, index)} sets no chain, so the wallet signs on the provider's default, which is not mainnet: Mesub runs on mainnet, set chain="solana:mainnet"`)
   }
 
   // manageUrl: a site path, a full URL or null. Anything else is ignored without a word.

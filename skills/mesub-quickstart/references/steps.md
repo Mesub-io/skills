@@ -33,7 +33,6 @@ The tier is changed in the dashboard, under Plans. Never promise a retry that Fr
 - It goes in the server's environment: the env file the framework already loads locally, and the host's settings in production. Confirm that file is ignored by git before the user fills it.
 - Never give it a prefix that a bundler ships to the browser (`NEXT_PUBLIC_`, `VITE_`, `REACT_APP_` and the like), never import it in a client component, never log it, never commit it, not even in an example file.
 - Say "API key": it is the only key Mesub has. The browser never holds one.
-- A key made in the dev environment (`https://api-dev.mesub.io`, plans on devnet) needs `new Mesub({ baseUrl: 'https://api-dev.mesub.io' })`. Without it the client talks to production, `https://api.mesub.io`, which refuses that key.
 - A missing key makes `new Mesub()` throw "Missing Mesub API key". With the one client at module level (`assets/mesub-client.ts`) that is when the module is imported: the server does not start, and under Next.js `next build` fails, so the build needs the key too. A route or guard given no `client` builds a default one at its first request instead, and answers 500. That is the intended behaviour: do not catch it. `references/frameworks.md` has the detail.
 
 ## Step 2: install
@@ -97,7 +96,7 @@ Two pieces, both in `assets/`:
 1. `assets/mesub-provider.tsx`: `MesubProvider`, once, around the app, with the stylesheet. Its `endpoint` is exactly the path of step 3, and its `chain` must be the plan's network.
 2. `assets/subscribe-button.tsx`: `SubscribeButton` with the plan's slug.
 
-- `chain` is the network the wallet signs for. Left out, it is `solana:devnet`. Production plans are on Solana mainnet: their `network` (in what `GET <endpoint>/plans/<slug>` answers) is `mainnet-beta`, and the wallet's name for it is `solana:mainnet`, never `solana:mainnet-beta`. Plans made with a key of the dev environment are on `devnet`: `solana:devnet`. Ask the user when unsure. On the wrong one the wallet signs for a network the plan is not on.
+- `chain` is the network the wallet signs for. Mesub runs on Solana mainnet: a plan's `network` (in what `GET <endpoint>/plans/<slug>` answers) is `mainnet-beta`, and the wallet's name for it is `solana:mainnet`, never `solana:mainnet-beta`. Set `chain="solana:mainnet"`: left out, the provider's default is not mainnet, and the wallet signs for a network the plan is not on.
 - `endpoint` and the mount path must be the same string. A mismatch is the most common first-run failure: the window opens on an error instead of the plan.
 - Requests go with the session cookie. If the app's login is a bearer token instead, the provider takes a `fetch` that adds the header: see `references/frameworks.md`.
 - Do not add a wallet library, a wallet adapter or a connect button for this. The widget finds installed wallets itself, asks for an account when it needs a signature, and never disconnects one.

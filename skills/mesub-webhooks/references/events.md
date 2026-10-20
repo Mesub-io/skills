@@ -27,7 +27,7 @@ Every delivery is a `POST` of this body, the same one `GET /v1/events` serves (`
 | `object` | Always `event` |
 | `type` | The event's name |
 | `created_at` | When Mesub wrote the event, not when it was sent. On the two access events, `detail.changed_at` says when access changed |
-| `network` | The Solana cluster the subscription is on: `mainnet-beta` in production, `devnet` in the dev environment. One endpoint can tell two projects' clusters apart with it |
+| `network` | The Solana cluster the subscription is on: `mainnet-beta`, where Mesub runs |
 | `api_version` | The version of the contract `data` and `detail` are written in, as `Mesub-Version` names it. Kept with the body: a retry days later carries the version it was written in |
 | `sequence` | Its place among **this subscription's** events: 1, 2, 3..., two events of one change included. Absent on a body written before Mesub numbered events, or one it could not number. See "Order and access" |
 | `data` | The subscription as it stood right after the change that raised the event, as `mesub.subscriptions.retrieve` would have answered then |

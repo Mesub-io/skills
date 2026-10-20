@@ -52,16 +52,11 @@ test('by default the signed delivery is a test event', async () => {
   })
 })
 
-test('the body names production\'s cluster unless --network names another', async () => {
+test('the body names mainnet-beta, the cluster Mesub runs on', async () => {
   await withHandler(async (url, accepted) => {
     const { status, out } = await send(url)
     assert.equal(status, 0, out)
     assert.equal(accepted[0].network, 'mainnet-beta')
-  })
-  await withHandler(async (url, accepted) => {
-    const { status, out } = await send(url, '--network', 'devnet')
-    assert.equal(status, 0, out)
-    assert.equal(accepted[0].network, 'devnet')
   })
 })
 

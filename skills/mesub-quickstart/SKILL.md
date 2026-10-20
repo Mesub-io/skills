@@ -44,7 +44,7 @@ Do them in order. Each one is detailed in `references/steps.md`: read the step b
 2. **Install** `@mesub/node` (in `dependencies`) and `@mesub/react` from npm, with the project's own package manager.
 3. **Mount the routes the widget calls** at `/api/mesub`, after the app's login: `assets/express-mesub.ts` or `assets/next-mesub-route.ts`.
 4. **Gate one paid route** on the server: `assets/express-mesub.ts`, `assets/next-paid-route.ts` or `assets/nest-paid.controller.ts`.
-5. **The provider and the button**: `assets/mesub-provider.tsx`, then `assets/subscribe-button.tsx`. Its `endpoint` is exactly the path of step 3. Its `chain` defaults to `solana:devnet`: plans on mainnet (`network` `mainnet-beta`) need `chain="solana:mainnet"`.
+5. **The provider and the button**: `assets/mesub-provider.tsx`, then `assets/subscribe-button.tsx`. Its `endpoint` is exactly the path of step 3. Mesub runs on mainnet: set `chain="solana:mainnet"` (never `solana:mainnet-beta`), or the wallet signs elsewhere.
 6. **Check**: run the script below, then go through `checks/verification.md`.
 
 Copy an asset, then adapt its `ADAPT` lines. What each framework needs beyond that: `references/frameworks.md`.

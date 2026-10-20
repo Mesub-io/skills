@@ -122,8 +122,6 @@ const page = await mesub.events.list({ limit: 100 });
 // page: { data: MesubEvent[], has_more, available_since }
 ```
 
-A key of the dev environment talks to `https://api-dev.mesub.io`: its client is built with `new Mesub({ baseUrl: 'https://api-dev.mesub.io' })`. Production is the default, `https://api.mesub.io`.
-
 - **Newest first**, 25 a page by default, `limit` 1 to 100. The next page: `starting_after` set to the `id` of the last event of this one, while `has_more` is true.
 - **Filters**: `type` (one event name) and `subscription` (one subscription's id).
 - **Feed each body to the same handler**, deduplicated on the same event `id`: what was already handled by a delivery is skipped. The same `sequence` rule applies: the list is newest first, so feed one subscription's events oldest first. An item of `mesub.events.list` is typed `MesubEvent`, with no `delivery_id`: `assets/handle-event.ts` has `fromEventsList(event)`, which sets `delivery_id` to the event's `id` for `receiveEvent`.

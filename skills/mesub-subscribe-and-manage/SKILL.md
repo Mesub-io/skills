@@ -50,7 +50,7 @@ Prefer the widget when both fit: it handles expiries and unknown outcomes. Copy 
 - **Theme through `--mesub-*` properties only**, never class names: `references/theming.md`.
 - **A value the project lacks** ("our purple" with no purple in it): a named placeholder marked `ADAPT`, said in the reply. Never stop to ask, never invent one.
 - **A file calling a hook or handing the widget a function is a client component** under the provider, never importing `@mesub/node`.
-- **`chain` defaults to `solana:devnet`.** Mainnet plans (`mainnet-beta`) need `solana:mainnet`, never `solana:mainnet-beta`: `references/widget.md`.
+- **Set `chain="solana:mainnet"`**: Mesub runs on mainnet, and the default is not. Never `solana:mainnet-beta`: `references/widget.md`.
 
 ### Rules for the server path
 
