@@ -56,7 +56,7 @@ expect(fake.requests.filter((call) => call.method === 'POST' && call.path === '/
 
 `fail` applies to every call until `fail(null)`, the transaction call included: lift it before the app asks for the new one. The last line is the one that matters: one `create`, whatever the number of transactions.
 
-`subscriptions.transaction` and its route in the fake are newer than the rest: check the method in the installed `dist/index.d.ts` first. On a package without it, say so and leave the case untested rather than write the call by hand.
+`@mesub/node` 0.1.0 has `subscriptions.transaction` and the fake serves its route.
 
 `fake.endPlan(plan)` ends every subscription the fake holds on that plan, as it ends the access answers: `plan_ended` for an `active` or `unpaid` one, `cancelled` for a cancelled one. Giving a plan an end date: `fake-mesub.md` in this folder.
 
@@ -98,8 +98,6 @@ const late = fake.addSubscription({ wallet, plan: 'pro', status: 'unpaid' });
 await mesub.subscriptions.retry(late.id); // 202, still unpaid
 await mesub.subscriptions.retry(late.id); // 409 retry_too_soon
 ```
-
-These refusals are newer than the rest: on a copy that answers the second call 202, say so rather than assert it.
 
 ## Asserting a refusal
 

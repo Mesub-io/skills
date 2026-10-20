@@ -4,7 +4,7 @@ Not a codebase: the state of the Mesub project the MCP server is connected to, f
 
 ## How a run gets it
 
-The server is not hosted yet, and no script of the kit seeds this state. Until one does, a run uses one of two things, and records which:
+No script of the kit seeds this state on the hosted server. Until one does, a run uses one of two things, and records which:
 
 - a local Mesub API and a local build of the MCP server, connected to a project brought to this state as "How it is seeded" says;
 - a stand-in MCP server that carries the same tool names and answers them with this state.
