@@ -4,11 +4,15 @@ Each action is two calls from the server with the wallet in between. `assets/ser
 
 **The API key alone changes nothing.** Only the wallet that pays a subscription can sign for it. There is no call that cancels a customer's subscription from the server, an admin page or a job: if the user asks for one, say so instead of writing something that looks like it.
 
+**No refund through Mesub.** Mesub never holds the money: each payment goes from the subscriber's wallet straight to the merchant's. There is no refund call, in the API or the dashboard. A refund is a transfer the merchant makes from their own wallet, outside Mesub. Never write a "refund" button that calls Mesub, and never promise one.
+
+**Changing plan is cancel, then subscribe.** There is no upgrade or downgrade call. The customer cancels the current subscription (its access runs to `access_until`), then subscribes to the other plan, a separate subscription with its own first payment. Nothing is prorated. Say so before they sign.
+
 | To | Build | Confirm | It becomes |
 |---|---|---|---|
 | Stop the renewals of a running subscription | `cancel(id)` | `confirmCancel(id, { signature })` | `cancelled` |
 | Take a cancellation back before its end | `resume(id)` | `confirmResume(id, { signature })` | `active` |
-| Close one that is over, and return its deposit | `close(id)` | `confirmClose(id, { signature })` | `ended`, `end_reason: "closed"`. Only while `closable` is true |
+| Close one that is over, and return its deposit (the subscription account's) | `close(id)` | `confirmClose(id, { signature })` | `ended`, `end_reason: "closed"`. Only while `closable` is true |
 
 All six are methods of `mesub.subscriptions`, and so is the one action that needs no wallet:
 
@@ -45,8 +49,7 @@ Send `signature` (base58) back to the server.
 
 ```ts
 const result = await mesub.subscriptions.confirmCancel(subscriptionId, { signature });
-// An older package's types do not name reason_code: it is in the answer all the same.
-const reasonCode = (result as { reason_code?: string }).reason_code;
+const reasonCode = result.reason_code;
 
 if (reasonCode === undefined) {
     // cancelled: result.subscription.access_until says when access ends
@@ -68,11 +71,11 @@ Mesub waits for the chain, up to 90 seconds (`{ timeout }` in milliseconds as a 
 A cancellation is not an immediate stop.
 
 - A subscription that is paid up **keeps its access until the end of the period it paid for** (`access_until`), and can be resumed until then. Do not lock the customer out when they cancel: keep asking Mesub, which answers yes until that date.
-- Once the date has passed it reads `ended`, and closing it returns the deposit the wallet paid when subscribing. Until then `closable` is false and `closable_from` holds that date.
+- Once the date has passed it reads `ended`, and closing it returns the subscription account's deposit (`costs.rent.subscription` when subscribing). The wallet's account for that token (`costs.rent.authority`) is shared by its subscriptions in that token and stays open: its deposit does not come back on Close. Until then `closable` is false and `closable_from` holds that date.
 - A subscription cancelled while `unpaid` or `stopped` has no access, and its missed period is never collected.
 - On a plan with an end date, access never runs past the plan's end, cancelled or not, and the last period is charged in full even when the plan ends inside it: the terms the customer signed say so. In that last period `next_charge_at` is `null`, and resuming a cancellation brings no charge back: it runs to `access_until`, then ends.
 
-Say this to the customer before they sign: what they keep, until when, and that closing returns the deposit.
+Say this to the customer before they sign: what they keep, until when, and that closing returns the subscription's deposit.
 
 ## When to offer Close
 
@@ -84,7 +87,7 @@ Never work it out from `status`: read `closable` and `closable_from`, served on 
 | `false` | a date | "Close from" that date: the end of the period a cancellation set |
 | `false` | `null` | No Close. A running subscription, or one stopped with `out_of_retries`, must be cancelled first |
 
-Both are as Mesub last read the chain: `close` reads it again and may still refuse (`close_too_early`, `subscription_not_on_chain`). A stopped subscription with `stop_reason` `authority_closed` can never be charged again nor come back: Close is the one thing left, and it returns the deposit.
+Both are as Mesub last read the chain: `close` reads it again and may still refuse (`close_too_early`, `subscription_not_on_chain`). A stopped subscription with `stop_reason` `authority_closed` can never be charged again nor come back: Close is the one thing left, and it returns the subscription's deposit.
 
 ## Refusals
 
@@ -126,6 +129,15 @@ for await (const attempt of mesub.subscriptions.allAttempts(id)) {
 | `signature` | The transaction that paid. `null` unless the outcome is `paid` |
 | `retry`, `retry_number`, `retries_allowed` | Whether it was a retry, which one, out of how many. The two numbers are `null` when it is not a retry of the plan's |
 | `period_start` | The start of the period it was for, or `null` |
+| `amount_received` | What the receiving wallet got, when Mesub serves it. Less than `amount` on a token whose issuer takes a transfer fee: `plan-token.md`. `@mesub/node` 0.1.0 does not type it: read it only when present |
+
+## A late payment whose approval was revoked
+
+`late_reason` `approval_revoked`: the wallet removed Mesub's approval on its token account, or another app's approval replaced it. Adding funds does not fix it, no retry can succeed (Mesub refuses one with `retry_cannot_succeed`), and no Mesub route restores the approval. Subscribing again is refused too: `create` answers `payment_pending` while it is `unpaid`, and `subscription_cancelled` once it is cancelled. The way out, all of it the customer's wallet:
+
+1. Cancel it (`cancel`, then `confirmCancel`). Its missed period is never collected.
+2. Close it once `closable` is true (`closable_from` says when).
+3. Subscribe again, a new subscription with its own first payment.
 
 When every charge is `blocked`, the subscription says so itself: `blocked_since` and `blocked_reason`, in the statuses reference.
 

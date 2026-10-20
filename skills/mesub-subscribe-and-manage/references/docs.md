@@ -9,7 +9,7 @@ This skill holds what the wallet side and the server calls need. The docs hold t
 | [Fresh transaction](https://docs.mesub.io/reference/subscriptions/transaction) | `POST /v1/subscriptions/:id/transaction`: every answer and refusal |
 | [Manage from your server](https://docs.mesub.io/docs/manage) | Cancel, resume, close, and every reason an attempt can carry |
 
-- The docs site may not be reachable yet. If a page cannot be read, say so and work from the installed package: `node_modules/@mesub/react/README.md`, `node_modules/@mesub/node/README.md` and their type declarations. Do not guess what the page said.
+- If a page cannot be read, say so and work from the installed package: `node_modules/@mesub/react/README.md`, `node_modules/@mesub/node/README.md` and their type declarations. Do not guess what the page said.
 - Before using a prop, an option or a method this skill does not show, check it in the installed types (`node_modules/@mesub/react/dist/index.d.ts`, `node_modules/@mesub/node/dist/index.d.ts`). Never write a call from memory.
 - Where the docs and the installed package differ, the package wins. Known today: the docs page of the widget does not say that `manageUrl` leads to Mesub's own page by default.
 

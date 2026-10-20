@@ -39,7 +39,7 @@ The docs page names five of them (all but `--mesub-on-accent`). The installed st
 - `<MesubProvider theme="dark">` sets `data-mesub-theme="dark"` on the widget. `theme="auto"` follows the system setting, `theme="light"` forces light.
 - Without the prop, the widget inherits `data-mesub-theme` from any ancestor, `<html>` for instance. With neither, it is light.
 - `auto` is opt-in on purpose: the widget should match the app's page, not the visitor's system.
-- A `--mesub-bg` or `--mesub-text` set on `:root` also wins in dark mode. An app with both modes scopes its values: `[data-mesub-theme="dark"] { --mesub-bg: ... }`.
+- A `--mesub-bg` or `--mesub-text` set on `:root` also wins in dark mode. An app with both modes scopes its values: `[data-mesub-theme="dark"] { --mesub-bg: ... }`, or `initial` there to keep the widget's own dark colours, as `assets/mesub-theme.css` does.
 
 ## Layout it does by itself
 
@@ -58,7 +58,7 @@ Leave the stylesheet out and style the attributes. The ones that carry state:
 | `data-mesub-subscriptions`, `data-mesub-state` | The list's root | `loading`, `ready`, `signed-out`, `error` |
 | `data-mesub-subscription` | One row, with the subscription's id | |
 | `data-mesub-status` | A row's status | The status, or `paused` |
-| `data-mesub-action` | A row's button | `cancel`, `resume`, `close` |
+| `data-mesub-action` | A row's button | `cancel`, `resume`, `close`, and `pay-now` on the Pay now button |
 
 These are the markup of the installed version, not a promise across versions: after an upgrade, check a hand-made stylesheet against the header of the package's own.
 
