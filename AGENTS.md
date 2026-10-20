@@ -119,7 +119,6 @@ Files under `references/`, `assets/` and `scripts/` have no limit: an agent read
 The validator refuses, in every file of a skill:
 
 - "secret key" in any spelling: say "API key". The other key is the "publishable key".
-- devnet or mainnet: the docs and the site do not name a network for now.
 - An em dash, here and in every file of the repository: use a comma, a colon or a full stop.
 - A package name that is not exactly `@mesub/node` or `@mesub/react` (subpaths such as `@mesub/node/testing` are fine).
 - A vendor's agent, tool or folder (see above).
@@ -127,10 +126,11 @@ The validator refuses, in every file of a skill:
 - A `https://docs.mesub.io/...` link to a page that is not one of the skill's `sources`.
 - A `TODO` left from the skeleton.
 
-Two facts every author must write around, today:
+Facts every author must write around, today:
 
-- `@mesub/node` and `@mesub/react` are on npm, in early 0.x. A skill says how to check what is installed (`package.json`, the lockfile, `node_modules/@mesub/*/package.json` for the version) before using it, and installs nothing without the user's yes unless its own setup step says so.
-- docs.mesub.io is not hosted yet. Link only to pages that exist in the docs repository, declare them in `sources`, and put what the agent needs in the skill itself or its `references/` rather than behind a link.
+- `@mesub/node` and `@mesub/react` are on npm at 0.1.0, the only release. Write for 0.1.0: no branch or cast for an older version. A skill says how to check what is installed (`package.json`, the lockfile, `node_modules/@mesub/*/package.json` for the version) before using it, and installs nothing without the user's yes unless its own setup step says so.
+- Production runs on Solana mainnet (`mainnet-beta`, the wallet chain `solana:mainnet`). The dev environment, `https://api-dev.mesub.io`, runs on devnet (`solana:devnet`). Name the network when it matters: a plan's `network` is `mainnet-beta`, the wallet chain is `solana:mainnet`.
+- docs.mesub.io is live. Link only to pages that exist in the docs repository, declare them in `sources`, and still put what the agent needs in the skill itself or its `references/` rather than behind a link.
 
 Style: direct, operational, exact about the product. Explain the reason behind a rule. Prefer one small example that is safe to copy. Comments in examples: one line, on what is not obvious.
 

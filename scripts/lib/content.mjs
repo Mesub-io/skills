@@ -32,7 +32,6 @@ export function contentFindings(text) {
     if (/secret[\s_-]?key/i.test(raw)) add('content/secret-key', line, 'say "API key", never "secret key"')
     const vendor = raw.match(VENDORS) ?? raw.match(VENDOR_TOOLS)
     if (vendor) add('content/vendor', line, `"${vendor[0]}": write for "the agent", whichever it is`)
-    if (/\b(devnet|mainnet)\b/i.test(raw)) add('content/network', line, 'a skill names neither devnet nor mainnet')
 
     for (const match of raw.matchAll(/@mesub[\w-]*\/[\w-]+/gi)) {
       if (!PACKAGES.includes(match[0])) add('content/package-name', line, `"${match[0]}": the packages are exactly ${PACKAGES.join(' and ')}`)

@@ -27,8 +27,12 @@ test('server code beside client code in the same file is judged fence by fence',
   assert.deepEqual(rules(text), [])
 })
 
+test('a network is named as the wallet names it', () => {
+  assert.deepEqual(rules('Production plans are on mainnet-beta: `chain="solana:mainnet"`. Dev runs on devnet.'), [])
+})
+
 test('every spelling of the forbidden wording is caught', () => {
-  for (const line of ['the Secret Key', 'MESUB_SECRET_KEY', 'secretKey', 'on Mainnet', 'solana:devnet', '@mesub/Node', '@mesub-io/node', 'open .cursor/rules']) {
+  for (const line of ['the Secret Key', 'MESUB_SECRET_KEY', 'secretKey', '@mesub/Node', '@mesub-io/node', 'open .cursor/rules']) {
     assert.equal(rules(line).length > 0, true, line)
   }
 })
