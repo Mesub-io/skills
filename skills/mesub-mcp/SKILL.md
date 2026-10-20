@@ -61,7 +61,7 @@ Look for `get_project` and `check_access` in your own tool list.
 - **Never repeat a change because it failed.** A refusal means nothing was charged: give the wait or cause it states and stop. On `rate_limited`, wait once. Never loop.
 - **"Connect again" means stop**: the user authorizes again from their tool. Another project needs a new connection.
 - **Queued is not done.** After `retry_charge` or `send_test_webhook`, read again and report.
-- **A prepared plan is not a plan.** Show the result (price as displayed, token, period in words) and its link. Nothing is on chain until the merchant signs: never say it is live. Ask first: which wallets to lock (and which is paid), and an end date or none.
+- **A prepared plan is not a plan.** Show the result (displayed price, token, period in words) and its link. Nothing is on chain until the merchant signs: never call it live. Ask first: which wallets to lock (and which is paid), and an end time in UTC, or none.
 
 ### A webhook
 

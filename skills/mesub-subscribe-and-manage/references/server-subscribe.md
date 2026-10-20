@@ -49,9 +49,9 @@ Nobody has access past a plan's end date, and the last period is charged in full
 ```text
 Amount: 20 USDC every 30 days
 First charge: 20 USDC now, in the transaction you sign next
-Then: 20 USDC every 30 days, until you cancel, or the plan ends on 2027-01-01
+Then: 20 USDC every 30 days, until you cancel, or the plan ends on 2027-01-01 23:59 UTC
 Last charge: 20 USDC, in full, for the last period that starts before the plan ends
-Access: stops when the plan ends on 2027-01-01, even if the last period paid for is not over
+Access: stops when the plan ends on 2027-01-01 23:59 UTC, even if the last period paid for is not over
 ```
 
 With no end date the third line stops at "until you cancel" and the last two are absent. When the plan ends before a second charge can be made, the first one is the only one:
@@ -59,11 +59,11 @@ With no end date the third line stops at "until you cancel" and the last two are
 ```text
 Amount: 20 USDC, a single charge
 Single charge: 20 USDC now, in full, in the transaction you sign next
-Access: until the plan ends on 2026-10-02, even if the period paid for is not over
-No further charge: the plan ends on 2026-10-02
+Access: until the plan ends on 2026-10-02 18:30 UTC, even if the period paid for is not over
+No further charge: the plan ends on 2026-10-02 18:30 UTC
 ```
 
-- **Show the message as it is.** The date is the plan's end, as a day in UTC. A page that words these lines its own way, or prints "per month" beside a single charge, tells the customer something other than what they sign.
+- **Show the message as it is.** The plan's end is written to the minute, in UTC: a plan can end at any minute, not only at the end of a day. A page that words these lines its own way, or prints "per month" beside a single charge, tells the customer something other than what they sign.
 - Do not work out which case it is from the plan: read it in the terms. The `Amount` line ends with `, a single charge` when it is one.
 - After a single charge the subscription has `next_charge_at` `null` and `access_until` at the plan's end.
 
