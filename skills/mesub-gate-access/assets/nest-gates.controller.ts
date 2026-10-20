@@ -1,5 +1,5 @@
 // NestJS: paid controllers, with several plans and a refusal of your own.
-import { Controller, Get, HttpException, UseGuards } from '@nestjs/common';
+import { type CanActivate, Controller, Get, HttpException, Injectable, UseGuards } from '@nestjs/common';
 import { type Denial, MesubAccess, type MesubRequest, RequirePlan } from '@mesub/node/nest';
 // ADAPT: the path of the app's one Mesub client (assets/mesub-client.ts).
 import { mesub } from './mesub-client';
@@ -7,6 +7,15 @@ import { mesub } from './mesub-client';
 // ADAPT: the shape the app's own auth guard leaves on the request.
 interface AuthedRequest extends MesubRequest {
     user?: { id: string };
+}
+
+// ADAPT: replace with the app's own auth guard, the one that verifies the session and sets req.user.
+// Until it is replaced this throws, so nobody is let in by mistake.
+@Injectable()
+class AppAuthGuard implements CanActivate {
+    canActivate(): boolean {
+        throw new Error("Use the app's own auth guard here.");
+    }
 }
 
 const customer = (req: AuthedRequest) => (req.user ? { external_id: req.user.id } : null);
@@ -22,9 +31,9 @@ function denied(denial: Denial): void {
 }
 
 @Controller('reports')
-// ADAPT: put the app's own auth guard first, then RequirePlan. Order matters:
-// RequirePlan reads what the auth guard wrote.
+// The app's own auth guard first, then RequirePlan: RequirePlan reads what the auth guard wrote.
 @UseGuards(
+    AppAuthGuard,
     // ADAPT: the plans' slugs, three at most.
     RequirePlan<AuthedRequest>(['pro', 'team'], { client: mesub, customer, onDenied: denied }),
 )

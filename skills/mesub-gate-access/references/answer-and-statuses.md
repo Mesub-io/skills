@@ -21,7 +21,7 @@
 | `late_reason` | Why an `unpaid` one is late, and on a `stopped` one the payment it stopped on, or `null` |
 | `stop_reason` | Why a `stopped` one stopped, or `null`: see below |
 | `end_reason` | Why an `ended` one ended, or `null` |
-| `closable`, `closable_from` | Whether the customer can close it on chain now and get its deposit back, and from when if not. Never derive Close from `status` |
+| `closable`, `closable_from` | Whether the customer can close it on chain now and get the subscription account's deposit back, and from when if not. Never derive Close from `status` |
 | `blocked_since`, `blocked_reason` | Since when its charges are blocked for a cause that is not the customer's, and whose cause. Both `null` otherwise: see below |
 | `paused` | `true` on a seat parked over the project's limit: nothing is charged, access runs to the end of the paid period |
 | `access_until` | When access ends unless a charge renews it, never later than the plan's end date. `null` while `access` is `false` |
@@ -74,7 +74,7 @@ A gate that reads `access` needs no code for any of this. One that reads `status
 
 ## When charges are blocked
 
-A charge can fail for a cause that is not the customer's. The answer then carries `blocked_since` (an ISO date) and `blocked_reason`: `puller_not_allowed`, `receiver_not_allowed`, `receiver_account_missing`, `receiver_account_frozen` or `mint_gone` for the plan's own setup, which only the merchant can repair, and `mesub` for any cause on Mesub's side. Both are `null` otherwise.
+A charge can fail for a cause that is not the customer's. The answer then carries `blocked_since` (an ISO date) and `blocked_reason`: `puller_not_allowed`, `receiver_not_allowed`, `receiver_account_missing`, `receiver_account_frozen` or `mint_gone` for the plan's own setup, which only the merchant can repair, and `mesub` for any cause on Mesub's side. Both are `null` otherwise. A Token-2022 token's issuer can also hold every charge: `mint_paused` (the issuer paused the token) or `mint_transfer_hook` (the issuer gave its transfers a program Mesub does not support). `@mesub/node` 0.1.0 does not type those two: a screen keeps a default branch, and the gate reads `access` as always.
 
 - **The status does not change.** It stays `active`, or `unpaid` if it was late already, and `payment_status` with it: the customer is never `late` for a block.
 - **Access ends on `access_until`.** `access` is never true past it on a blocked subscription: the end of the period after the one paid for under `mesub`, sooner under a cause of the plan's setup.
@@ -86,7 +86,7 @@ A charge can fail for a cause that is not the customer's. The answer then carrie
 | `late_reason` | What happened | What fixes it |
 |---|---|---|
 | `insufficient_balance` | The wallet holds less than the price | Adding funds |
-| `approval_revoked` | The wallet no longer lets Mesub charge it | Not adding funds |
+| `approval_revoked` | The wallet no longer lets Mesub charge it | Not adding funds, and no Mesub route restores the approval. The way out is the customer's: cancel, close once `closable`, then subscribe again |
 | `authority_closed` | The wallet closed its authorisation, for good | Nothing |
 | `null` | Mesub cannot name the cause | |
 
@@ -100,14 +100,14 @@ Read it before telling a customer to top up.
 |---|---|---|
 | `out_of_retries` | Every retry of the missed payment failed | Subscribe again |
 | `retry_deadline_passed` | On the Free tier, the last day to pay the missed payment passed | Subscribe again |
-| `authority_closed` | The wallet closed the account that lets Mesub charge it, for good | Not come back on it. Close it now (`closable` is true) to get the deposit back |
+| `authority_closed` | The wallet closed the account that lets Mesub charge it, for good | Not come back on it. Close it now (`closable` is true) to get the subscription account's deposit back |
 | `null` | Stopped before Mesub recorded why | |
 
 A gate needs none of this: `access` is false. A screen words the 402 from it.
 
 ## Why a subscription ended
 
-`end_reason` on an `ended` one: `cancelled` (the paid period ran out after a cancellation), `plan_ended`, `plan_removed`, `plan_replaced`, `closed_elsewhere` (the subscription account was closed outside Mesub) or `closed` (the customer closed it through Mesub). It may be `null` on an old one. `authority_closed` is no `end_reason` any more: it was the word for `closed_elsewhere`.
+`end_reason` on an `ended` one: `cancelled` (the paid period ran out after a cancellation), `plan_ended`, `plan_removed`, `plan_replaced`, `closed_elsewhere` (the subscription account was closed outside Mesub) or `closed` (the customer closed it through Mesub). It may be `null` on an old one. Mesub no longer serves `authority_closed` as an `end_reason`: it was the old word for `closed_elsewhere`. `@mesub/node` 0.1.0 still types it, and `explain` reads both the same: treat them alike.
 
 ## The words to show
 
