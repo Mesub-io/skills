@@ -13,5 +13,5 @@ This skill holds the tables a diagnosis needs. The docs are the reference when t
 
 `public/openapi.json` of the docs repository lists, route by route, the codes that route answers.
 
-- The docs site may not be reachable. If a page cannot be read, say so and work from the installed package: `node_modules/@mesub/node/README.md`, its type declarations, and the doc comments on `MesubError` and `MesubSubmitError`. Do not guess what the page said.
+- If a page cannot be read, say so and work from the installed package: `node_modules/@mesub/node/README.md`, its type declarations, and the doc comments on `MesubError` and `MesubSubmitError`. Do not guess what the page said.
 - A code, a reason or a status that is in neither this skill nor the installed package is newer than both: handle it by the default branch and tell the user, do not invent its meaning.
