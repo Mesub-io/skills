@@ -151,6 +151,10 @@ const SWITCHED = new RegExp(`\\bswitch\\s*\\(.*\\b(${FIELDS})\\s*\\)`)
 const CASE = /\bcase\s+(['"`])([^'"`]*)\1\s*:/g
 const MESSAGE_BRANCH = /\.message\s*(?:===|!==|==|!=)\s*['"`]|\.message\??\.(?:includes|startsWith|endsWith|match|indexOf|search)\(|\.test\(\s*\w+\.message\s*\)/
 const WAIT_UNIT = /\bretryAfter\s*\*\s*1_?000\b/
+// The header counts seconds, retryAfter milliseconds: divided by 1000 on the line, or it is wrong.
+const RETRY_HEADER = /retry-after/i
+const IN_SECONDS = /\bretryAfter\b[^,;]*?\/\s*1_?000\b/
+const ASSERTED = /\bretryAfter!(?!=)/
 
 /** @type {{ level: string, check: string, message: string }[]} */
 const findings = []
@@ -455,7 +459,8 @@ for (const file of files) {
   let switched = null
   let since = 0
 
-  text.split('\n').forEach((raw, index) => {
+  const lines = text.split('\n')
+  lines.forEach((raw, index) => {
     const line = index + 1
     if (/^\s*(\/\/|\*|\/\*)/.test(raw)) return
 
@@ -478,6 +483,14 @@ for (const file of files) {
     }
     if (WAIT_UNIT.test(raw)) {
       find('WARN', 'wait', file, line, 'retryAfter times 1000: on a MesubError it is already milliseconds')
+    }
+    // The header named on this line, or on the line before when a call or an object goes on over lines.
+    const header = RETRY_HEADER.test(raw) || (index > 0 && RETRY_HEADER.test(lines[index - 1]) && /[,(:]\s*$/.test(lines[index - 1]))
+    if (/\bretryAfter\b/.test(raw) && header && !IN_SECONDS.test(raw)) {
+      find('FAIL', 'wait', file, line, 'retryAfter goes into Retry-After as it is: it is milliseconds and the header counts seconds. Send String(Math.ceil(retryAfter / 1000)), and no header when it is null')
+    }
+    if (ASSERTED.test(raw)) {
+      find('WARN', 'wait', file, line, 'retryAfter! asserts a value, but retryAfter is null when Mesub names no wait: handle null instead (no Retry-After, or a wait of your own)')
     }
   })
 }

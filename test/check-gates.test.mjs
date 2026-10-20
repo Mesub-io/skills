@@ -87,3 +87,89 @@ test('a NestJS guard names the decorated route', () => {
   })
   assert.match(out, /gate: RequirePlan on pro \(src\/analytics\.controller\.ts:4\), guards GET \/analytics\/export/)
 })
+
+test('hasAccess kept in a variable without await and read as a boolean fails', () => {
+  const { status, out } = check({
+    'src/app.ts': [
+      `import { mesub } from './mesub.js'`,
+      `app.get('/api/exports', async (req, res) => {`,
+      `  const ok = mesub.hasAccess({ external_id: req.user.id }, 'pro')`,
+      `  if (!ok) return res.status(402).end()`,
+      `  res.json(await exports())`,
+      `})`,
+      `export async function isPro(id) {`,
+      `  const answer = mesub.access({ external_id: id }, 'pro')`,
+      `  return answer.access`,
+      `}`,
+      '',
+    ].join('\n'),
+  })
+  assert.equal(status, 1, out)
+  assert.match(out, /FAIL  src\/app\.ts:3 keeps hasAccess in ok without await and reads it as an answer \(src\/app\.ts:4\): a promise is always truthy/)
+  assert.match(out, /FAIL  src\/app\.ts:8 keeps access in answer without await and reads it as an answer \(src\/app\.ts:9\)/)
+})
+
+test('a promise kept in a variable and awaited later, or returned, passes', () => {
+  const { out } = check({
+    'src/app.ts': [
+      `import { mesub } from './mesub.js'`,
+      `export async function isPro(id) {`,
+      `  const pending = mesub.hasAccess({ external_id: id }, 'pro')`,
+      `  const ok = await pending`,
+      `  if (!ok) return false`,
+      `  return true`,
+      `}`,
+      `export const check = (id) => mesub.hasAccess({ external_id: id }, 'pro')`,
+      '',
+    ].join('\n'),
+  })
+  assert.doesNotMatch(out, /without await/)
+})
+
+test('a try over several lines whose catch answers "no" warns, nested braces and a 402 included', () => {
+  const { out } = check({
+    'src/app.ts': [
+      `import { mesub } from './mesub.js'`,
+      `export async function hasPro(id) {`,
+      `  try {`,
+      `    return await mesub.hasAccess({ external_id: id }, 'pro')`,
+      `  } catch (error) {`,
+      `    if (error instanceof Error) { log(error.message) }`,
+      `    return false`,
+      `  }`,
+      `}`,
+      `app.get('/api/exports', async (req, res) => {`,
+      `  try {`,
+      `    const ok = await mesub.hasAccess({ external_id: req.user.id }, 'pro')`,
+      `    if (!ok) return res.status(402).end()`,
+      `    res.json(await exports())`,
+      `  } catch (error) {`,
+      `    res.status(402).json({ error: 'subscribe first' })`,
+      `  }`,
+      `})`,
+      '',
+    ].join('\n'),
+  })
+  assert.match(out, /WARN  src\/app\.ts:4 sits in a try whose catch seems to answer "no"/)
+  assert.match(out, /WARN  src\/app\.ts:12 sits in a try whose catch seems to answer "no"/)
+})
+
+test('a try whose catch rethrows or answers 503 does not warn', () => {
+  const { out } = check({
+    'src/app.ts': [
+      `import { mesub } from './mesub.js'`,
+      `app.get('/api/exports', async (req, res) => {`,
+      `  try {`,
+      `    const ok = await mesub.hasAccess({ external_id: req.user.id }, 'pro')`,
+      `    if (!ok) return res.status(402).end()`,
+      `    res.json(await exports())`,
+      `  } catch (error) {`,
+      `    if (error instanceof Error) { log(error.message) }`,
+      `    res.status(503).end()`,
+      `  }`,
+      `})`,
+      '',
+    ].join('\n'),
+  })
+  assert.doesNotMatch(out, /seems to answer "no"/)
+})

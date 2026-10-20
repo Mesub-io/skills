@@ -286,6 +286,21 @@ for (const ask of asks.filter((item) => item.name === 'hasAccess')) {
     report('FAIL', `${ask.where} reads hasAccess without await: a promise is always truthy, so everyone is let in`)
   }
 }
+// Kept in a variable without await, then read as if it were the answer: `const ok = mesub.hasAccess(...)`, `if (!ok)`.
+for (const ask of asks) {
+  const before = ask.text.slice(Math.max(0, ask.index - 160), ask.index).split(/[;{}\n]/).at(-1)
+  const kept = before.match(/\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*(?::[^=]+)?=\s*[\w$.]*$/)
+  if (!kept || /\bawait\b/.test(before)) continue
+  const name = kept[1].replace(/\$/g, '\\$')
+  const rest = ask.text.slice(ask.end, ask.end + 1500)
+  if (/^[^;\n]*?\)\s*\.then\s*\(/.test(rest)) continue
+  const read = rest.match(new RegExp(`(?:\\bif\\s*\\(\\s*!?\\s*|!\\s*|&&\\s*|\\|\\|\\s*|\\breturn\\s+|=\\s*)${name}(?:\\s*[)?&|]|\\.\\s*(?:access|allowed|grants|plans)\\b)`))
+  if (!read) continue
+  // Awaited before that read: `const ok = await pending` is the answer, not the promise.
+  if (new RegExp(`\\bawait\\s+${name}\\b`).test(rest.slice(0, read.index))) continue
+  const at = `${shown(ask.path)}:${lineOf(ask.text, ask.end + read.index)}`
+  report('FAIL', `${ask.where} keeps ${ask.name} in ${kept[1]} without await and reads it as an answer (${at}): a promise is always truthy and has no access field, so the gate is wrong for everyone. Await it`)
+}
 
 // --- An error is not a "no" ---
 /** Whether a `try {` opens before the call with no `catch` between the two. */
@@ -294,12 +309,19 @@ function inTry(ask) {
   const opened = [...before.matchAll(/\btry\s*\{/g)].at(-1)
   return opened !== undefined && !/\bcatch\b/.test(before.slice(opened.index))
 }
+/** The block of the first catch in `after`, braces inside it included, or null. */
+function catchBody(after) {
+  const opened = after.match(/\bcatch\s*(?:\([^)]*\))?\s*\{/)
+  return opened ? argsAt(after, opened.index + opened[0].length - 1) : null
+}
+/** Whether a catch block answers "no": false, null, a bare return, or a 402 "not subscribed". */
+const answersNo = (body) => body !== null && /\b(return\s+false|=\s*false|return\s*;|return\s+null|status\s*\(\s*402\b|status\s*:\s*402\b)/.test(body)
 for (const ask of asks) {
   const after = ask.text.slice(ask.end, ask.end + 600)
   const swallowed = after.match(/^[^;]*?\)\s*\.catch\s*\(\s*(?:async\s*)?\(?[^)]*\)?\s*=>\s*\(?\s*(false|null|undefined)\b/)
   if (swallowed) {
     report('FAIL', `${ask.where} turns every error of ${ask.name} into "${swallowed[1]}": a refused key or a wrong slug would lock every subscriber out, silently`)
-  } else if (inTry(ask) && /\bcatch\s*(\([^)]*\))?\s*\{[^}]*\b(return\s+false|=\s*false|return\s*;|return\s+null)/.test(after)) {
+  } else if (inTry(ask) && answersNo(catchBody(ask.text.slice(ask.end, ask.end + 1500)))) {
     report('WARN', `${ask.where} sits in a try whose catch seems to answer "no": only an outage is a fallback, and ${ask.name === 'hasAccess' ? 'hasAccess already handles it' : 'a bad key or slug must stay loud'}`)
   }
 }
