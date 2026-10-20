@@ -7,12 +7,21 @@ import request from 'supertest';
 import type { WebhookEvent } from '@mesub/node';
 import { FakeMesub, type SignedWebhook, signWebhook } from '@mesub/node/testing';
 // ADAPT: the app's own factory.
-import { createApp } from './create-app';
+import { createApp, type HandledEvents } from './create-app';
 
 const fake = new FakeMesub({ plans: ['pro'] });
 
 let app: Express;
 let received: WebhookEvent[];
+
+// In memory for the test only: the app's own store keeps the ids in its database.
+function inMemory(): HandledEvents {
+    const ids = new Set<string>();
+    return {
+        claim: async (id) => (ids.has(id) ? false : (ids.add(id), true)),
+        release: async (id) => void ids.delete(id),
+    };
+}
 
 beforeEach(() => {
     fake.reset();
@@ -21,8 +30,12 @@ beforeEach(() => {
     app = createApp({
         mesub: fake.client(),
         customer: () => ({ external_id: 'user_42' }),
-        // ADAPT: assert on what the app really does with an event (a row, a mail queued).
-        onEvent: (event) => void received.push(event),
+        webhooks: {
+            // ADAPT: assert on what the app really does with an event (a row, a mail queued).
+            onEvent: (event) => void received.push(event),
+            // ADAPT: or the app's own store, on a test database.
+            handled: inMemory(),
+        },
     });
 });
 
@@ -43,9 +56,8 @@ describe('POST /webhooks/mesub', () => {
             type: 'subscription.renewed',
             data: { external_id: 'user_42', plan: 'pro' },
         });
-        // `detail` sits at the top of today's body, under `data` in an older package's fake.
-        const event = received[0] as { detail?: { amount?: string }; data: { detail?: { amount?: string } } };
-        expect((event.detail ?? event.data.detail)?.amount).toBe('9990000');
+        const event = received[0];
+        expect(event?.type === 'subscription.renewed' ? event.detail.amount : null).toBe('9990000');
     });
 
     it('answers 400 to a body changed after it was signed', async () => {
@@ -75,13 +87,13 @@ describe('POST /webhooks/mesub', () => {
     });
 
     it('handles a delivery once when Mesub sends it again', async () => {
-        const delivery = await fake.webhook('subscription.stopped', { id: 'msg_retried' });
+        const delivery = await fake.webhook('subscription.stopped', { id: 'evt_retried' });
 
         await deliver(delivery).expect(200);
         await deliver(delivery).expect(200);
 
         expect(received).toHaveLength(1);
-        expect(received[0]?.id).toBe('msg_retried');
+        expect(received[0]?.id).toBe('evt_retried');
     });
 
     it('puts a stopped subscriber out as soon as the event lands', async () => {
