@@ -7,8 +7,12 @@ import '@mesub/react/styles.css';
 
 export function MesubRoot({ children }: { children: ReactNode }) {
     // ADAPT: `endpoint` is exactly where the server mounted the routes.
-    // ADAPT: `chain` is the network the wallet signs for. Left out, it is the test network: set it to the
-    // network of the plans, the `network` GET <endpoint>/plans/<slug> answers, as chain="solana:<cluster>"
-    // the way Solana's wallets name that cluster. Wrong, the wallet signs for another network.
-    return <MesubProvider endpoint="/api/mesub">{children}</MesubProvider>;
+    // ADAPT: `chain` is the network the wallet signs for, the one of the plans (`network` in GET <endpoint>/plans/<slug>).
+    // Production plans are `mainnet-beta`: solana:mainnet. Plans of the dev environment are `devnet`: solana:devnet,
+    // also the default when `chain` is left out. Never solana:mainnet-beta: no wallet knows it.
+    return (
+        <MesubProvider endpoint="/api/mesub" chain="solana:mainnet">
+            {children}
+        </MesubProvider>
+    );
 }

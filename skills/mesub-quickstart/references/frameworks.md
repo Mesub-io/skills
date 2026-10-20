@@ -93,7 +93,7 @@ app.use('/api/mesub', yourLogin, mesubRoutes({ client: mesub, customer }));
 
 A customer is named by exactly one of `external_id` (the app's own id for the user), `wallet` or `email`.
 
-- Prefer `external_id`. It does not change when the user changes wallet or email.
+- Use `external_id`. It does not change when the user changes wallet or email. An email is something the user can change and anyone can type: do not name a customer by it, and never gate on it.
 - Use the same name in the widget routes and in every paid route. A subscription made as `{ external_id: 'u_1' }` is not found by asking about `{ email: 'a@b.c' }`.
 - When the customer is not named by email, `mesubRoutes` and `mesubRouteHandlers` take `email: (req) => req.user?.email`, so Mesub knows where that subscriber's notices go.
 - `plans: ['pro', 'team']` keeps the widget to those plans. By default it may subscribe to any plan of the project.
@@ -127,6 +127,6 @@ Useful when checking by hand, with the key set. Paths are under the mount point.
 | any path, key refused by Mesub | 500, thrown to the framework | 500 |
 | any path, no key in the environment | the app did not start (one client at module level), else 500 | the same |
 
-Under Express the guards and `mesubRoutes` hand a `MesubError` of a 4xx to `next()` as a copy of status 500, the original as its `cause`, so a refused key or an unknown slug ends as a 500, never as a 401 the widget would read as "sign in first". A copy of `@mesub/node` older than that passes the error's own status (401, 404) to Express's default handler: if a refused key answers 401, the package is behind; an error handler of the app's that answers 500 for a `MesubError` covers both.
+Under Express the guards and `mesubRoutes` hand a `MesubError` of a 4xx to `next()` as a copy of status 500, the original as its `cause`, so a refused key or an unknown slug ends as a 500, never as a 401 the widget would read as "sign in first".
 
 A refusal is `{ "error": { "code": "...", "message": "..." } }`. A 401 from these routes always means nobody is signed in on the app. Mesub refusing the API key is never passed on as a 401: it would read to the widget as "sign in first".

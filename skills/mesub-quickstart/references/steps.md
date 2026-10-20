@@ -6,14 +6,25 @@ The detail behind each step of `SKILL.md`. Read the step you are on before writi
 
 Before writing code:
 
-1. Find the framework and the login. Read `package.json` for `express`, `next` or `@nestjs/common`, then find how a request learns who the user is (a session middleware, an auth library's server helper, a guard). Everything below hangs on that one line.
+1. Find the framework and the login. Read `package.json` for `express`, `next` or `@nestjs/common`, then find how a request learns who the user is (a session middleware, an auth library's server helper, a guard). Everything below hangs on that one line. A Next.js project with a `pages/` folder and no `app/` uses the Pages Router, which `@mesub/node/next` does not serve (its handlers are App Router route handlers): stop and tell the user, rather than adapting the App Router files.
 2. If there is no login at all, stop and say so. Mesub ties a subscription to a customer the app names: without a verified identity there is nothing safe to tie it to. Do not invent one, and do not take an id from the browser.
-3. Check what is installed: `package.json`, the lockfile, and `node_modules/@mesub/node/package.json` for the version. Neither package may be on the public registry yet, so do not assume an install will succeed (step 2).
+3. Check what is installed: `package.json`, the lockfile, and `node_modules/@mesub/node/package.json` for the version. Both packages are on npm at 0.1.0 (step 2).
 4. Ask the user for two things an agent cannot produce:
    - **The plan's slug.** They create the plan in the dashboard, under Plans, and their wallet signs it. The plan's Implement tab shows the slug; `mesub.plans.list()` returns every plan's `slug` too, and so does the Mesub MCP server's `list_plans` when it is connected. Never derive a slug from the plan's name: the merchant may have given it another one. If they have no plan yet, they make one first: code written against a slug that does not exist answers 404.
    - **That the API key is in the server's environment.** They create it in the dashboard, under Developers. It starts with `SUB_` and is shown once.
+5. Tell the user what the project's tier allows before they rely on it: see "The Free tier" below.
 
 **Never ask the user to paste the API key into the conversation, and never write its value anywhere.** Ask them to add `MESUB_API_KEY` to the server's environment themselves, then check that the name is set without reading the value (the script below does). Why: a key pasted in a chat or committed to a file must be treated as leaked and rotated.
+
+## The Free tier
+
+A project starts on Free. Say what it means before the user counts on it:
+
+- **One plan and 30 subscribers.** A subscriber is a wallet with an `active`, `unpaid` or not yet ended `cancelled` subscription. Past 30, a new subscription is refused (`seat_cap_reached`).
+- **No automatic retry.** When a renewal fails (the wallet held too little, say), Mesub does not try again by itself. Someone must act: the subscriber pays it now from the manage window, or the merchant retries by hand in the dashboard, 3 tries between them per missed period, 10 minutes apart, until `retry_deadline`. Past it, the subscription stops.
+- **`unpaid` grants no access.** While a payment is late, `hasAccess` answers `false` on Free. The paid tiers retry by themselves and keep access until the last retry.
+
+The tier is changed in the dashboard, under Plans. Never promise a retry that Free does not make.
 
 ## Step 1: the API key
 
@@ -22,6 +33,7 @@ Before writing code:
 - It goes in the server's environment: the env file the framework already loads locally, and the host's settings in production. Confirm that file is ignored by git before the user fills it.
 - Never give it a prefix that a bundler ships to the browser (`NEXT_PUBLIC_`, `VITE_`, `REACT_APP_` and the like), never import it in a client component, never log it, never commit it, not even in an example file.
 - Say "API key": it is the only key Mesub has. The browser never holds one.
+- A key made in the dev environment (`https://api-dev.mesub.io`, plans on devnet) needs `new Mesub({ baseUrl: 'https://api-dev.mesub.io' })`. Without it the client talks to production, `https://api.mesub.io`, which refuses that key.
 - A missing key makes `new Mesub()` throw "Missing Mesub API key". With the one client at module level (`assets/mesub-client.ts`) that is when the module is imported: the server does not start, and under Next.js `next build` fails, so the build needs the key too. A route or guard given no `client` builds a default one at its first request instead, and answers 500. That is the intended behaviour: do not catch it. `references/frameworks.md` has the detail.
 
 ## Step 2: install
@@ -39,7 +51,7 @@ If an install answers that a package does not exist, **stop and tell the user**:
 
 ## Step 3: mount the routes the widget calls
 
-The widget needs a handful of routes on the app's server (read a plan, prepare a subscription, submit what the wallet signed, cancel, resume, close). One call mounts all of them:
+The widget needs a handful of routes on the app's server (read a plan, list the customer's subscriptions, prepare a subscription, submit what the wallet signed, a fresh transaction for a pending one, pay a late payment now, cancel, resume, close). One call mounts all of them:
 
 | Framework | Call | Where | Ready to copy |
 |---|---|---|---|
@@ -85,7 +97,7 @@ Two pieces, both in `assets/`:
 1. `assets/mesub-provider.tsx`: `MesubProvider`, once, around the app, with the stylesheet. Its `endpoint` is exactly the path of step 3, and its `chain` must be the plan's network.
 2. `assets/subscribe-button.tsx`: `SubscribeButton` with the plan's slug.
 
-- `chain` is the network the wallet signs for, `solana:` then the cluster. Left out, it is the test network: set `chain` to the network of the plans. The plan's `network` is in what `GET <endpoint>/plans/<slug>` answers: when it is not the provider's, pass `chain` with that cluster, as Solana's wallets name it, and ask the user when unsure. On the wrong one the wallet signs for a network the plan is not on.
+- `chain` is the network the wallet signs for. Left out, it is `solana:devnet`. Production plans are on Solana mainnet: their `network` (in what `GET <endpoint>/plans/<slug>` answers) is `mainnet-beta`, and the wallet's name for it is `solana:mainnet`, never `solana:mainnet-beta`. Plans made with a key of the dev environment are on `devnet`: `solana:devnet`. Ask the user when unsure. On the wrong one the wallet signs for a network the plan is not on.
 - `endpoint` and the mount path must be the same string. A mismatch is the most common first-run failure: the window opens on an error instead of the plan.
 - Requests go with the session cookie. If the app's login is a bearer token instead, the provider takes a `fetch` that adds the header: see `references/frameworks.md`.
 - Do not add a wallet library, a wallet adapter or a connect button for this. The widget finds installed wallets itself, asks for an account when it needs a signature, and never disconnects one.

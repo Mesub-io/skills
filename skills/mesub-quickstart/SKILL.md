@@ -9,7 +9,7 @@ license: Apache-2.0
 
 ## Overview
 
-This skill takes a project from no Mesub code to one paying subscriber: the packages, the API key, the routes the widget calls, one paid route and the subscribe button. It also carries the kit's directory.
+This skill takes a project from no Mesub code to one paying subscriber: the packages, the API key, the widget's routes, one paid route and the subscribe button. It also carries the kit's directory.
 
 ## When to use this skill
 
@@ -27,34 +27,35 @@ This skill takes a project from no Mesub code to one paying subscriber: the pack
 
 ## Core guidance
 
-### Four facts to hold first
+### Five facts to hold first
 
 1. **The subscriber has no Mesub account.** Who they are comes from the app's own login. An app with no login needs one first.
 2. **The API key lives on the server only.** `@mesub/react` holds no key and never talks to Mesub: it calls routes on the app's own server.
 3. **A plan is named by its slug**, read in the dashboard, never guessed. Price, token and period live in the dashboard, not in code.
 4. **Mesub charges every period by itself.** No cron, no job, no renewal code in the app.
+5. **On the Free tier**: one plan, 30 subscribers, no automatic retry, and no access while a payment is late. Tell the user: `references/steps.md`.
 
 ### The six steps
 
 Do them in order. Each one is detailed in `references/steps.md`: read the step before writing its code.
 
 0. **Read the project, ask the user.** Find the framework and how a request learns who the user is. Check what is installed. Ask for the plan's slug, and ask the user to put `MESUB_API_KEY` in the server's environment themselves.
-1. **The API key and the one client.** `new Mesub()` reads `MESUB_API_KEY` by itself. Build it once (`assets/mesub-client.ts`) and pass it as `client` everywhere. Without the key it throws at import: under Next.js the build needs the key too. Confirm the env file is ignored by git.
+1. **The API key and the one client.** `new Mesub()` reads `MESUB_API_KEY` by itself. Build it once (`assets/mesub-client.ts`), pass it as `client` everywhere. Without the key it throws at import, so a Next.js build needs it too. Confirm the env file is ignored by git.
 2. **Install** `@mesub/node` (in `dependencies`) and `@mesub/react` from npm, with the project's own package manager.
 3. **Mount the routes the widget calls** at `/api/mesub`, after the app's login: `assets/express-mesub.ts` or `assets/next-mesub-route.ts`.
 4. **Gate one paid route** on the server: `assets/express-mesub.ts`, `assets/next-paid-route.ts` or `assets/nest-paid.controller.ts`.
-5. **The provider and the button**: `assets/mesub-provider.tsx`, then `assets/subscribe-button.tsx`. The provider's `endpoint` is exactly the path of step 3. Its `chain` is the test network by default: set it to the network of the plans.
+5. **The provider and the button**: `assets/mesub-provider.tsx`, then `assets/subscribe-button.tsx`. Its `endpoint` is exactly the path of step 3. Its `chain` defaults to `solana:devnet`: plans on mainnet (`network` `mainnet-beta`) need `chain="solana:mainnet"`.
 6. **Check**: run the script below, then go through `checks/verification.md`.
 
-Copy an asset, then adapt the lines marked `ADAPT`. What each framework needs beyond that is in `references/frameworks.md`.
+Copy an asset, then adapt its `ADAPT` lines. What each framework needs beyond that: `references/frameworks.md`.
 
 ### Rules that are never negotiable
 
-- **Never ask for the API key in the conversation, and never write its value anywhere.** Check that the name is set without reading the value. Why: a key pasted in a chat or committed must be treated as leaked and rotated.
+- **Never ask for the API key in the conversation, and never write its value anywhere.** Check that the name is set without reading the value. Why: a pasted or committed key is leaked and must be rotated.
 - **Never give the key a browser prefix** (`NEXT_PUBLIC_`, `VITE_` and the like), never import it in client code, never log it. Say "API key".
-- **`customer` comes from a session the app verified, never from the request itself**: not the query, the body, a header or a wallet the page sends. Why: every subscription and every paid route hangs on it, so an id read from the request lets anyone type a subscriber's id and get their access. Return `null` when nobody is signed in.
+- **`customer` comes from a session the app verified, never from the request itself**: not the query, the body, a header or a wallet the page sends. Why: an id read from the request lets anyone type a subscriber's id and get their access. Return `null` when nobody is signed in.
 - **Name the customer the same way everywhere**, by `external_id`, the app's own id for the user. Otherwise a subscription made under one name is not found under the other.
-- **If an install says a package does not exist, stop and tell the user**: `references/steps.md`, step 2. Do not install a lookalike, copy the SDK's source, or call the HTTP API instead. Why: a lookalike package is how a key gets stolen.
+- **If an install says a package does not exist, stop and tell the user**: `references/steps.md`, step 2. No lookalike, no copied SDK source, no raw HTTP calls instead. Why: a lookalike package is how a key gets stolen.
 - **Gate on the server.** Hiding a button is not a gate.
 - **Do not catch the check's errors as "not subscribed"**, do not cache its answer, and do not store "is subscribed" in the app's database. The SDK caches and handles an outage itself; a wrong key or slug throws on purpose.
 - **Do not build the subscribe flow or add a wallet library.** The widget does both.
@@ -68,9 +69,9 @@ From the project root:
 node "<skill-dir>/scripts/check-setup.mjs"
 ```
 
-`<skill-dir>` is this skill's folder, as an absolute path: do not change into it. Add `--server-only` for a project with no React front, `--no-gate-yet` while no route is gated.
+`<skill-dir>` is this skill's folder, absolute: do not change into it. Add `--server-only` for a project with no React front, `--no-gate-yet` while no route is gated.
 
-**The subscription itself needs a person with a wallet**, who approves twice in the window. Report the integration as wired and checked up to the window, never as tested end to end, and say what the user must click. When something fails on the first run, read `references/first-run-failures.md`.
+**The subscription itself needs a person with a wallet**, who approves twice in the window. Report it as wired and checked up to the window, never as tested end to end, and say what the user must click. When something fails on the first run, read `references/first-run-failures.md`.
 
 ## Related skills
 
