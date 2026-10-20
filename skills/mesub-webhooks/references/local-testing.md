@@ -46,7 +46,7 @@ node --env-file=.env "<skill-dir>/scripts/send-test-delivery.mjs" http://localho
 node --env-file=.env "<skill-dir>/scripts/send-test-delivery.mjs" http://localhost:3000/webhooks/mesub --type subscription.cancelled --external-id user_42
 ```
 - It cannot tell whether a repeat was handled once: that is read in the handler.
-- The body has today's shape: `id` `evt_test`, `object`, `network`, `api_version`, `sequence` 1, `detail` at the top. `network` is the cluster Mesub runs on today unless `--network <cluster>` names another, as Solana names it: `@mesub/node` refuses a body without it.
+- The body has today's shape: `id` `evt_test`, `object`, `network`, `api_version`, `sequence` 1, `detail` at the top. `network` is `mainnet-beta`, the cluster Mesub runs on, unless `--network <cluster>` names another: `@mesub/node` refuses a body without it.
 
 ## 3. A test event from the dashboard
 

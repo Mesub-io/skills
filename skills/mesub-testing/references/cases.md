@@ -58,7 +58,7 @@ A refused key, an unknown slug, or a `customer` that returns an empty value or t
 
 What the browser then gets depends on the framework:
 
-- **Express**: the error goes to `next(err)`, a 4xx `MesubError` as a copy of status 500 (the original as its `cause`): Express's default handler answers 500. Measured. A copy of `@mesub/node` older than that passes the error's own status (401 for a refused key, 404 for an unknown slug). If the app has its own error handler, the test asserts what that one answers.
+- **Express**: the error goes to `next(err)`, a 4xx `MesubError` as a copy of status 500 (the original as its `cause`): Express's default handler answers 500. Measured. If the app has its own error handler, the test asserts what that one answers.
 - **Next.js**: the handler rejects with the `MesubError` (`code` `unauthorized` or `plan_not_found`). Assert the rejection.
 - **NestJS**: the guard throws the error as it is.
 

@@ -25,9 +25,9 @@ const mesub = fake.client(); // a real Mesub, wired to the fake
 | `webhookSecret` | a fixed made-up `whsec_` value | What `webhook()` signs with and `client()` verifies with |
 | `attemptsRoute` | `true` | `false` acts as a Mesub without the attempts route: it answers 404 there |
 | `revalidateAfter` | Mesub's own | The `revalidate_after` of every access answer, in seconds. Left out, Mesub's: 10 for a no, and for a yes the time to its next charge, retry or end, from 10 to 300. `0` makes every change show on the next call of the same client. One set on an answer with `fields` wins |
-| `accessEvents` | `false` | `true` raises `subscription.access_granted` / `subscription.access_revoked` when a change the fake makes flips access (a submit grants), and `subscription.paused` / `unpaused` from `park` / `unpark`, as Mesub will once it turns them on |
+| `accessEvents` | `false` | `true` raises `subscription.access_granted` / `subscription.access_revoked` when a change the fake makes flips access (a submit grants), and `subscription.paused` / `unpaused` from `park` / `unpark`, as Mesub does |
 | `eventsSince` | 30 days before the fake was made | Mesub's `available_since`: events created before it are not served on `/v1/events` |
-| `tier` | `dev` | The project's tier: `free`, `dev` or `business`. It decides what Pay now refuses and what a late `addSubscription` gets (`subscribing.md` in this folder). Newer than the rest: check it in the installed `dist/testing.d.ts` |
+| `tier` | `dev` | The project's tier: `free`, `dev` or `business`. It decides what Pay now refuses and what a late `addSubscription` gets (`subscribing.md` in this folder) |
 
 Always name `plans`. Without it a typo in a slug passes every test, and the widget routes answer 404 for every plan because they read the plan list.
 
@@ -40,7 +40,7 @@ A plan Mesub answers carries `token` (`symbol`, `name`, `logo_url`, `verified`) 
 - a token that is not `verified`: the page must say so and show the mint, and must not print a symbol that came `null`;
 - a plan whose `amount_usd` is `null`: the page shows the token amount alone, not `$0`.
 
-These are newer than the rest of this file. Before writing either case, check the plan type and the `plans` option in the installed `dist/index.d.ts` and `dist/testing.d.ts` for the exact names, and for what a plan given as a slug carries: do not write them from this file. On a package without them, say so and leave the case unwritten rather than casting the plan to another type.
+Check the exact names in the installed `dist/index.d.ts` and `dist/testing.d.ts` (the plan type and the `plans` option) before writing either case, and what a plan given as a slug carries: a USDC plan, verified, priced at its `amount_display`.
 
 ## Properties
 
@@ -96,7 +96,7 @@ fake.grant({ external_id: 'user_42' }, 'pro', { ...blocked, access_until: inThre
 fake.deny({ external_id: 'user_42' }, 'pro', { ...blocked, status: 'active', payment_status: 'paid' });
 ```
 
-`blocked_reason` is `puller_not_allowed`, `receiver_not_allowed`, `receiver_account_missing`, `receiver_account_frozen`, `mint_gone`, `mesub` or `null`. The fake serves what the test gave and works nothing out: it does not end access when `access_until` passes, and never blocks or unblocks by itself. These fields are newer than the rest: check `blocked_since` in the installed `dist/testing.d.ts` or `dist/index.d.ts` before using them, and tell the user when the package is behind.
+`blocked_reason` is `puller_not_allowed`, `receiver_not_allowed`, `receiver_account_missing`, `receiver_account_frozen`, `mint_gone`, `mesub` or `null`. The fake serves what the test gave and works nothing out: it does not end access when `access_until` passes, and never blocks or unblocks by itself.
 
 ## A plan with an end date
 

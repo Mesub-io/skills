@@ -1,7 +1,7 @@
 ---
 name: mesub-mcp
 description: Use this skill when a merchant asks anything about their live Mesub project. Load it before the first call to any Mesub MCP tool, and before saying what Mesub can or cannot do there. That means a late or failed payment, charging a customer again, whether a customer has access, a renewal at risk, creating or preparing a plan, a webhook that is broken or to set up, cancelling or refunding a subscriber, changing the tier, showing the API key, even if the user just says "charge him again", "cancel his subscription" or "my webhook seems broken". Covers check_access, list_upcoming_charges, list_events, retry_charge, prepare_plan, external_id, expected_to_fail, sign_url, reason_label, _display amounts, what the server never does.
-compatibility: The Mesub MCP server connected in the agent's own tool list (get_project, list_plans, check_access). Nothing to install, no API key. The server is not hosted yet.
+compatibility: The Mesub MCP server connected in the agent's own tool list (get_project, list_plans, check_access). Nothing to install, no API key. Mesub hosts it at https://mcp.mesub.io/mcp.
 license: Apache-2.0
 ---
 
@@ -27,7 +27,7 @@ The Mesub MCP server lets an agent read one live Mesub project and act on it. It
 Look for `get_project` and `check_access` in your own tool list.
 
 - **There**: call `get_project` and say which project the connection is on.
-- **Not there**: say it is not connected here and not hosted yet, point to its docs page (`references/docs.md`), and offer what needs no server: `references/connection-and-boundaries.md`. Never guess an address, never use an API key yourself, never answer as if a tool had run.
+- **Not there**: say it is not connected here, point to its docs page (`references/docs.md`), and offer what needs no server: `references/connection-and-boundaries.md`. Never use an API key yourself, never answer as if a tool had run.
 
 ### From the question to the tools
 
@@ -46,7 +46,7 @@ Look for `get_project` and `check_access` in your own tool list.
 
 **Finding the customer.** A merchant's name (`ben`) may not be the app's `external_id`: read how the code's `customer` builds it (`user_ben`?), ask `check_access` with that, then the bare name, then the email. `list_subscriptions` `q` matches an `external_id`'s start too. Found only under another id: say so, the app's gate cannot see it. Then `get_subscription` by its `subscription_id`: the price to quote, `late_reason`, `retry_available_at`, each `reason_label`. Never stop at `check_access`: raw amounts.
 
-`late_reason`: on insufficient balance, adding funds fixes it. On approval revoked or authority closed, adding funds does NOT help and every retry fails: the customer subscribes again.
+`late_reason`: on insufficient balance, adding funds fixes it. On approval revoked or authority closed, adding funds does NOT help and every retry fails: the customer cancels, closes once closable, then resubscribes.
 
 - On Free a late subscription has no access and nothing retries by itself (`retries_automatic` in the overview).
 - Show a `reason_label` to a person, never the raw `reason`. None: say the reason is not known, never guess.

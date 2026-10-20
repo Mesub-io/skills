@@ -28,7 +28,7 @@ Set only on a `stopped` subscription, `null` otherwise and on one that stopped b
 |---|---|---|
 | `out_of_retries` | "Every retry of the missed payment failed" | Subscribe again, or cancel and close once the period ends |
 | `retry_deadline_passed` | "The last day to pay the missed payment passed" | The same |
-| `authority_closed` | "Your wallet closed the authorisation that let us charge it" | It cannot come back: close it now to get the deposit back, then subscribe anew if they want |
+| `authority_closed` | "Your wallet closed the authorisation that let us charge it" | It cannot come back: close it now to get its deposit back, then subscribe anew if they want |
 | `null`, or another | "Payments stopped" | Keep a default branch: values are added |
 
 ## On a plan with an end date
@@ -52,6 +52,8 @@ A charge can fail for a reason that is not the customer's: the plan's own setup,
 | `receiver_account_missing` | The merchant's: the receiving wallet has no account for the plan's token, and nobody else can be paid | The merchant |
 | `receiver_account_frozen` | The merchant's: the receiving wallet's account for the plan's token is frozen | The merchant, with whoever froze it |
 | `mint_gone` | The merchant's plan: its token no longer exists | Not the app, not the customer |
+| `mint_paused` | The token's issuer paused it (Token-2022) | The issuer, by lifting the pause |
+| `mint_transfer_hook` | The token's issuer gave its transfers a program Mesub does not support (Token-2022) | The issuer, by removing it |
 | `mesub` | Mesub's, whatever it is | Nothing to fix on the merchant's side |
 | `null` | Not blocked | |
 
@@ -62,7 +64,7 @@ A charge can fail for a reason that is not the customer's: the plan's own setup,
 - **Mesub keeps trying.** `next_charge_at`, or `next_retry_at` on one that was late already, is the next try. Access comes back with the first charge that goes through, or that the chain holds as paid, with nothing for the customer to sign.
 - **The customer did nothing wrong and can fix nothing.** Do not word it as a late payment, do not ask them to add funds or to subscribe again. Say the charge is on hold and until when they keep access (`access_until`).
 - **The fix is the merchant's.** For a cause of the plan's setup, tell the user of this skill which one it is: Mesub also mails the merchant once per plan. An agent cannot repair a plan from the app's code.
-- `blocked_reason` may gain values: keep a default branch.
+- `blocked_reason` may gain values: keep a default branch. `@mesub/react` and `@mesub/node` 0.1.0 do not type `mint_paused` and `mint_transfer_hook`: compare them as strings.
 
 So `status: 'active'` with `access: false` is not only a plan past its end date: it is also a blocked subscription whose `access_until` has passed. One more reason to read `access`.
 
@@ -78,7 +80,7 @@ So `status: 'active'` with `access: false` is not only a plan past its end date:
 | `late_reason` | On `unpaid`, and on `stopped` for the payment it stopped on: `insufficient_balance` (adding funds fixes it), `approval_revoked` (adding funds does not), `authority_closed` (final), or `null` |
 | `stop_reason` | On `stopped`: `out_of_retries`, `retry_deadline_passed` or `authority_closed`, see above |
 | `end_reason` | On `ended`: `cancelled`, `plan_removed`, `plan_replaced`, `plan_ended`, `closed_elsewhere` (the subscription account closed outside Mesub) or `closed` |
-| `closable`, `closable_from` | Whether the wallet can close it now and get its deposit back, and from when if not: see above |
+| `closable`, `closable_from` | Whether the wallet can close it now and get the subscription account's deposit back, and from when if not: see above |
 | `blocked_since`, `blocked_reason` | Since when its charges are blocked for a cause that is not the customer's, and whose cause. Both `null` otherwise: see above |
 | `paused` | A seat parked over the project's limit: nothing is charged while it is, and the status does not change |
 | `wallet` | The wallet that pays it, and the only one that can cancel, resume or close it |

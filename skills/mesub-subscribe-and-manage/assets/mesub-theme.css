@@ -11,7 +11,19 @@
     --mesub-radius: 12px; /* buttons: the window is a little rounder */
 }
 
-/* Dark mode is not a second set of values here. Either pass theme="dark" (or "auto",
-   which follows the system) to MesubProvider, or put data-mesub-theme="dark" on an
-   ancestor such as <html>. Values set above still win in dark mode: scope them if
-   the dark window must keep the default dark colours. */
+/* Dark mode: pass theme="dark" (or "auto", which follows the system) to MesubProvider, or put
+   data-mesub-theme="dark" on an ancestor such as <html>. The light surface and text above would
+   win there too, so they are unset in dark mode: the widget then uses its own dark colours.
+   ADAPT: for dark values of the app's own, put them here instead of `initial`. */
+[data-mesub-theme='dark'],
+[data-mesub-theme='dark'] * {
+    --mesub-bg: initial;
+    --mesub-text: initial;
+}
+@media (prefers-color-scheme: dark) {
+    [data-mesub-theme='auto'],
+    [data-mesub-theme='auto'] * {
+        --mesub-bg: initial;
+        --mesub-text: initial;
+    }
+}

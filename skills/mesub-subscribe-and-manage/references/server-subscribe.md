@@ -40,7 +40,7 @@ What it answers:
 | `transaction_expires_at` | ISO date: when that height is expected to pass, about half a minute after the answer. An estimate that errs early. Use it for a countdown, or to ask a fresh transaction before it runs out |
 | `terms.message` | Plain text, one fact per line: the amount, the period, who is paid, how to cancel, and when the plan ends if it has an end date (below) |
 | `terms.expires_at` | ISO date, five minutes after `create` today. Read the field, do not hard-code the delay |
-| `costs` | In lamports, as strings. `rent` is a deposit returned when the subscription is closed, `fee` is spent. `rent.authority` is `null` when the customer already has one for that token |
+| `costs` | In lamports, as strings. `fee` is spent. `rent.subscription` is a deposit returned when the subscription is closed. `rent.authority` is the deposit of the wallet's account for that token, shared by its subscriptions in it: Close does not return it. It is `null` when the customer already has one |
 
 ### A plan with an end date
 
@@ -105,11 +105,9 @@ const signedTransaction = btoa(String.fromCharCode(...signed.serialize()));
 - **Compare `fresh.terms.message` with the message the wallet signed.** The message carries the nonce and the expiry of the terms, so the comparison is exact. The same text: the same terms, submit with the signature already made. Another text: new terms, so show them and have the wallet sign that message before the transaction. The old signature is refused with `invalid_terms_signature`.
 - The terms come back unchanged while they have more than two minutes left before `terms.expires_at`. New ones come after that, after a submit that spent them, or when the plan changed.
 - Put nothing between the call and the signature: no confirmation screen, no extra click.
-- **Ask again before it runs out, not after.** When the wallet is not ready by `transaction_expires_at` (a wallet popup left open, a slow hardware wallet), call `transaction(id)` again and have the new one signed. Do not trust the date over the chain: a transaction refused as expired is rebuilt whatever the time says. An installed package whose types do not name `transaction_expires_at` still hands it back: read it as `(fresh as { transaction_expires_at?: string }).transaction_expires_at`.
+- **Ask again before it runs out, not after.** When the wallet is not ready by `transaction_expires_at` (a wallet popup left open, a slow hardware wallet), call `transaction(id)` again and have the new one signed. Do not trust the date over the chain: a transaction refused as expired is rebuilt whatever the time says. `transaction_expires_at` can be `null` (the type allows it): then rely on a refusal as expired alone.
 
-It is refused like `create` (the plan stopped taking subscribers, `insufficient_balance`, `already_subscribed`), with `subscription_not_found`, and with `not_awaiting_signature` (409) when the subscription is no longer `pending`: signed already, expired or ended. For one that expired, `create` again.
-
-`subscriptions.transaction` is newer than `create` and `submit`: check it in the installed `node_modules/@mesub/node/dist/index.d.ts`. In a version without it, calling `create` again with the same plan, wallet and customer answers the same subscription with a fresh transaction, and is what to call in its place. Tell the user the package is behind.
+It is refused like `create` (the plan stopped taking subscribers, `insufficient_balance`, `insufficient_sol`, `already_subscribed`), with `subscription_not_found`, and with `not_awaiting_signature` (409) when the subscription is no longer `pending`: signed already, expired or ended. For one that expired, `create` again.
 
 ## 4. Submit, on the server
 
@@ -118,8 +116,7 @@ const result = await mesub.subscriptions.submit(subscriptionId, {
     transaction: signedTransaction,
     terms_signature,
 });
-// An older package's types do not name reason_code: it is in the answer all the same.
-const reasonCode = (result as { reason_code?: string }).reason_code;
+const reasonCode = result.reason_code;
 
 if (result.subscription.access) {
     // it landed
@@ -173,6 +170,10 @@ Thrown as a `MesubError`. `apiCode` is Mesub's own code, `code` the SDK's broade
 |---|---|---|
 | `create` | `already_subscribed` | This wallet already holds this plan: show it, do not retry |
 | `create` | `insufficient_balance` | The wallet cannot pay the first period |
+| `create`, `transaction` | `insufficient_sol` (409) | The wallet holds too little SOL for the deposits, the network fee and the minimum an account keeps (`costs` has the first two). Nothing was signed: show Mesub's message, which says how much is needed; the customer adds SOL to that wallet and tries again |
+| `create` | `payment_pending` | This wallet's subscription to the plan is `unpaid`: it pays it now or cancels it, never a second one |
+| `create` | `subscription_cancelled` | It is cancelled: resume it while it runs, or close it once `closable`, then subscribe |
+| `create` | `seat_cap_reached` | The project has no subscriber left on its tier (30 on Free): the merchant's to change, nothing for the customer |
 | `create` | `plan_not_found` | Fix the slug |
 | `create` | `plan_ended` | The plan is past its end date: stop offering it |
 | `transaction` | `not_awaiting_signature` | It is no longer `pending`. Read it back: `active` landed, `expired` needs a new `create` |

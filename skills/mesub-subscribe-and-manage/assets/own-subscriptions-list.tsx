@@ -6,17 +6,27 @@
 import { useEffect, useState } from 'react';
 import { useSubscriptions, type MesubHeldSubscription, type PayNowResult } from '@mesub/react';
 
-// ADAPT: the app's own wording. Keep the default: a newer status may appear.
+// ADAPT: the app's own wording. Keep the defaults: a newer status or reason may appear.
+// The status alone is not enough: a blocked one is not late, and a stop says why in stop_reason.
 function statusLabel(held: MesubHeldSubscription): string {
+    // Blocked: charges cannot go through, and it is never the customer's doing. Nothing to pay.
+    if (held.blocked_reason && (held.status === 'active' || held.status === 'unpaid')) {
+        return 'Payments on hold, nothing for you to do';
+    }
     switch (held.status) {
         case 'active':
             return 'Active';
         case 'unpaid':
+            if (held.late_reason === 'insufficient_balance') return 'Payment late: the wallet held too little';
+            if (held.late_reason === 'approval_revoked') return 'Payment late: your wallet no longer approves it';
             return 'Payment late';
         case 'cancelled':
             return 'Cancelled, access still running';
         case 'stopped':
-            return 'Stopped after missed payments';
+            if (held.stop_reason === 'authority_closed') return 'Stopped: your wallet closed what let us charge it';
+            if (held.stop_reason === 'out_of_retries') return 'Stopped: every retry of the missed payment failed';
+            if (held.stop_reason === 'retry_deadline_passed') return 'Stopped: the last day to pay the missed payment passed';
+            return 'Payments stopped';
         case 'ended':
             return 'Ended';
         default:
@@ -24,7 +34,8 @@ function statusLabel(held: MesubHeldSubscription): string {
     }
 }
 
-const ACTION_LABELS = { cancel: 'Cancel', resume: 'Resume', close: 'Close and get the deposit back' };
+// Close gives back the subscription account's deposit. The wallet's account per token stays open.
+const ACTION_LABELS = { cancel: 'Cancel', resume: 'Resume', close: 'Close and get its deposit back' };
 
 // Pay a late payment now: nothing to sign. payNow never throws, a refusal is its `message`.
 function PayNowButton({ pay }: { pay: () => Promise<PayNowResult> }) {

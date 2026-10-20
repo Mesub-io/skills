@@ -36,7 +36,7 @@ Null on a `paid` attempt, a short stable string in snake case on every other.
 | `insufficient_balance` | `rejected` | The wallet holds less than the period owes, or has no token account | The customer adds funds |
 | `token_account_reassigned` | `rejected` | The wallet's token account now belongs to someone else | Adding funds does not fix it |
 | `token_account_frozen` | `rejected` | The wallet's own token account is frozen | Adding funds does not fix it |
-| `authority_closed` | `rejected` | The wallet closed its authorisation for good, found before sending. The subscription stops, `stop_reason` `authority_closed` | Nothing brings it back: the customer closes it to get the deposit back, then subscribes again |
+| `authority_closed` | `rejected` | The wallet closed its authorisation for good, found before sending. The subscription stops, `stop_reason` `authority_closed` | Nothing brings it back: the customer closes it to get its deposit back, then subscribes again |
 | `program_<code>` | `rejected` | The program refused the transfer for a reason of the wallet's. `<code>` is its error number: 1, 4, 103, 136 or 508 | `program_1`: the wallet holds, or approved, less than the period owes. `program_4`: the wallet no longer lets Mesub charge it. `program_103`, `program_136`: the wallet closed its authorisation for good, and the subscription stops. `program_508`: cancelled on chain. Adding funds fixes only `program_1` |
 | `cancelled` (was `subscription_cancelled`) | `skipped` | Cancelled on chain, and the period already paid is over | Nothing: it ended as asked |
 | `closed_elsewhere` (was `delegation_gone`) | `skipped` | The subscription no longer exists on chain. It ends, `end_reason` `closed_elsewhere` | Nothing |

@@ -90,7 +90,8 @@ const CASES = [
 
   // Content
   ['"secret key"', 'content/secret-key', { after: say('Keep the secret key safe.') }],
-  ['a network name', 'content/network', { after: say('It runs on devnet.') }],
+  ['a test network', 'content/network', { after: say('It runs on devnet.') }],
+  ['the internal staging host', 'content/network', { after: say('Point baseUrl at https://api-dev.mesub.io.') }],
   ['an em dash', 'content/em-dash', { after: say(`One thing ${EM_DASH} another.`) }],
   ['an em dash outside the skills', 'content/em-dash', { after: (root) => edit(root, 'AGENTS.md', '# Rules', `# Rules ${EM_DASH} all`) }],
   ['a package name that is not exact', 'content/package-name', { after: say('Install `@mesub/sdk`.') }],
@@ -114,7 +115,7 @@ const CASES = [
   ['broken link in a fixture README', 'links/broken', { after: (root) => write(root, 'evals/fixtures/app/README.md', '# Fixture: app\n\nSee [the routes](ROUTES.md).\n') }],
   ['"secret key" in an eval fixture', 'content/secret-key', { after: (root) => write(root, 'evals/fixtures/app/src/login.ts', '// Keep the secret key safe.\n') }],
   ['a literal API key in an eval fixture', 'content/api-key-exposure', { after: (root) => write(root, 'evals/fixtures/app/.env.example', 'MESUB_API_KEY=SUB_a1b2c3d4e5f6g7h8\n') }, /literal/],
-  ['a network name in an eval fixture', 'content/network', { after: (root) => write(root, 'evals/fixtures/app/README.md', '# Fixture: app\n\nRuns on devnet.\n') }],
+  ['a test network in an eval fixture', 'content/network', { after: (root) => write(root, 'evals/fixtures/app/README.md', '# Fixture: app\n\nRuns on testnet.\n') }],
   ['one vendor\'s agent named in an eval fixture', 'content/vendor', { after: (root) => write(root, 'evals/fixtures/app/src/login.ts', '// Written for Claude.\n') }],
   ['an em dash in an eval fixture', 'content/em-dash', { after: (root) => write(root, 'evals/fixtures/app/src/login.ts', `// A login ${EM_DASH} fake.\n`) }],
 

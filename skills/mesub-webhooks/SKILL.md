@@ -27,7 +27,7 @@ This skill writes a webhook handler that cannot be forged, acts once per event, 
 
 ### What to hold first
 
-1. **Only two events say whether a customer has access**: `subscription.access_granted` and `subscription.access_revoked`, applied by `sequence`. Mesub does not send them yet: until then, ask `hasAccess`. The others are for side effects: a mail, a row for support.
+1. **Only two events say whether a customer has access**: `subscription.access_granted` and `subscription.access_revoked`, applied by `sequence`. Mesub sends them; an app that does not apply them asks `hasAccess` instead. The others are for side effects: a mail, a row for support.
 2. **The route is public**, so the signature is the only thing that tells Mesub from anyone else.
 3. **The signing secret is per endpoint**, starts with `whsec_` and is not the API key.
 
@@ -36,7 +36,7 @@ This skill writes a webhook handler that cannot be forged, acts once per event, 
 1. **Check what is installed.** Read `node_modules/@mesub/node/package.json` for the version, and the `.d.ts` files of its `dist/` for `verifyWebhook` and the event names. Absent: stop and tell the user where it comes from (`references/docs.md`). Never install a lookalike or write the check by hand.
 2. **Ask the user for what only they can do.** In the dashboard, under Developers then Webhooks, they add the endpoint (a public HTTPS URL), pick its events, and put its signing secret in the server's environment as `MESUB_WEBHOOK_SECRET`.
 3. **Copy the handler**: `assets/handle-event.ts`, then the route for the framework (`assets/express-webhook.ts`, `assets/next-webhook-route.ts` or `assets/nest-webhook.controller.ts`). Adapt the lines marked `ADAPT`, after reading `references/frameworks.md`.
-4. **Write the store** behind `EventStore`, in the app's database (none yet: the smallest durable one): `references/delivery.md`. `AccessStore` is optional.
+4. **Write the store** behind `EventStore`, in the app's database (none yet: the smallest durable one): `references/delivery.md`. `AccessStore` is optional: never pass one that throws.
 5. **Fill the branches** the app needs: `references/events.md` has every type and field.
 6. **Check**: the two scripts below, then `checks/verification.md`.
 
@@ -49,7 +49,7 @@ This skill writes a webhook handler that cannot be forged, acts once per event, 
 - **Deduplicate on the event's `id`** with one atomic write, released when the handling fails. Why: an event can arrive twice; an id kept after a failure drops the retry.
 - **Answer a 2xx within 10 seconds, before slow work.** Anything else, a redirect included, fails. Mesub retries for about three days, then disables the endpoint.
 - **Do not trust the order; trust `sequence`.** A retry can land after a newer event. Apply one subscription's events by `sequence`, skipping one at or below the last applied; without it, read the state now. `references/events.md`.
-- **`detail` sits at the top of the body, not in `data`.** An older `@mesub/node` throws `unexpected` on it: update it. `references/events.md`.
+- **Read the event's fields from `event.detail`**, not from `data`: `references/events.md`.
 - **Catch up with `GET /v1/events`** after an outage or a disabled endpoint: the same bodies, 30 days. `references/delivery.md`.
 - **Keep a `default` branch that acknowledges.** Mesub may add a type, and a 500 on an unknown type ends with a disabled endpoint.
 - **Ignore test deliveries** (`"test": true`, subscription `sub_test`) before any side effect.

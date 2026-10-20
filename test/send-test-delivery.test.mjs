@@ -52,6 +52,14 @@ test('by default the signed delivery is a test event', async () => {
   })
 })
 
+test('the body names mainnet-beta, the cluster Mesub runs on', async () => {
+  await withHandler(async (url, accepted) => {
+    const { status, out } = await send(url)
+    assert.equal(status, 0, out)
+    assert.equal(accepted[0].network, 'mainnet-beta')
+  })
+})
+
 test('--type sends a real event of that type, for that user', async () => {
   await withHandler(async (url, accepted) => {
     const { status, out } = await send(url, '--type', 'subscription.cancelled', '--external-id', 'user_ada', '--subscription', 'sub_42')

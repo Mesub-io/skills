@@ -231,3 +231,34 @@ test('a helper with no loop whose catch answers false, handed an access check, f
   assert.equal(status, 1, out)
   assert.match(out, /FAIL  mesub\.ts:2: safeCall is handed Mesub calls and its catch answers false or null/)
 })
+
+test('retryAfter written into a Retry-After header as it is fails: milliseconds sent as seconds', () => {
+  const { status, out } = check(
+    `res.setHeader('Retry-After', String(error.retryAfter))`,
+    'headers: { "Retry-After": `${err.retryAfter}` },',
+    `res.set('retry-after', e.retryAfter!.toString())`,
+    `res.setHeader(`,
+    `  'Retry-After',`,
+    `  String(error.retryAfter!),`,
+    `)`,
+  )
+  assert.equal(status, 1, out)
+  for (const line of [2, 3, 4, 7]) {
+    assert.match(out, new RegExp(`FAIL  mesub\\.ts:${line}: retryAfter goes into Retry-After as it is: it is milliseconds and the header counts seconds`), out)
+  }
+  assert.doesNotMatch(out, /PASS  retryAfter is read in milliseconds/)
+})
+
+test('retryAfter divided by 1000 and rounded up into Retry-After passes', () => {
+  const { status, out } = check(
+    `if (error.retryAfter !== null) res.setHeader('Retry-After', String(Math.ceil(error.retryAfter / 1000)))`,
+    `await sleep(error.retryAfter ?? 1000)`,
+  )
+  assert.equal(status, 0, out)
+  assert.match(out, /PASS  retryAfter is read in milliseconds/)
+})
+
+test('retryAfter with a non-null assertion warns: it is null when Mesub names no wait', () => {
+  const { out } = check(`await sleep(error.retryAfter!)`)
+  assert.match(out, /WARN  mesub\.ts:2: retryAfter! asserts a value, but retryAfter is null when Mesub names no wait/)
+})

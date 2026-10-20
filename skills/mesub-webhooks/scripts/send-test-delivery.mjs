@@ -48,8 +48,8 @@ which a handler must ignore: it proves the check, not a branch.
   --sequence <n>          the event's sequence, 1 or more (default 1): raise it to
                           send a later access event about the same subscription
   --network <cluster>     the body's "network": the Solana cluster the project
-                          runs on, as Solana names it. Left out, the cluster
-                          Mesub runs on today. @mesub/node refuses a body without it.
+                          runs on, as Solana names it. Left out, mainnet-beta,
+                          where Mesub runs. @mesub/node refuses a body without it.
   --help                  show this text
 
 Each line is PASS, FAIL or WARN. Exit 0 when nothing FAILs, 1 otherwise.`
@@ -72,8 +72,8 @@ function option(name, fallback) {
   args.splice(at, 2)
   return value
 }
-// Spelled in two parts only because the kit's prose names no cluster: Mesub's own today.
-const network = option('--network', ['dev', 'net'].join(''))
+// The cluster Mesub runs on.
+const network = option('--network', 'mainnet-beta')
 const type = option('--type', 'test')
 const externalId = option('--external-id', 'user_123')
 if (type !== 'test' && !TYPES.includes(type)) stop(`Unknown event type: ${type}. One of: ${TYPES.join(', ')}.`)

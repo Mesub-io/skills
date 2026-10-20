@@ -21,7 +21,6 @@ beforeEach(() => {
     app = createApp({
         mesub: fake.client(),
         customer: () => (signedIn ? { external_id: signedIn } : null),
-        onEvent: () => undefined,
     });
 });
 
@@ -105,8 +104,7 @@ describe('GET /api/analytics', () => {
 
         const response = await request(app).get('/api/analytics');
 
-        // The guard hands a 4xx MesubError to Express as a 500. An older @mesub/node
-        // passes its own status (401 here): a front would read that as signed out.
+        // The guard hands a 4xx MesubError to Express as a 500, never a 401 a front would read as signed out.
         expect(response.status).toBe(500);
         expect(response.body.reason).toBeUndefined();
     });

@@ -17,7 +17,8 @@ The window goes through `plan`, `wallet`, `review`, `approve`, `confirming` and 
 | The terms expired before or between the two signatures | Asks the server again and shows the review with fresh terms | Stale terms are never signed nor submitted |
 | The customer reads the terms for a while | Once the terms are signed, asks the server for a fresh transaction and has that one signed. A transaction lives about half a minute, the terms five | Nothing to add in the app. It needs builds of both packages that have the route: see the routes reference |
 | The plan is unknown (404) | "Plan not found" | The slug, or the `plans` list of the routes |
-| Mesub refuses (409: already subscribed, not enough to pay the first period, plan closed) | Shows Mesub's message as written | Do not translate or replace it |
+| Mesub refuses (409: already subscribed, not enough to pay the first period, too little SOL for the deposits and fee (`insufficient_sol`), plan closed) | Shows Mesub's message as written. For `insufficient_sol` it says how much SOL the wallet holds and needs | Do not translate or replace it |
+| A return asked while its billing period turns over (`comeback_period_rolling`) | "Almost there": "Your billing period is turning over. Try again in N seconds.", and Try again | A wait, not a refusal. Nothing to add in the app |
 | 403 `wallet_mismatch` | Asks for another wallet | The routes name the customer by wallet, and the visitor picked a different one |
 | 429 | Says how long to wait | The API key's rate limit |
 | Nothing landed (`reason` on submit) | "Payment did not go through", Mesub's reason, Try again | |
@@ -46,7 +47,7 @@ The window goes through `confirm`, `wallet`, `approve`, `confirming` and `done`.
 
 | What happens | What the window does |
 |---|---|
-| The action is asked | Says what it does first: "You keep access until ..." for a cancellation that is paid up, "It stops now" otherwise, and that closing returns the deposit. A resume on a plan that ends before another charge says "It runs again until ..., when the plan ends. Nothing more is charged." |
+| The action is asked | Says what it does first: "You keep access until ..." for a cancellation that is paid up, "It stops now" otherwise, and that closing returns its deposit (the subscription account's). A resume on a plan that ends before another charge says "It runs again until ..., when the plan ends. Nothing more is charged." |
 | The paying wallet is already connected to the site | It is found without a prompt |
 | Another wallet, or another account of it, is picked | "Wrong wallet": which account the wallet is on and which one pays. Nothing is built or signed |
 | The wallet refuses | "Not approved". Nothing changed |

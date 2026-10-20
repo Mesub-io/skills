@@ -24,7 +24,7 @@ A guard checks its arguments when it is built, so a mistake fails at start-up, n
 
 - `{ external_id: '...' }`: the app's own id for the user. Prefer it: it follows the person whichever wallet pays.
 - `{ wallet: '...' }`, or the wallet as a string alone: when the connected wallet is the customer.
-- `{ email: '...' }`: the address typed when subscribing, which Mesub never verified. For a support lookup, not a gate.
+- `{ email: '...' }`: the address typed when subscribing, which Mesub never verified. Anyone can type someone else's: never name a gated customer by it. It is for a support lookup only.
 - `null` or `undefined`: nobody is signed in. The guard answers 401.
 
 Exactly one of the three. Two of them, a value that is not a string, or an empty string throws: it is a broken integration, not a refusal.

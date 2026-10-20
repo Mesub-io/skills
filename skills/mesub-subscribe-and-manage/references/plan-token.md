@@ -2,8 +2,6 @@
 
 Read this before a page of the app's own shows a plan's price or a payment: a pricing page, a checkout summary, a list of charges. The widget shows all of it by itself: with `SubscribeButton`, `useSubscribe` or the manage window there is nothing to write.
 
-These fields may be newer than the installed `@mesub/node`. Check them in `node_modules/@mesub/node/dist/index.d.ts` before reading them, and say so if they are not there rather than casting around the types.
-
 ## What a plan carries
 
 `mesub.plans.retrieve(slug)` and `mesub.plans.list()`, on the server:
@@ -14,7 +12,7 @@ These fields may be newer than the installed `@mesub/node`. Check them in `node_
 | `amount_display` | That price as a person counts it: `"9.99"`. Print this, never a number computed from `amount` |
 | `amount_usd` | That price in US dollars, a decimal string, or `null` when Mesub has no price for the token |
 | `mint` | The token's address. This is the token: two tokens may share a symbol, never a mint |
-| `symbol` | Set only for a token Mesub vouches for (USDC, USDT, PYUSD). `null` for every other |
+| `symbol` | Set only for a token Mesub vouches for (USDC, USDT, PYUSD). `null` for every other. That is not the list of tokens a plan can use: any SPL Token or Token-2022 mint is accepted, shown as unverified |
 | `token.symbol`, `token.name`, `token.logo_url` | What Mesub found for that exact mint. Each may be `null` |
 | `token.verified` | `true` for a token Mesub vouches for, or one Jupiter marks as verified |
 
@@ -50,6 +48,14 @@ So a price reads `9.99 USDC`, `30000 Bonk`, or `30000 MOON, unverified (Dez1...x
 - **On an attempt, `amount_usd` is the price at the charge.** `mesub.subscriptions.attempts(id)` answers it on each attempt: priced once, at the instant of the charge, and not rewritten. It is `null` until Mesub has priced it, which comes after the attempt is recorded: show the token amount alone meanwhile, not `$0`.
 - Both are decimal strings (`"9.99"`) or `null`. Do not parse them into a float to add them up, and never compute a dollar value in the app from `amount`.
 - `terms.message` is what the customer signs, and it is unchanged: show it as written, with no dollar line of the page's own inside it.
+
+## Token-2022 tokens
+
+A plan can be in a Token-2022 mint (PYUSD is one). What it changes:
+
+- **A transfer fee.** When the token's issuer takes a fee on every transfer, the subscriber pays the plan's `amount` and the receiving wallet gets it less the issuer's fee. Mesub takes nothing of it. An attempt says what was received in `amount_received` when Mesub serves it (`@mesub/node` 0.1.0 does not type it). Never tell the merchant they receive the full price on such a token.
+- **Tokens a plan cannot be made in.** Mesub refuses a plan on a token that is paused, whose new accounts are frozen by default, that cannot be transferred, whose transfers call a program of the issuer's (a transfer hook), that moves in confidential balances only, that carries an extension Mesub does not know, or whose amounts show scaled in wallets (an interest-bearing or scaled UI amount token, `mint_display_scaled`).
+- **An issuer can change the token later.** If it pauses the token or adds a transfer hook, every charge is held: `blocked_reason` `mint_paused` or `mint_transfer_hook` (statuses reference). Nothing for the subscriber to do, and access ends at `access_until`.
 
 ## What the docs say
 

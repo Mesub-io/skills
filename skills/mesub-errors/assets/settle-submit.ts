@@ -17,8 +17,7 @@ export async function settleSubmit(mesub: Mesub, id: string, signed: SubmitParam
         // ADAPT: on a host that cuts a request early, pass { timeout, budget } as a third argument.
         const result = await mesub.subscriptions.submit(id, signed);
         const { subscription, reason } = result;
-        // An older package's types do not name reason_code: it is in the answer all the same.
-        const reasonCode = (result as { reason_code?: string }).reason_code ?? null;
+        const reasonCode = result.reason_code ?? null;
 
         // Branch on the subscription and on reason_code, never on the words of `reason`.
         if (subscription.access) return { state: 'landed', subscription };

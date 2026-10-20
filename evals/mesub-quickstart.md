@@ -59,7 +59,7 @@ Fixture: [next-session](fixtures/next-session/README.md).
 - [ ] Creates the widget routes as a catch-all route file under `app/api`.
 - [ ] Reads the session with `getSession()` on the server to name the customer.
 - [ ] Gates the reports on the server, in the route and in the page.
-- [ ] Adds `MesubProvider` once, with an `endpoint` equal to the routes' path, and a `SubscribeButton`, and says its `chain` must be the network of the plans.
+- [ ] Adds `MesubProvider` once, with an `endpoint` equal to the routes' path, and a `SubscribeButton`, and sets its `chain` to the network of the plans: `solana:mainnet` for plans on `mainnet-beta`, never `solana:mainnet-beta`.
 - [ ] Passes one client at module level to the route handlers and the gate, and says `next build` then needs `MESUB_API_KEY` in its environment too.
 - [ ] Says who must approve in the wallet and what was not tested.
 

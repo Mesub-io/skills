@@ -29,9 +29,9 @@ Paths are under the mount point.
 | `POST /subscriptions/:id/cancel`, `/resume`, `/close` | Builds the transaction the wallet signs and sends | 201 `{ transaction, last_valid_block_height, transaction_expires_at }` |
 | `POST /subscriptions/:id/cancel/confirm`, and the two others | Confirms it: body `{ signature }` | 201 `{ subscription, reason?, reason_code? }` |
 
-`reason_code` and `transaction_expires_at` are Mesub's, handed on as Mesub answered them: present when the Mesub behind the routes serves them, whatever the installed package's types say. Code reading these answers branches on `reason_code`, never on the words of `reason`.
+`reason_code` and `transaction_expires_at` are Mesub's, handed on as Mesub answered them. Code reading these answers branches on `reason_code`, never on the words of `reason`.
 
-The fresh-transaction route and the Pay now route came after the others. A widget that asks for it against an older `@mesub/node` gets a 404 `not_found`: check both installed versions when a user reports it, and say which package is behind. The rule: `@mesub/react` 0.1.x works with the routes of `@mesub/node` 0.1.x, so upgrade both to the same minor together.
+`@mesub/react` 0.1.x works with the routes of `@mesub/node` 0.1.x: keep both at the same minor and upgrade them together.
 
 What the routes guarantee, so the app does not add it on top:
 
@@ -57,7 +57,7 @@ A refusal is `{ "error": { "code": "...", "message": "..." } }`.
 | 502 | the SDK's code | Mesub could not be reached or answered something unreadable. A fixed message, never the server's own details |
 | 500 | none | Thrown to the framework: Mesub refused the API key (missing, wrong, rotated), or something in front of Mesub turned the server away |
 
-Under Express the guards and `mesubRoutes` hand a `MesubError` of a 4xx to `next()` as a copy of status 500, the original as its `cause`, so a refused key or an unknown slug ends as a 500, never as a 401 the widget would read as "sign in first". A copy of `@mesub/node` older than that passes the error's own status (401, 404) to Express's default handler: if a refused key answers 401, the package is behind; an error handler of the app's that answers 500 for a `MesubError` covers both.
+Under Express the guards and `mesubRoutes` hand a `MesubError` of a 4xx to `next()` as a copy of status 500, the original as its `cause`, so a refused key or an unknown slug ends as a 500, never as a 401 the widget would read as "sign in first".
 
 **Never turn that 500 into a 401.** The widget reads a 401 as "sign in first", and every visitor would get the sign-in screen for a broken key.
 

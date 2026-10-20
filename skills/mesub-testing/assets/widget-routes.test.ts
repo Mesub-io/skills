@@ -24,7 +24,6 @@ beforeEach(() => {
     app = createApp({
         mesub: fake.client(),
         customer: () => (signedIn ? { external_id: signedIn } : null),
-        onEvent: () => undefined,
     });
 });
 

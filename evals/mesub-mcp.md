@@ -21,7 +21,7 @@ Fixture: [express-mesub](fixtures/express-mesub/README.md), with the server conn
 - [ ] Says that adding funds does not fix it and that no retry can pay.
 - [ ] Quotes the price as the display value of the `list_subscriptions` row, of `get_subscription` or of `get_plan`, not the raw amount `check_access` carries.
 - [ ] Gives the failed charges' reason as its `reason_label`, or says it is not known when there is none.
-- [ ] Says what only the customer can do: cancel and subscribe again.
+- [ ] Says what only the customer can do: cancel, close once it can be closed, then subscribe again, and that subscribing again before that is refused.
 
 ### Must not
 
@@ -189,7 +189,7 @@ Fixture: [express-mesub](fixtures/express-mesub/README.md).
 
 ### Expected behaviours
 
-- [ ] Says the Mesub MCP server is not connected in this session, and that it is not available yet.
+- [ ] Says the Mesub MCP server is not connected in this session.
 - [ ] Points to the docs page about it.
 - [ ] Says that connecting is done by the user, in their own tool and browser, for one project.
 - [ ] Offers what it can do without it: read how the app gates, or say where the dashboard shows it.
@@ -264,7 +264,7 @@ Fixture: [express-mesub](fixtures/express-mesub/README.md), with the server conn
 
 - [ ] Calls `list_subscriptions` with `status` `late`, and gives the count from `counts` or `total`.
 - [ ] Names each late customer by `external_id` (`ada`, `ben`), with the price as its display value.
-- [ ] Says of ada that a top-up does not help (`APPROVAL_REVOKED`: she subscribes again), and of ben that it does (`INSUFFICIENT_BALANCE`), with when a retry is possible from `retry_available_at`.
+- [ ] Says of ada that a top-up does not help (`APPROVAL_REVOKED`: she cancels, closes, then subscribes again), and of ben that it does (`INSUFFICIENT_BALANCE`), with when a retry is possible from `retry_available_at`.
 - [ ] Offers a retry for ben as a choice for the merchant, naming the subscription, the wallet and the amount, and waits.
 
 ### Must not

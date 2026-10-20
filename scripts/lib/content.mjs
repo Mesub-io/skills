@@ -11,6 +11,8 @@ const LOG_CALL = /\b(console\.\w+|logger\.\w+|log\.\w+|print|printf|echo)\b/
 // One kit for every agent: no vendor, none of their tools or folders.
 const VENDORS = /\b(Claude|Anthropic|Codex|OpenAI|ChatGPT|Cursor|Copilot|Gemini|Windsurf|Cline|OpenCode)\b/
 const VENDOR_TOOLS = /\b(TodoWrite|AskUserQuestion|WebFetch|WebSearch|apply_patch)\b|\.(claude|cursor|codex|gemini)\/|\b(CLAUDE|GEMINI)\.md\b|\.cursorrules\b/
+// Merchants have one Mesub, on mainnet. A test network and the internal staging hosts are never theirs.
+const INTERNAL_NETWORK = /\b(devnet|testnet)\b|\b(?:api-)?dev\.mesub\.io\b/i
 const CLIENT_CODE = /["']use client["']|from\s+["']@mesub\/react/
 
 /** Em dashes: the one rule applied to every file of the repository. */
@@ -32,7 +34,8 @@ export function contentFindings(text) {
     if (/secret[\s_-]?key/i.test(raw)) add('content/secret-key', line, 'say "API key", never "secret key"')
     const vendor = raw.match(VENDORS) ?? raw.match(VENDOR_TOOLS)
     if (vendor) add('content/vendor', line, `"${vendor[0]}": write for "the agent", whichever it is`)
-    if (/\b(devnet|mainnet)\b/i.test(raw)) add('content/network', line, 'a skill names neither devnet nor mainnet')
+    const network = raw.match(INTERNAL_NETWORK)
+    if (network) add('content/network', line, `"${network[0]}": Mesub runs on mainnet for merchants (chain="solana:mainnet"); never name a test network or Mesub's internal staging`)
 
     for (const match of raw.matchAll(/@mesub[\w-]*\/[\w-]+/gi)) {
       if (!PACKAGES.includes(match[0])) add('content/package-name', line, `"${match[0]}": the packages are exactly ${PACKAGES.join(' and ')}`)

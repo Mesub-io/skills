@@ -25,7 +25,9 @@ Once, around the app. It renders the one window every button and hook opens.
 
 Any other string (`account`, `//host/page`, a value with a space) is ignored and the link falls back to Mesub's page. Nothing warns about it. Point it at the page that renders `ManageSubscriptions` or a list built on `useSubscriptions`.
 
-**`chain`** is the test network by default: set it to the network of the plans. A plan lives on one network (its `network` field, in what `GET <endpoint>/plans/<slug>` answers). If the provider's chain is not that network, the wallet is asked to sign for the wrong one. Compare with the plan's `network`, pass `chain="solana:<cluster>"` as Solana's wallets name it, and ask the user when unsure.
+**`chain`**: Mesub runs on Solana mainnet, so set `chain="solana:mainnet"`. A plan's `network` field (in what `GET <endpoint>/plans/<slug>` answers) reads `mainnet-beta`, and `solana:mainnet` is the wallet's name for it. Left out, the provider's default is not mainnet, and the wallet is asked to sign for the wrong network.
+
+Never `solana:mainnet-beta`: it type-checks, but no wallet knows that chain.
 
 **Requests** go with `credentials: 'include'`, so the session cookie travels. A custom `fetch` receives that `init` and must pass it on, `signal` included.
 

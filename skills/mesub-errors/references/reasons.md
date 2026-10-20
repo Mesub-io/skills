@@ -51,9 +51,9 @@ Set while `status` is `unpaid`, and on a `stopped` one for the payment it stoppe
 
 | `late_reason` | What happened | What fixes it |
 |---|---|---|
-| `insufficient_balance` | The wallet holds less than the price | The customer adds funds. Nothing to sign: the next retry pays |
-| `approval_revoked` | The wallet no longer lets Mesub charge it: revoked in the wallet, or replaced when another app was approved on the same token | **Not** adding funds, and no Mesub route restores the approval: every retry fails. The customer can only cancel |
-| `authority_closed` | The wallet closed its authorisation, for good | Nothing: no retry can succeed. It stops with `stop_reason` `authority_closed`, and the customer can close it at once to get the deposit back |
+| `insufficient_balance` | The wallet holds less than the price | The customer adds funds. On Dev and Business the next retry then pays, with nothing to sign. On Free nothing retries by itself: the customer's Pay now, or the user's retry from the dashboard, before `retry_deadline` |
+| `approval_revoked` | The wallet no longer lets Mesub charge it: revoked in the wallet, or replaced when another app was approved on the same token | **Not** adding funds, and no Mesub route restores the approval: every retry fails, and subscribing again is refused (`payment_pending`). The way out is the customer's: cancel, close once `closable`, then subscribe again |
+| `authority_closed` | The wallet closed its authorisation, for good | Nothing: no retry can succeed. It stops with `stop_reason` `authority_closed`, and the customer can close it at once to get the subscription's deposit back |
 
 Read `late_reason` before telling a customer to top up: on two of the three it does not help.
 
@@ -74,7 +74,7 @@ Set only when `status` is `stopped`. Null on every other status, and on one that
 |---|---|---|
 | `out_of_retries` | Every retry of the missed payment failed | Come back by subscribing again, or cancel it and close it once the period ends |
 | `retry_deadline_passed` | On Free, the last day to pay the missed payment passed | The same |
-| `authority_closed` | The wallet closed the account that lets Mesub charge it, for good | Nobody can charge it again and it cannot come back. Close it now (`closable` is true) to get the deposit back |
+| `authority_closed` | The wallet closed the account that lets Mesub charge it, for good | Nobody can charge it again and it cannot come back. Close it now (`closable` is true) to get the subscription's deposit back |
 
 The webhook `subscription.stopped` carries the last charge's reason in its `detail.reason`; `data.stop_reason` is the one to branch on.
 
@@ -93,11 +93,11 @@ Set only when `status` is `ended`. It may be null on one that ended before Mesub
 
 `ended` is final. To have access again the customer subscribes again, to a plan that still exists.
 
-`authority_closed` was the `end_reason` of a subscription account closed outside Mesub: it is `closed_elsewhere` now, and `authority_closed` only names the authorisation closed for good, as `late_reason` and `stop_reason` do. Code comparing `end_reason` with `authority_closed` never matches.
+`authority_closed` was the `end_reason` of a subscription account closed outside Mesub: Mesub serves `closed_elsewhere` now, and `authority_closed` only names the authorisation closed for good, as `late_reason` and `stop_reason` do. `@mesub/node` 0.1.0 still types `authority_closed` as an `end_reason`, and `explain` reads it as `closed_elsewhere`: a branch may keep both, but Mesub no longer sends the old one.
 
 ## Whether it can be closed: `closable` and `closable_from`
 
-Closing a subscription on chain returns its deposit to the wallet. Every subscription and every access answer says whether that is possible now: never work it out from `status`.
+Closing a subscription on chain returns the subscription account's deposit to the wallet. The wallet's account for that token, shared by its subscriptions in it, stays open: its deposit does not come back. Every subscription and every access answer says whether that is possible now: never work it out from `status`.
 
 - `closable: true`: the customer can close it now. A cancellation whose end has passed, one that ended with its plan, or one stopped with `stop_reason` `authority_closed`.
 - `closable: false` with `closable_from` set: from that date, the end of the period a cancellation set.
@@ -146,12 +146,14 @@ Gate on `access`, never on `status`, and keep a default branch: a status may be 
 | `receiver_account_missing` | The receiving wallet has no account for the plan's token | The user |
 | `receiver_account_frozen` | The receiving wallet's account for the plan's token is frozen | The user, with whoever froze it |
 | `mint_gone` | The plan's token no longer exists | Not the app, not the customer |
+| `mint_paused` | The token's issuer paused it (Token-2022) | The issuer, by lifting the pause |
+| `mint_transfer_hook` | The token's issuer gave its transfers a program Mesub does not support (Token-2022) | The issuer, by removing it |
 | `mesub` | A cause on Mesub's side | Nobody: wait |
 
 - The status does not change and the customer is never `late` for it. Do not tell them to add funds.
 - Access ends on `access_until` all the same: the end of the period after the one paid for under `mesub`, sooner under a cause of the plan's setup.
 - Mesub keeps trying. Access comes back with the first charge that goes through, with nothing for the customer to sign.
-- Keep a default branch on `blocked_reason`.
+- Keep a default branch on `blocked_reason`. `@mesub/node` 0.1.0 does not type `mint_paused` and `mint_transfer_hook`: compare them as strings.
 
 ## Wording it for the customer
 

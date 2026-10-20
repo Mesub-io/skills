@@ -2,7 +2,7 @@
 // Copy to app/webhooks/mesub/route.ts, with handle-event.ts beside it.
 // Leave this path out of the app's login in middleware.ts: a redirect counts as a failure.
 import { MesubError, verifyWebhook } from '@mesub/node';
-import { type AccessStore, type EventDeps, type EventStore, receiveEvent } from './handle-event';
+import { type EventDeps, type EventStore, receiveEvent } from './handle-event';
 
 // ADAPT: the app's own store, see handle-event.ts. Until it is replaced this throws,
 // so no event is acknowledged without being recorded.
@@ -13,20 +13,13 @@ const store: EventStore = {
     release: async () => {},
 };
 
-// ADAPT, optional: the app's access table, see handle-event.ts. Mesub does not send the access events
-// yet: while the app asks hasAccess on each request, delete this and pass `{ store }` alone. Kept and
-// not replaced, an access event that arrives throws and is retried rather than dropped.
-const access: AccessStore = {
-    apply: async () => {
-        throw new Error('Record the access in the app\'s database here.');
-    },
-    refresh: async () => {
-        throw new Error('Read the subscription now and record its access here.');
-    },
-};
-
+// ADAPT, optional: to keep access in the app's own table from subscription.access_granted and
+// subscription.access_revoked, write an AccessStore (handle-event.ts) and pass { store, access }.
+// Without one, those events are acknowledged and dropped, and the app asks hasAccess on each request.
+// Never pass a stub that throws: every access event would fail, Mesub would retry it for three days,
+// then disable the endpoint, and every other event would stop with it.
 // The work workFor() returns sits in the outbox: the app drains it after the answer (references/delivery.md).
-const deps: EventDeps = { store, access };
+const deps: EventDeps = { store };
 
 export async function POST(request: Request): Promise<Response> {
     let event;

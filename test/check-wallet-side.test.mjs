@@ -46,7 +46,7 @@ test('a provider without chain warns', () => {
   const { out } = check({
     'app/layout.tsx': `import '@mesub/react/styles.css'\nimport { MesubProvider } from '@mesub/react'\nexport default function L({ children }) { return <MesubProvider endpoint="/api/mesub">{children}</MesubProvider> }\n`,
   })
-  assert.match(out, /WARN  app\/layout\.tsx:3 sets no chain, so the wallet signs on the test network/)
+  assert.match(out, /WARN  app\/layout\.tsx:3 sets no chain, so the wallet signs on the provider's default/)
 })
 
 test('an unlock flag in localStorage or sessionStorage fails', () => {
@@ -93,4 +93,36 @@ test('a server cancel that drops its transaction fails, one that returns it pass
   })
   assert.doesNotMatch(handed.out, /FAIL .*cancel/, handed.out)
   assert.match(handed.out, /PASS  no server route claims to cancel without the wallet/)
+})
+
+const LAYOUT = (chain) => ({
+  'app/layout.tsx': `import '@mesub/react/styles.css'\nimport { MesubProvider } from '@mesub/react'\nexport default function L({ children }) { return <MesubProvider endpoint="/api/mesub" ${chain}>{children}</MesubProvider> }\n`,
+})
+
+test('chain solana:mainnet-beta fails: the plan network is mainnet-beta, the wallet chain is solana:mainnet', () => {
+  for (const chain of [`chain="solana:mainnet-beta"`, `chain={'solana:mainnet-beta'}`]) {
+    const { status, out } = check(LAYOUT(chain))
+    assert.equal(status, 1, out)
+    assert.match(out, /FAIL  app\/layout\.tsx:3 sets chain to solana:mainnet-beta, which no wallet knows: a plan on mainnet-beta is signed for as solana:mainnet/)
+  }
+})
+
+test('solana:mainnet passes', () => {
+  const { status, out } = check(LAYOUT(`chain="solana:mainnet"`))
+  assert.equal(status, 0, out)
+  assert.match(out, /PASS  app\/layout\.tsx:3 sets chain to solana:mainnet, where Mesub runs/)
+})
+
+test('another literal chain warns, an expression keeps the plain reminder', () => {
+  for (const chain of ['solana:devnet', 'solana:mainnet_beta']) {
+    const other = check(LAYOUT(`chain="${chain}"`))
+    assert.match(other.out, new RegExp(`WARN  app/layout\\.tsx:3 sets chain to ${chain}: Mesub runs on mainnet, so chain="solana:mainnet"`))
+  }
+  const expression = check(LAYOUT(`chain={process.env.NEXT_PUBLIC_SOLANA_CHAIN}`))
+  assert.match(expression.out, /PASS  app\/layout\.tsx:3 sets chain: check it is the plans' network/)
+})
+
+test('no chain warns that the wallet signs off mainnet', () => {
+  const { out } = check(LAYOUT(''))
+  assert.match(out, /WARN  app\/layout\.tsx:3 sets no chain, so the wallet signs on the provider's default, which is not mainnet/)
 })

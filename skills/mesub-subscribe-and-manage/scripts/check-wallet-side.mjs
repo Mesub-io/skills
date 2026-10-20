@@ -6,7 +6,8 @@
 // manageUrl that is ignored, a slug the routes refuse, the server package in
 // client code, a subscription created and never submitted, a cancellation built
 // and never confirmed, a cancel route the server would do alone, an access flag
-// kept in the browser, a provider with no chain. Run it from the project root.
+// kept in the browser, a provider with no chain or a chain no wallet knows
+// (solana:mainnet-beta). Run it from the project root.
 //
 // It only reads source files and package manifests. No write, no install, no
 // network. It never opens an env file, so it cannot show a key.
@@ -175,10 +176,17 @@ if (widgetFiles.length === 0) {
     report('PASS', `<MesubProvider> is rendered (${at(providers[0].file, providers[0].index)})`)
     if (providers.length > 1) report('WARN', `${providers.length} <MesubProvider> found: one around the app is enough, and each renders its own window`)
   }
-  // chain: the test network unless set. A plan lives on one network, and the wallet signs for the provider's.
+  // chain: Mesub runs on mainnet, and the provider's default is not. A plan's network field reads
+  // mainnet-beta; to a wallet that is solana:mainnet.
   for (const { file, index, tag } of providers) {
-    if (/\bchain=/.test(tag)) report('PASS', `${at(file, index)} sets chain: check it is the plans' network`)
-    else if (!/\{\s*\.\.\./.test(tag)) report('WARN', `${at(file, index)} sets no chain, so the wallet signs on the test network: set chain to the network of the plans (their network field) before a real subscription, and ask the user when unsure`)
+    const literal = tag.match(/\bchain=(?:\{\s*)?(["'`])([^"'`]*)\1/)
+    if (literal) {
+      const chain = literal[2]
+      if (chain === 'solana:mainnet-beta') report('FAIL', `${at(file, index)} sets chain to solana:mainnet-beta, which no wallet knows: a plan on mainnet-beta is signed for as solana:mainnet`)
+      else if (chain === 'solana:mainnet') report('PASS', `${at(file, index)} sets chain to solana:mainnet, where Mesub runs`)
+      else report('WARN', `${at(file, index)} sets chain to ${chain}: Mesub runs on mainnet, so chain="solana:mainnet"`)
+    } else if (/\bchain=/.test(tag)) report('PASS', `${at(file, index)} sets chain: check it is the plans' network`)
+    else if (!/\{\s*\.\.\./.test(tag)) report('WARN', `${at(file, index)} sets no chain, so the wallet signs on the provider's default, which is not mainnet: Mesub runs on mainnet, set chain="solana:mainnet"`)
   }
 
   // manageUrl: a site path, a full URL or null. Anything else is ignored without a word.
