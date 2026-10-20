@@ -4,7 +4,7 @@
 
 A server Mesub hosts. There is nothing to install and no API key to hand over. An agent connected to it reads **one project** and acts on it, the way the merchant would in the dashboard.
 
-**It is not hosted yet, and its address is not known.** The docs page about it carries a placeholder. So this skill never gives an address, and neither do you.
+**Its address is `https://mcp.mesub.io/mcp`**, the one the docs page gives. Never write or guess another.
 
 ## Is it connected?
 
@@ -13,12 +13,12 @@ Look at your own tool list. The server is connected when it holds the Mesub tool
 | What you see | Do |
 |---|---|
 | The tools are there | Use them. Start with `get_project` and say which project the connection is on |
-| The tools are not there | Say the Mesub MCP server is not connected in this session, and that it is not available yet. Point to its docs page (`docs.md`). Then offer what does not need it |
+| The tools are not there | Say the Mesub MCP server is not connected in this session. Point to its docs page (`docs.md`), where its address and how to connect are. Then offer what does not need it |
 | The tools are there and every call says to connect again | The connection lapsed: `limits-and-failures.md` |
 
 When it is not connected, never:
 
-- write or guess an address for the server, or a configuration entry holding one;
+- write an address other than `https://mcp.mesub.io/mcp`, or connect for the user: the merchant adds it in their own tool;
 - ask the user for an API key, or read one from an env file, to call Mesub yourself in its place;
 - answer as if a tool had been called.
 
@@ -28,7 +28,7 @@ Offer what can still be done without it: reading in the code how the app gates a
 
 It happens in the merchant's own tool and browser, never in the conversation:
 
-1. They add the server to their tool as a remote MCP server, with the address from the docs page once one is published.
+1. They add the server to their tool as a remote MCP server: `https://mcp.mesub.io/mcp`.
 2. The tool opens a Mesub page in their browser. They sign in to the dashboard.
 3. They choose **one project**. Nothing is chosen for them.
 4. They read what the page lists, and authorize.

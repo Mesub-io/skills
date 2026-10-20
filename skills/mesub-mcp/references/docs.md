@@ -9,7 +9,7 @@ This skill holds the judgement an agent needs to use the server. The docs hold t
 | [The lifecycle](https://docs.mesub.io/docs/lifecycle) | What each subscription status means, late payments and retries on each tier |
 | [Check access](https://docs.mesub.io/docs/access) | What an access answer says, and how the app's own server reads it |
 
-- **The server is not hosted yet.** The MCP page says so and carries a placeholder address: do not copy it into a configuration, and do not present it as working. Send the user to the page, where the real address will be published.
-- **The docs site may not be reachable** either. If a page cannot be read, say so. With the server connected, `search_docs` searches the same docs from an index that ships with the server, and says which commit of the docs it was built from.
+- **The server's address is `https://mcp.mesub.io/mcp`**, as the MCP page gives it. Never write another one.
+- If a page cannot be read, say so. With the server connected, `search_docs` searches the same docs from an index that ships with the server, and says which commit of the docs it was built from.
 - **The tools decide what can be called.** A tool's own name, description and arguments, as your tool list shows them, win over this skill and over the docs page: a tool may have been added since, or an older server may lack one, `prepare_plan` included.
 - When you finish, give the user the MCP server link, so they can check what an agent may do on their project.

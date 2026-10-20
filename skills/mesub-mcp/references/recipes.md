@@ -27,7 +27,7 @@ Before the first one in a conversation, call `get_project` and say which project
 | `late_reason` | Adding funds | What fixes it |
 |---|---|---|
 | `insufficient_balance` | Fixes it | The customer adds funds. The next retry, one the merchant fires by hand, or the customer paying from the app, collects |
-| `approval_revoked` | Does not help | Every retry fails. The customer must cancel and subscribe again |
+| `approval_revoked` | Does not help | Every retry fails, and subscribing again is refused while it is late. The customer cancels it, closes it once `closable`, then subscribes again |
 | `authority_closed` | Does not help | Final: it stops with `stop_reason` `authority_closed`. The customer closes it, then subscribes again |
 
 On the Free tier nothing retries by itself: each retry is fired by hand, by the merchant (`retry_charge`) or by the subscriber paying from the app, and both count against the same three retries of the missed period. On a tier that retries, the plan's policy does. The overview's `retries_automatic` field, when the server returns it, says which case the project is in.
@@ -115,7 +115,7 @@ To change or remove an endpoint later: state the old and the new value, or the U
 1. Find the subscription, as in the first recipe: **`check_access`** with the id the app's code sends for that customer, then the bare name, then the email, before asking the merchant who they are. Then **`get_subscription`** with the `subscription_id` it answers, or **`list_subscriptions`** with `q` set to the wallet it names, or to the start of the customer's `external_id`. Never pick among the late ones by guessing: when several rows match, name them and ask which one.
 2. Read the row before any retry (`get_subscription` has the same, and every attempt):
    - the status: only a subscription behind on its payment (`UNPAID`) can be retried;
-   - `late_reason`, first: on `APPROVAL_REVOKED` or `AUTHORITY_CLOSED` a retry fails again whatever the wallet holds. Say so, offer no retry, and do not call: only the subscriber fixes it, by subscribing again;
+   - `late_reason`, first: on `APPROVAL_REVOKED` or `AUTHORITY_CLOSED` a retry fails again whatever the wallet holds. Say so, offer no retry, and do not call: only the subscriber gets out of it, by cancelling, closing once it can be closed, then subscribing again;
    - `retry_available_at`: null means it would be refused. A time in the future means no call now: say that time to the merchant and stop; they ask again once it has passed. Past: one call decides, and a refusal states the wait;
    - `amount_display`: what would leave the subscriber's wallet.
 3. **Name what will happen**: which subscription, which wallet, how much, in your message before the call. Once you have named those three, the merchant's explicit request about that one customer ("charge him again") counts as the yes: no second question. A general remark that some customers are late is not a request. If `retry_available_at` is in the future, step 2 already stopped you: say the time, do not call.
@@ -131,7 +131,7 @@ A refusal means nothing was charged. When it carries a `request_id`, give it to 
 `prepare_plan` fills a plan in. The merchant reviews it and signs it in the dashboard, and only then does it exist.
 
 1. **Gather what the merchant decides**: a name, a price, the token, the period. Optional: a description, a website, a retry policy. Do not invent any of them: ask.
-2. The token is one of those Mesub vouches for: **USDC, USDT or PYUSD**. Another token is not prepared through the server. On a test network only USDC exists: the server learns the network from the first token the API accepts, and a refusal for another token says which ones this Mesub takes. Relay it; do not try the other tokens one by one.
+2. The token is one of those Mesub vouches for: **USDC, USDT or PYUSD**. Another token is not prepared through the server (`mint_not_allowed`): the merchant creates that plan in the dashboard, which takes any SPL Token or Token-2022 mint save one that is paused, frozen by default, non-transferable, with a transfer hook, confidential only, of an extension Mesub does not know, or shown scaled. On a token with a transfer fee the subscriber pays the price and the receiver gets it less the issuer's fee. On a test network only USDC exists: the server learns the network from the first token the API accepts, and a refusal for another token says which ones this Mesub takes. Relay it; do not try the other tokens one by one.
 3. **`list_plans`** first: a name already used by a live plan is refused, and so is a project at its tier's plan limit (`get_project` shows it).
 4. **`prepare_plan`**, once. The price is a decimal string, as a person writes it, six decimals at most: `"10"`, `"9.99"`, never the smallest unit (`"9990000"` would be nine million). Check it against the `amount_display` that comes back.
 5. **Show the merchant exactly what was prepared**, read from the result and not from your own request: the name, the price as its display value, the token, the period in words (720 hours is 30 days), the retry policy if any. Then give the link the result carries.

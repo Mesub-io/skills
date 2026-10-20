@@ -34,6 +34,9 @@ A failed call is a tool error whose text is `Mesub error <code>: <message>`, fol
 | `unavailable`, "Temporary" | Mesub or the chain did not answer in time | `ping` tells an outage from a mistake. **If the call was a change, read the current state before anything else: it may have gone through** |
 | `internal_error`, `unexpected` | The server failed, or the API answered something it does not recognise | Do not repeat a change. Report it with the tool's name, and the `request_id` when the error carries one (`req_` and 24 letters or digits): Mesub support finds the request by it |
 | `result_too_large` | The answer would not fit | Ask for less: a smaller `limit`, a narrower filter |
+| `wallet_required`, from `prepare_plan` | The merchant's account has no wallet connected | Nothing was prepared. Give the merchant the address the advice names (the dashboard's settings) to connect one, then call once again |
+| `mint_not_allowed`, from `prepare_plan` | The server prepares plans only in the tokens Mesub vouches for on this network, and the message names them | Say which ones it takes. A plan in another token is created by the merchant in the dashboard |
+| `plan_name_taken`, from `prepare_plan` | Another plan of the project has that name, however it is spelled | Ask the merchant for another name: `list_plans` shows the ones in use |
 
 Codes are added over time. For one this table does not hold, follow the advice sentence, and treat a change as not safe to repeat.
 
