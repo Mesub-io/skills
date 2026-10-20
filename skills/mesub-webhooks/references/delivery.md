@@ -20,7 +20,7 @@ So the route must:
 
 When the answer is not a 2xx, the same event is tried again after 1 minute, 5 minutes, 30 minutes, 2 hours, then every 12 hours, for about three days in all. Each try carries the same bytes (the event's `id` among them), the same `webhook-id` header and a new `webhook-timestamp`.
 
-An endpoint that fails for three days with no success in between is **disabled**. Nothing is sent to it until the user enables it again in the dashboard, under Developers, then Webhooks. What it missed meanwhile is not sent again: catch up with `GET /v1/events` (below). A handler that answers 500 to one kind of event it cannot handle will, after three days, stop receiving every event: acknowledge what you do not handle.
+An endpoint that fails for three days with no success in between is **disabled**. Nothing is sent to it until the user enables it again in the dashboard, under Developers, then Webhooks. What it missed meanwhile is not retried by itself: catch up with `GET /v1/events` (below), or have the user press **Resend** on a delivery in the endpoint's list of deliveries, which sends it again under the same `webhook-id` once the endpoint is enabled. A handler that answers 500 to one kind of event it cannot handle will, after three days, stop receiving every event: acknowledge what you do not handle.
 
 What to answer:
 
@@ -34,7 +34,7 @@ What to answer:
 
 ## Rotating the signing secret
 
-The user regenerates an endpoint's secret in the dashboard, with an overlap of 24 hours or none (`regenerate_webhook_secret` takes 0 to 24). During the overlap the old secret keeps signing beside the new one: every delivery, retries included, carries two signatures in `webhook-signature`, space separated, the new secret's first:
+The user regenerates an endpoint's secret in the dashboard, with an overlap of 24 hours or none. During the overlap the old secret keeps signing beside the new one: every delivery, retries included, carries two signatures in `webhook-signature`, space separated, the new secret's first:
 
 ```text
 webhook-signature: v1,<signed with the new secret> v1,<signed with the old secret>
@@ -105,7 +105,7 @@ Order is not guaranteed. A retry of an old event can land after a newer one: `su
 
 - **Apply one subscription's events in the order of `sequence`**: keep, per subscription, the highest `sequence` applied, and skip an event at or below it. One conditional write does it (`UPDATE ... SET last_sequence = $1 ... WHERE subscription_id = $2 AND last_sequence < $1`). `created_at` does not order events: it is when Mesub wrote them.
 - **An event without `sequence`** (a body written before Mesub numbered events, or one it could not number) cannot be placed: read the state now with `mesub.subscriptions.retrieve` or `hasAccess` rather than applying its `data`.
-- **Access comes from `subscription.access_granted` and `subscription.access_revoked` alone**, applied by `sequence`; every other event says why, not whether. Mesub does not send these two yet (`events.md`, "Order and access"): until an endpoint receives them, ask `hasAccess` before granting or revoking anything, and do not keep "is subscribed" from the other events, since a cancellation reaching its end sends none of them yet.
+- **Access comes from `subscription.access_granted` and `subscription.access_revoked` alone**, applied by `sequence`; every other event says why, not whether. An app that does not apply them asks `hasAccess` before granting or revoking anything, and never keeps "is subscribed" from the other events: a cancellation reaching its end, or a plan's end, sends none of them (`events.md`, "Order and access").
 - `event.data` is the subscription as it stood right after the change that raised the event, however late the delivery: on a retry hours later it is hours old. (A body written before `available_since` carries it as it was at the delivery's first attempt instead.)
 
 `mesub.webhooks.verify` helps here: once the event is verified, the client drops every answer it had cached for that subscription's customer, so the next `hasAccess` in that process asks Mesub again. The bare `verifyWebhook` function has no client and drops nothing. Where the same process gates routes, prefer the client's method.
@@ -117,12 +117,12 @@ Who to ask about: the subscription names its customer three ways, `data.external
 Mesub keeps every event of the project for 30 days and serves the very bodies its webhooks carry, byte for byte once parsed, with the same `id`. Read it after an outage, after the endpoint was disabled, or to backfill an endpoint added late.
 
 ```ts
-// ADAPT: with a package that has no events call, the same GET with the API key as a bearer token.
-const page = await fetch('https://api.mesub.io/v1/events?limit=100', {
-    headers: { Authorization: `Bearer ${process.env.MESUB_API_KEY}`, 'Mesub-Version': '2026-10-02' },
-}).then((response) => response.json());
-// page: { data: Event[], has_more, available_since }
+// The app's one client: it reads MESUB_API_KEY from the server's environment.
+const page = await mesub.events.list({ limit: 100 });
+// page: { data: MesubEvent[], has_more, available_since }
 ```
+
+A key of the dev environment talks to `https://api-dev.mesub.io`: its client is built with `new Mesub({ baseUrl: 'https://api-dev.mesub.io' })`. Production is the default, `https://api.mesub.io`.
 
 - **Newest first**, 25 a page by default, `limit` 1 to 100. The next page: `starting_after` set to the `id` of the last event of this one, while `has_more` is true.
 - **Filters**: `type` (one event name) and `subscription` (one subscription's id).
@@ -134,4 +134,4 @@ const page = await fetch('https://api.mesub.io/v1/events?limit=100', {
 - `GET /v1/events/{id}` reads one, by the `id` its body carries; `event_not_found` (404) past the 30 days or before `available_since`.
 - A read route of the API, counted in the 1,000 a minute per API key. A catch-up loop pages, it does not hammer.
 
-Before writing it, look in `node_modules/@mesub/node` for an events call (`mesub.events`): a package that has one does the paging and checks the bodies. Never put the API key in a URL, a log or client code.
+`mesub.events.list` takes `type`, `subscription`, `limit` and `starting_after`, and `mesub.events.retrieve(id)` reads one. Never call the API by hand with the key, and never put it in a URL, a log or client code.

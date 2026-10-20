@@ -1,6 +1,6 @@
 // What to do with an event once its signature is verified: drop a repeat, record the work, apply access.
 // Copy next to the webhook route. It imports nothing but the SDK's types.
-import type { MesubEvent, WebhookEvent } from '@mesub/node';
+import type { MesubEvent, RenewalUpcomingDetail, WebhookEvent } from '@mesub/node';
 
 // The subscription an event is about, as it stood when the event was written.
 type Subscription = WebhookEvent['data'];
@@ -37,56 +37,42 @@ export interface AccessStore {
 // What the handler needs from the app, handed in by the route.
 export interface EventDeps {
     store: EventStore;
-    // Optional: leave it out while the app asks `hasAccess` on each request. The access events are
-    // then acknowledged and dropped, which is right: Mesub does not send them yet.
+    // Optional: leave it out when the app asks `hasAccess` on each request. The access events are
+    // then acknowledged and dropped, which is right: hasAccess already answers what they say.
     access?: AccessStore;
-}
-
-/** `detail` of subscription.renewal_upcoming, as the docs give it. */
-export interface RenewalUpcomingDetail {
-    can_pay: boolean;
-    renewal_issue: 'balance' | 'authority' | null;
-    amount: string;
-    mint: string;
-    due_at: string;
 }
 
 // A delivery sent by hand from the dashboard carries `test: true` and the subscription `sub_test`.
 function isTest(event: WebhookEvent): boolean {
-    return (event as { test?: unknown }).test === true || event.data.id === 'sub_test';
+    return event.test === true || event.data.id === 'sub_test';
 }
 
-// The event's own fields: at the top of the body since api_version 2026-10-02, under `data` in a
-// body written before `available_since` and in an older package's types. Read by hand, it works with both.
+// The event's own fields, at the top of the body. The SDK moves the `detail` of a body written before
+// `available_since` there too. Read loosely: a type Mesub adds later has a detail this code does not know.
 function detailOf(event: WebhookEvent): Record<string, unknown> {
-    const detail = (event as { detail?: unknown }).detail ?? (event.data as { detail?: unknown }).detail;
+    const detail: unknown = event.detail;
     return typeof detail === 'object' && detail !== null ? (detail as Record<string, unknown>) : {};
 }
 
-// An older copy of the SDK neither names this event nor checks its detail: read by hand, it works with both.
+// The SDK checks this event's detail: can_pay, renewal_issue, amount, mint, due_at.
 function renewalUpcomingOf(event: WebhookEvent): RenewalUpcomingDetail | null {
-    if ((event.type as string) !== 'subscription.renewal_upcoming') return null;
-
-    const detail = detailOf(event) as Partial<RenewalUpcomingDetail>;
-    return typeof detail.can_pay === 'boolean' ? (detail as RenewalUpcomingDetail) : null;
+    return event.type === 'subscription.renewal_upcoming' ? event.detail : null;
 }
 
 // Its place among the subscription's events, or null on a body Mesub did not number.
-// Read by hand: an older copy of the SDK does not type it.
 function sequenceOf(event: WebhookEvent): number | null {
-    const sequence = (event as { sequence?: unknown }).sequence;
+    const sequence: unknown = event.sequence;
     return typeof sequence === 'number' && Number.isInteger(sequence) && sequence >= 1 ? sequence : null;
 }
 
 // subscription.access_granted and subscription.access_revoked: the only events that say whether the
-// customer has access. Not sent until Mesub turns them on; an older SDK does not name them, so compare strings.
+// customer has access.
 function isAccessEvent(event: WebhookEvent): boolean {
-    const type = event.type as string;
-    return type === 'subscription.access_granted' || type === 'subscription.access_revoked';
+    return event.type === 'subscription.access_granted' || event.type === 'subscription.access_revoked';
 }
 
 async function applyAccess(event: WebhookEvent, access: AccessStore): Promise<void> {
-    const type = event.type as string;
+    const type = event.type;
 
     const sequence = sequenceOf(event);
     if (sequence === null) {
@@ -137,7 +123,7 @@ export function fromEventsList(event: MesubEvent): WebhookEvent {
 // ADAPT: keep the branches the app needs. Each one only DECIDES the work, from the event, and
 // returns it: the claim records it in the outbox in one write, and the app's drainer sends it after
 // the answer (references/delivery.md). Mesub waits 10 seconds. Never grant or revoke access here:
-// only the two access events above do, and until Mesub sends them, ask `hasAccess`.
+// only the two access events above do, or `hasAccess` on each request.
 function workFor(event: WebhookEvent): Work[] {
     const upcoming = renewalUpcomingOf(event);
     if (upcoming) {
@@ -146,18 +132,15 @@ function workFor(event: WebhookEvent): Work[] {
         return [];
     }
 
-    // Not typed by an older SDK: compare strings. A seat parked over the project's own tier cap
-    // (paused) or back under it (unpaused), never the subscriber's choice: tell the merchant, not
-    // the customer. Access follows from the access events. Not sent until Mesub turns them on.
-    const type = event.type as string;
-    if (type === 'subscription.paused' || type === 'subscription.unpaused') {
-        return [];
-    }
-
     switch (event.type) {
+        case 'subscription.paused':
+        case 'subscription.unpaused':
+            // A seat parked over the project's own tier cap (paused) or back under it (unpaused), never
+            // the subscriber's choice: tell the merchant, not the customer. Access follows from the access events.
+            return [];
         case 'subscription.created':
             // The first payment landed. event.data is the subscription; detailOf(event).first_payment
-            // is { amount, mint, signature }, null when none was recorded, absent on older events.
+            // is { amount, mint, signature }, null when none was recorded.
             return [];
         case 'subscription.renewed':
             // detailOf(event): amount, mint, period_start, period_end, signature
@@ -181,6 +164,11 @@ function workFor(event: WebhookEvent): Work[] {
             // One subscription can end twice: 'cancelled' at a cancellation's end, then 'closed'.
             return [];
         case 'subscription.expired':
+            return [];
+        case 'subscription.access_granted':
+        case 'subscription.access_revoked':
+        case 'subscription.renewal_upcoming':
+            // Handled above.
             return [];
         default:
             // A type this code does not know: acknowledge it, never throw on it.

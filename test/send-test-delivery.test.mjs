@@ -52,6 +52,19 @@ test('by default the signed delivery is a test event', async () => {
   })
 })
 
+test('the body names production\'s cluster unless --network names another', async () => {
+  await withHandler(async (url, accepted) => {
+    const { status, out } = await send(url)
+    assert.equal(status, 0, out)
+    assert.equal(accepted[0].network, 'mainnet-beta')
+  })
+  await withHandler(async (url, accepted) => {
+    const { status, out } = await send(url, '--network', 'devnet')
+    assert.equal(status, 0, out)
+    assert.equal(accepted[0].network, 'devnet')
+  })
+})
+
 test('--type sends a real event of that type, for that user', async () => {
   await withHandler(async (url, accepted) => {
     const { status, out } = await send(url, '--type', 'subscription.cancelled', '--external-id', 'user_ada', '--subscription', 'sub_42')

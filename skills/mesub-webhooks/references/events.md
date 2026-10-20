@@ -27,7 +27,7 @@ Every delivery is a `POST` of this body, the same one `GET /v1/events` serves (`
 | `object` | Always `event` |
 | `type` | The event's name |
 | `created_at` | When Mesub wrote the event, not when it was sent. On the two access events, `detail.changed_at` says when access changed |
-| `network` | The Solana cluster the subscription is on, as Solana names it. One endpoint can tell two projects' clusters apart with it |
+| `network` | The Solana cluster the subscription is on: `mainnet-beta` in production, `devnet` in the dev environment. One endpoint can tell two projects' clusters apart with it |
 | `api_version` | The version of the contract `data` and `detail` are written in, as `Mesub-Version` names it. Kept with the body: a retry days later carries the version it was written in |
 | `sequence` | Its place among **this subscription's** events: 1, 2, 3..., two events of one change included. Absent on a body written before Mesub numbered events, or one it could not number. See "Order and access" |
 | `data` | The subscription as it stood right after the change that raised the event, as `mesub.subscriptions.retrieve` would have answered then |
@@ -36,13 +36,13 @@ Every delivery is a `POST` of this body, the same one `GET /v1/events` serves (`
 
 `data` is the subscription at the event, however late the delivery: on a retry hours later it is hours old, so read `mesub.subscriptions.retrieve` or ask `hasAccess` for the state now. Events raised by the same change share it: a last retry that fails raises `subscription.payment_failed` and `subscription.stopped`, both with `status: stopped`, the failure's cause in `payment_failed`'s `detail`.
 
-### What the installed package hands back
+### What `verify` hands back
 
-The body above is the contract since `api_version` `2026-10-02`. What `verify` returns depends on the copy of `@mesub/node` installed: read its `WebhookEvent` type in the `.d.ts` files of `node_modules/@mesub/node/dist` before writing a branch.
+The body above is the contract since `api_version` `2026-10-02`, and `WebhookEvent` of `@mesub/node` 0.1.0 types it, every event type above included.
 
-- **`event.id`**: a package written for this body gives the event's `id`, typed `string | null`: null on a body written before `available_since`, and `event.delivery_id` holds the `webhook-id` header. Deduplicate on `event.id ?? event.delivery_id`. An older package puts the `webhook-id` header in `event.id` instead. Both stay the same on every retry to one endpoint, so either deduplicates; only the event's id matches `GET /v1/events` and the other endpoints.
-- **`detail`**: an older package expects it under `data` and throws `unexpected` (a `MesubError`, not `invalid_webhook`) on a body that has it at the top. The route then answers 500, Mesub retries, and after three days disables the endpoint. That is a package to update, not a handler to fix: tell the user.
-- `assets/handle-event.ts` reads `detail` at the top first, then under `data`, so it works with both.
+- **`event.id`** is the event's `id`, typed `string | null`: null on a body written before `available_since`. `event.delivery_id` holds the `webhook-id` header. Deduplicate on `event.id ?? event.delivery_id`: only the event's id matches `GET /v1/events` and the other endpoints.
+- **`event.detail`** is the event's own fields, checked for the known types. On a body written before `available_since`, the SDK moves the `detail` it finds under `data` to the top, so the handler reads one place.
+- `event.sequence` and `event.test` are typed too: no cast is needed.
 
 ### Bodies written before `available_since`
 
@@ -59,18 +59,18 @@ The body above is the contract since `api_version` `2026-10-02`. What `verify` r
 | `subscription.stopped` | Mesub stopped charging after missed payments. `data.stop_reason` says why: `out_of_retries`, `retry_deadline_passed` or `authority_closed` | `reason` |
 | `subscription.cancelled` | The customer cancelled. Access runs to the period's end | empty |
 | `subscription.resumed` | A cancellation was undone | empty |
-| `subscription.ended` | It is over. `data.end_reason` says why: `cancelled` when a cancellation reached its end (**not sent yet**), `closed` when the account is closed, `plan_ended` at the end date of its plan, `plan_removed` or `plan_replaced` when the merchant removed or replaced the plan, `closed_elsewhere` when the account was closed outside Mesub | empty; on a cancellation's end, `changed_at` and `end_reason` `cancelled` |
+| `subscription.ended` | It is over. `data.end_reason` says why: `cancelled` when a cancellation reached its end, `closed` when the account is closed, `plan_ended` at the end date of its plan, `plan_removed` or `plan_replaced` when the merchant removed or replaced the plan, `closed_elsewhere` when the account was closed outside Mesub | empty; on a cancellation's end, `changed_at` and `end_reason` `cancelled` |
 | `subscription.expired` | A checkout was started and never signed | empty |
-| `subscription.access_granted` | Access started: the subscription grants access now and did not just before. **Not sent yet**: see "Order and access" | `changed_at`, `blocked_reason`, `access_until` |
-| `subscription.access_revoked` | Access ended: it grants none now and did just before. **Not sent yet** | `changed_at`, `blocked_reason`, `access_until` |
-| `subscription.paused` | A seat was parked: the project holds more subscribers than its tier allows. **Not sent yet** | empty |
-| `subscription.unpaused` | A parked seat is back: the tier has room again. **Not sent yet** | empty |
+| `subscription.access_granted` | Access started: the subscription grants access now and did not just before. See "Order and access" | `changed_at`, `blocked_reason`, `access_until` |
+| `subscription.access_revoked` | Access ended: it grants none now and did just before | `changed_at`, `blocked_reason`, `access_until` |
+| `subscription.paused` | A seat was parked: the project holds more subscribers than its tier allows | empty |
+| `subscription.unpaused` | A parked seat is back: the tier has room again | empty |
 | `test` | Sent from the dashboard with no event picked | empty |
 
 Things that are easy to get wrong:
 
-- **A cancellation reaching its end is told late, and not yet.** `subscription.cancelled` arrives when the customer cancels, while access still runs until `data.access_until`. At the expiry, `subscription.access_revoked` is sent first; `subscription.ended` with `end_reason: cancelled` follows once Mesub reads the chain, usually within half an hour, `detail.changed_at` the expiry. Closing the account later sends `ended` again, with `closed`. Mesub sends none of these yet: ask `hasAccess` on each request until they arrive.
-- **`subscription.paused` is not the subscriber's choice.** The project went over its tier's cap (a smaller tier, or a late confirmation filled it) and Mesub stopped charging the newest seats. Nothing changed on chain, the status stays, `data.paused` is true and `data.next_charge_at` null; access runs to the end of the paid period, then `subscription.access_revoked` follows. Tell the merchant (a bigger tier brings the seats back, with `subscription.unpaused`), never mail the customer as if they paused. An older SDK does not type either name: compare `event.type` as a string.
+- **A cancellation reaching its end is told late.** `subscription.cancelled` arrives when the customer cancels, while access still runs until `data.access_until`. At the expiry, `subscription.access_revoked` is sent first; `subscription.ended` with `end_reason: cancelled` follows once Mesub reads the chain, usually within half an hour, `detail.changed_at` the expiry. Closing the account later sends `ended` again, with `closed`. An app that does not keep access from the access events asks `hasAccess` on each request instead.
+- **`subscription.paused` is not the subscriber's choice.** The project went over its tier's cap (a smaller tier, or a late confirmation filled it) and Mesub stopped charging the newest seats. Nothing changed on chain, the status stays, `data.paused` is true and `data.next_charge_at` null; access runs to the end of the paid period, then `subscription.access_revoked` follows. Tell the merchant (a bigger tier brings the seats back, with `subscription.unpaused`), never mail the customer as if they paused.
 - **Mesub may add a type.** The SDK hands back a type it does not know, with its subscription checked. Keep a `default` branch that acknowledges it.
 - **An endpoint receives only the events selected for it** in the dashboard. A missing event is first a selection to check, not a bug in the handler. Events missed while the endpoint was down or disabled are in `GET /v1/events` for 30 days.
 
@@ -94,7 +94,7 @@ Sent exactly when the access a subscription grants changes (`data.access`), what
 - `data` is the subscription at that moment: `data.access`, `data.access_until`, and on a collection blocked on Mesub's or the merchant's side, `data.blocked_since` and `data.blocked_reason`.
 - Granted: the first access, a payment that gives access back after it ended, a comeback, a resume after a cancellation ended. Revoked: stopped, ended, a failed payment on Free, a cancellation or a plan reaching its end, a blocked collection reaching `access_until`.
 - **A renewal paid on time, or a resume while the period runs, sends neither**: access did not change.
-- **Not sent yet.** Mesub has them behind a switch it turns on later, for every project at once. Until an endpoint receives one, keep asking `hasAccess`; write the branches now so nothing changes the day they arrive. Like any event, they reach an endpoint only when selected for it in the dashboard.
+- **Sent on every project**, to an endpoint that selected them in the dashboard. An endpoint created before they existed may not have them selected: check. An app may also leave them unselected and ask `hasAccess` on each request: both are right, never a mix of the two for one decision.
 - Once they drive access, a row kept from them is the app's own answer: still ask `hasAccess` for an event without `sequence`, and after a catch-up with `GET /v1/events` apply what it returns by `sequence` too.
 
 ## The details
@@ -162,7 +162,7 @@ Sent once per period, when a subscription enters the last quarter of it and thre
 - It must be selected for the endpoint in the dashboard. An endpoint created before the event existed does not get it by itself.
 - **It is never sent for a charge that cannot happen.** A subscription in the last period of a plan with an end date has no renewal: no event, and no mail from Mesub. A reminder built on this event never reaches those customers.
 
-**An older copy of the SDK does not name it.** The type and its checked detail were added while the package was still 0.1.0, so the version does not tell: search the `.d.ts` files of `node_modules/@mesub/node/dist` for `subscription.renewal_upcoming` (the types sit in a shared file, not always in `index.d.ts`). With it, a `case` in the typed `switch` works and the detail is checked. Without it the event is still handed back at runtime, but that `case` does not compile and the detail is unchecked: read it the way `assets/handle-event.ts` does: compare `event.type` as a string before the typed `switch`, and check `can_pay` is a boolean before using the detail.
+`@mesub/node` 0.1.0 types the event and checks its detail (`RenewalUpcomingDetail`): a `case` in the typed `switch` reads `event.detail.can_pay` directly.
 
 ## At a plan's end
 
@@ -173,7 +173,7 @@ A plan can have an end date (`ends_at` on the plan). Nobody has access after it,
 | `subscription.renewal_upcoming` | Not sent in the last period: the plan ends before the next charge |
 | `subscription.payment_failed` | Can carry `next_retry_at: null` and `retries_left: 0` in `detail` |
 | `subscription.ended` | Sent at the plan's end, with `data.end_reason` at `plan_ended` |
-| `subscription.access_revoked` | Once Mesub sends it: at the plan's end, `detail.changed_at` the end itself |
+| `subscription.access_revoked` | At the plan's end, `detail.changed_at` the end itself |
 
 - A charge that misses when the plan ends before the next retry has no retry to announce: `next_retry_at` is null, `retries_left` is 0 and `retry_mode` is null. The subscription stays `unpaid` until the plan's end, then ends. Do not word that event as "we will try again on", and do not read `retries_left: 0` as `stopped`: `subscription.stopped` is its own event.
 - `subscription.ended` arrives within a few minutes of the plan's end, for a subscription that was still `active` or `unpaid`.
@@ -185,6 +185,6 @@ A plan can have an end date (`ends_at` on the plan). Nobody has access after it,
 A delivery sent with **Send test** in the dashboard is signed like a real one, in the same body. It carries `"test": true` at the top of its body and a made-up subscription whose id is `sub_test`. With an event picked, it has that event's type, so the type alone does not tell a test from a real event.
 
 - Ignore it before any side effect: `assets/handle-event.ts` checks both the flag and the id.
-- The SDK types it as `test?: true` on `WebhookEvent`. An older copy does not: read it as `(event as { test?: unknown }).test`, which works with both.
+- The SDK types it as `test?: true` on `WebhookEvent`.
 - Never look up `sub_test` in the app's database or mail its made-up address.
 - Its event `id` is made up as well: it is not in `GET /v1/events`.
