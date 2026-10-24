@@ -4,7 +4,7 @@ This skill holds the judgement an agent needs to use the server. The docs hold t
 
 | Page | Read it for |
 |---|---|
-| [MCP server](https://docs.mesub.io/docs/mcp) | What the server is, how a merchant connects, the tools, what it can never do, its limits, cutting a connection, the risks |
+| [MCP server](https://docs.mesub.io/docs/mcp) | What the server is, how a merchant connects an organization or one project, the tools, which project a tool works on, what each role's agent can do, the refusal codes, what it can never do, its limits, cutting a connection, the risks |
 | [Webhooks](https://docs.mesub.io/docs/webhooks) | Endpoints, events and the signing secret, as the dashboard shows them |
 | [The lifecycle](https://docs.mesub.io/docs/lifecycle) | What each subscription status means, late payments and retries on each tier |
 | [Check access](https://docs.mesub.io/docs/access) | What an access answer says, and how the app's own server reads it |
