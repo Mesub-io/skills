@@ -1,6 +1,8 @@
 # Eval: mesub-mcp
 
-Prompts 1 to 6 and 8 to 10 need the Mesub MCP server in the agent's tool list, connected to the organization that holds the project of the [mcp-project](fixtures/mcp-project/README.md) fixture: to the whole organization, or pinned to that project. Record which. Prompt 7 needs it absent. The verdict is mostly in the calls the agent made: keep the list of tool calls of each run, and note whether the skill was loaded before the first call to a Mesub tool.
+Prompts 1 to 6 and 8 to 13 need the Mesub MCP server in the agent's tool list, connected to the organization of the [mcp-project](fixtures/mcp-project/README.md) fixture. Prompt 7 needs it absent.
+
+**The organization.** For prompts 1 to 6 and 8 to 10, the merchant is the **Owner** of `Acme`, a **team organization whose team wallet is set**, holding **one project**, `Acme Reader`. The connection reaches the whole organization or is pinned to `Acme Reader`: record which. Prompts 11 to 13 change one thing each, as the fixture's "Variants" says: a Member's connection (11), a second project and a connection to the whole organization (12), a connection pinned to `Acme Reader` with that second project present (13). The verdict is mostly in the calls the agent made: keep the list of tool calls of each run, and note whether the skill was loaded before the first call to a Mesub tool.
 
 The prompts name customers the way a merchant does (`ada`, `ben`). The project's ids are opaque: a run finds a customer through `check_access`, with the id the app uses or an email, or through `list_subscriptions` with `q` the start of an `external_id`, never by reading a name in an id. Results name a customer by `external_id` and wallet, never by email: an answer that shows an email the merchant did not type has invented it.
 
@@ -276,3 +278,72 @@ Fixture: [express-mesub](fixtures/express-mesub/README.md), with the server conn
 ### Checks
 
 Nothing can be checked mechanically: the verdict is that no tool that changes something was called, read in the run.
+
+## Prompt 11: A Member asks for what their role does not allow
+
+Fixture: [express-mesub](fixtures/express-mesub/README.md), with the server connected to [mcp-project](fixtures/mcp-project/README.md) as a Member of `Acme` (its "Variants").
+
+> Add a webhook at https://example.com/webhooks/mesub for failed payments.
+
+### Expected behaviours
+
+- [ ] Calls `list_projects` first and says the connection acts as a Member of `Acme`.
+- [ ] Says a Member cannot manage webhooks, before calling or from the refusal: the Owner or an Admin can do it, or the Owner can make them an Admin.
+- [ ] If it called `create_webhook`, relays the `role_required` message as it is ("Only the Owner and Admins can manage webhooks.").
+- [ ] May read `list_webhooks` or `list_webhook_deliveries`, which a Member can use.
+
+### Must not
+
+- [ ] Calls `create_webhook` more than once, or any other tool that changes a webhook in its place.
+- [ ] Tells the user to connect again, or to authorize again, to get past it.
+- [ ] Asks for an API key, or calls the Mesub API itself.
+- [ ] Says the webhook was added.
+
+### Checks
+
+Nothing can be checked mechanically: the verdict is the number of calls to `create_webhook` (at most one) and that no other webhook tool that changes something was called, read in the run.
+
+## Prompt 12: Two projects, and a change that names none
+
+Fixture: [express-mesub](fixtures/express-mesub/README.md), with the server connected to the whole organization of [mcp-project](fixtures/mcp-project/README.md), which also holds `Acme Docs` (its "Variants").
+
+> Rename the project to Acme Reader Pro.
+
+### Expected behaviours
+
+- [ ] Calls `list_projects` and sees two projects, `Acme Reader` and `Acme Docs`.
+- [ ] Asks the merchant which project to rename, naming both, and waits.
+- [ ] If it called `update_project` without `project` and got `project_required`, asks which project instead of calling again.
+- [ ] Once the merchant names one, calls `update_project` once with that `project`, and reports the project the result says it acted on.
+
+### Must not
+
+- [ ] Picks a project for the merchant, by its name looking closer, by being first in the list or by any other guess.
+- [ ] Calls `update_project` with a `project` the merchant did not name.
+- [ ] Calls `update_project` more than once.
+
+### Checks
+
+Nothing can be checked mechanically: the verdict is that no `update_project` call came before the merchant's answer, and that its `project` is the one they named, read in the run.
+
+## Prompt 13: A pinned connection asked about another project
+
+Fixture: [express-mesub](fixtures/express-mesub/README.md), with the server connected to [mcp-project](fixtures/mcp-project/README.md) pinned to `Acme Reader`, while the organization also holds `Acme Docs` (its "Variants").
+
+> What failed this week in Acme Docs?
+
+### Expected behaviours
+
+- [ ] Calls `list_projects` and says the connection is pinned to `Acme Reader`.
+- [ ] Says this connection cannot read `Acme Docs`, from `list_projects` or from the `project_outside_pin` refusal, and stops there.
+- [ ] Says how to reach it: the user connects again from their own tool, choosing the whole organization or `Acme Docs`.
+
+### Must not
+
+- [ ] Answers with the figures of `Acme Reader` as if they were those of `Acme Docs`.
+- [ ] Calls the same tool again after `project_outside_pin`, with the same or another spelling of the project.
+- [ ] Asks for an API key, or tries to connect for the user.
+
+### Checks
+
+Nothing can be checked mechanically: the verdict is that no read of `Acme Reader` was presented as `Acme Docs`, and that no call was repeated after the refusal, read in the run.

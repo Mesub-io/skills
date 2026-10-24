@@ -42,13 +42,13 @@ It happens in the merchant's own tool and browser, never in the conversation:
 
 1. They add the server to their tool as a remote MCP server: `https://mcp.mesub.io/mcp`.
 2. The tool opens a Mesub page in their browser. They sign in to the dashboard.
-3. Under **Connect to**, they find the organization, and choose **Whole organization** or pin one project under **Or only one project**. Nothing is chosen for them, unless they opened **Connect agent** inside a project of the dashboard in the last 15 minutes: that project is then the pin, and they can change it.
+3. Under **Connect to**, they find the organization, and choose **Whole organization** or pin one project under **Or only one project**. Nothing is chosen for them, unless they opened **Connect agent** inside a project of the dashboard, in this browser, in the last 15 minutes: that project is then the pin, if it still has room, and they can change it.
 4. They read what the page lists (what the agent will reach, and with which role), and authorize.
 
 What follows from it:
 
 - **No API key, anywhere.** If a step seems to need one, the step is wrong.
-- **The merchant's role, read on every call.** An Owner's or an Admin's agent can use every tool. A Member's agent can use every tool but the webhook ones and `update_project` (`tools.md`). The role is read again on each call and never kept in the connection: a demoted Admin's next webhook call is refused, and a person removed from the organization is disconnected.
+- **The merchant's role, read on every call.** An Owner's or an Admin's agent can use every tool. A Member's agent can use every tool but those that manage a webhook or read its secret, and `update_project` (`tools.md`): it still lists the endpoints and their deliveries. The role is read again on each call and never kept in the connection: a demoted Admin's next webhook call is refused, and a person removed from the organization is disconnected.
 - **Otherwise all or nothing.** There is no read-only connection, which is why this skill asks before every change.
 - **One organization per connection.** A connection never reaches another organization, even one the merchant also belongs to. For another organization, or for a project outside the pin, the merchant connects again and chooses it on the consent page. No tool switches.
 - **A connection to the whole organization reaches more**: every project, those created later too. When the merchant needs one project only, pinning is the narrower choice: say so when they ask how to connect.

@@ -2,7 +2,7 @@ schema: v1
 id: mesub-mcp
 version: 0.2.0
 title: Mesub MCP
-description: "Act on a merchant's live project through the Mesub MCP server: read it, diagnose, manage webhooks, retry a charge, prepare a plan."
+description: "Act on a merchant's live projects through the Mesub MCP server: read them, diagnose, manage webhooks, retry a charge, prepare a plan."
 # The artefacts and topics this skill owns. No other skill may list the same one.
 owns:
   - using the Mesub MCP server's tools on a merchant's live project

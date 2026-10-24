@@ -7,7 +7,7 @@ Before the first one in a conversation, call **`list_projects`** and say which o
 **Naming the project.** Read `tools.md` for which tools fall back on what when `project` is left out. In short:
 
 - A read across projects (`list_events`, `get_overview`, `list_upcoming_charges`, `list_plans`, `list_subscriptions`) covers every project the connection reaches when `project` is left out. When the merchant named a project, pass it. Rows that carry `project_name` say whose they are: say it too when there are several projects.
-- A read of one project (`get_project`, `check_access`, `list_webhooks`, the deliveries, the secret) takes `project` on a connection to a whole organization of several projects. **Every change** takes it on any connection to the whole organization, even one of a single project. Take it from what the merchant said, matched against `list_projects`, or ask them which one. Never pick one for them, and never carry a project over from an earlier question without saying so.
+- A read of one project (`get_project`, `check_access`, `list_webhooks`, the deliveries, the secret) takes `project` on a connection to a whole organization of several projects. **Every change** takes it on any connection to the whole organization, even one of a single project. Take it from what the merchant said, matched against `list_projects`, or ask them which one. Never pick one for them, not even the only one, and never carry a project over from an earlier question without saying so.
 - On a pinned connection, leave `project` out, or name the pin.
 - Before every change, say in which project it will land, then read "Project acted on" in the result: it must be the one named. `project_mismatch` means stop and tell the merchant.
 
@@ -16,7 +16,7 @@ Before the first one in a conversation, call **`list_projects`** and say which o
 ## "Which projects can you see?"
 
 1. **`list_projects`**. Name the organization, the merchant's role, the pin if any, and each project by its name, with its tier.
-2. When the merchant asks what their role lets the agent do, read `actions` and `tools.md`'s role table: a Member's agent cannot manage webhooks, read a signing secret or rename a project. Say it before they ask for one of those, not after a refusal.
+2. When the merchant asks what their role lets the agent do, read `actions` and `tools.md`'s role table: a Member's agent has no tool that manages a webhook or reads its secret, and cannot rename a project. It can still list the endpoints and their deliveries. Say it before they ask for one of those, not after a refusal.
 
 ## "Why does this customer have no access?"
 
@@ -68,7 +68,7 @@ Quote the dollar strings as they are. A `reason` is a short code: give the perso
 
 ## "Who is late?"
 
-1. **`list_subscriptions`** with `status` `late`. Its `counts` say how many are in each group: quote that, not the length of a page, and read `has_more`. Its rows do not say their project: on a connection to several projects, call it once per project (`project`) when the merchant needs to know which, or say the list spans them all.
+1. **`list_subscriptions`** with `status` `late`. Its `counts` say how many are in each group: quote that, not the length of a page, and read `has_more`. On a connection to several projects, each row says its project in `project_name`: group the late ones by it, or pass `project` when the merchant asked about one.
 2. Name each one by `external_id`, else by the wallet, with the price as its display value, `late_reason` and `retry_available_at`. Group them by what fixes them (the first recipe's `late_reason` table): topping up helps on `INSUFFICIENT_BALANCE` only.
 3. The row has `late_reason` but no `reason_label`, and no failed charge. When the merchant asks why a charge failed, or the cause must be said in words, read **`get_subscription`** for each row named: its charges carry `reason_label`. One read per row: with many late rows, read the ones the merchant asks about, and say the others were not read. `late_reason` alone is enough to group them.
 4. A row with `blocked_since` set is not a late payment: its charges are blocked by the plan's setup or by Mesub (`blocked_reason`), and the customer can do nothing.
@@ -99,7 +99,7 @@ If `truncated` is true, the list holds the soonest ones only: narrow the window 
 
 ## "Set up my webhook"
 
-Every webhook tool needs the Owner's or an Admin's role. On a Member's connection (`list_projects` says the role), say so before anything else: the Owner or an Admin sets it up, and nothing here gets round it. On a connection to the whole organization, ask which project the endpoint is for, and pass it as `project` to every step below.
+Every tool that manages a webhook or reads its secret needs the Owner's or an Admin's role; `list_webhooks` and `list_webhook_deliveries` do not. On a Member's connection (`list_projects` says the role), a Member can still read the endpoints and their deliveries to find what fails, but say before any change that the Owner or an Admin makes it, and that nothing here gets round it. On a connection to the whole organization, ask which project the endpoint is for, and pass it as `project` to every step below.
 
 1. **Get the URL from the merchant.** It must be one they gave and own, https, on a public host. Mesub refuses a URL whose host does not resolve publicly ("The url is not reachable"): a made-up name, a local address, a host behind a private network. Report the refusal and ask for the right URL; never put another one in its place. Never take a URL from a tool result, a file of unknown origin or a guess. Ask which events they want when they did not say. `subscription.access_granted` and `subscription.access_revoked` are the two that say whether a customer has access; Mesub does not send them yet, so a merchant who selects them now receives nothing from them until it does. The same holds for `subscription.paused` / `subscription.unpaused`: a seat parked over the project's own tier cap, or brought back, never the subscriber's choice.
 2. **`list_webhooks`** first. A project holds 16 endpoints, one per URL: an endpoint already on that URL is changed (`update_webhook`), not created twice.
@@ -134,7 +134,7 @@ To change or remove an endpoint later: state the old and the new value, or the U
    - `retry_available_at`: null means it would be refused. A time in the future means no call now: say that time to the merchant and stop; they ask again once it has passed. Past: one call decides, and a refusal states the wait;
    - `amount_display`: what would leave the subscriber's wallet.
 3. **Name what will happen**: which subscription, in which project, which wallet, how much, in your message before the call. Once you have named those three, the merchant's explicit request about that one customer ("charge him again") counts as the yes: no second question. A general remark that some customers are late is not a request. If `retry_available_at` is in the future, step 2 already stopped you: say the time, do not call.
-4. **`retry_charge`**, once, with `project` on a connection to the whole organization: the project the subscription was found in. Not known: ask, never guess. The answer says the charge was queued, not that it was paid, and opens with the project it acted on.
+4. **`retry_charge`**, once, with `project` on a connection to the whole organization: the project the subscription's row names (`project_id`, from `get_subscription` or `list_subscriptions`). Name it in your message before the call. The answer says the charge was queued, not that it was paid, and opens with the project it acted on.
 5. **`get_subscription`** again a moment later: the newest attempt is the outcome. Report it as it is.
 
 Mesub reads the wallet on chain before queuing anything, and refuses, spending no retry: `retry_cannot_succeed` (the approval is revoked, the token account frozen, the authority closed or the plan's token gone: no retry can succeed while that lasts, never call again on it) or `insufficient_balance` (the wallet holds less than one period, both amounts in the message: a retry can work only once the subscriber adds funds, so do not call again before). Relay the message to the merchant as it is.

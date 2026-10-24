@@ -10,7 +10,7 @@ Every tool but `list_projects`, `search_docs` and `ping` takes `project`: a proj
 
 | Tools | With `project` left out |
 |---|---|
-| `list_plans`, `get_plan`, `list_subscriptions`, `get_subscription`, `list_events`, `list_upcoming_charges`, `get_overview` | Every project the connection reaches. Rows of `list_plans`, `get_plan`, `list_events`, `list_upcoming_charges` and the overview's `next_up` say theirs in `project_id` and `project_name` |
+| `list_plans`, `get_plan`, `list_subscriptions`, `get_subscription`, `list_events`, `list_upcoming_charges`, `get_overview` | Every project the connection reaches. Rows of all of them (plans, subscriptions, events, upcoming charges, the overview's `next_up`) say theirs in `project_id` and `project_name` |
 | `get_project`, `check_access`, `list_webhooks`, `list_webhook_deliveries`, `get_webhook_secret` | The pinned project, or the organization's only project. Else `project_required` |
 | Every tool that changes something, `prepare_plan` included | The pinned project. Else `project_required`, even in an organization of one project: a change lands where the agent said, or nowhere |
 
