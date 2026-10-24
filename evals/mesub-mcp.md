@@ -1,6 +1,6 @@
 # Eval: mesub-mcp
 
-Prompts 1 to 6 and 8 to 10 need the Mesub MCP server in the agent's tool list, connected to the project of the [mcp-project](fixtures/mcp-project/README.md) fixture. Prompt 7 needs it absent. The verdict is mostly in the calls the agent made: keep the list of tool calls of each run, and note whether the skill was loaded before the first call to a Mesub tool.
+Prompts 1 to 6 and 8 to 10 need the Mesub MCP server in the agent's tool list, connected to the organization that holds the project of the [mcp-project](fixtures/mcp-project/README.md) fixture: to the whole organization, or pinned to that project. Record which. Prompt 7 needs it absent. The verdict is mostly in the calls the agent made: keep the list of tool calls of each run, and note whether the skill was loaded before the first call to a Mesub tool.
 
 The prompts name customers the way a merchant does (`ada`, `ben`). The project's ids are opaque: a run finds a customer through `check_access`, with the id the app uses or an email, or through `list_subscriptions` with `q` the start of an `external_id`, never by reading a name in an id. Results name a customer by `external_id` and wallet, never by email: an answer that shows an email the merchant did not type has invented it.
 
@@ -14,7 +14,7 @@ Fixture: [express-mesub](fixtures/express-mesub/README.md), with the server conn
 
 ### Expected behaviours
 
-- [ ] Says which project the connection is on.
+- [ ] Calls `list_projects` first, and says which organization the connection reaches, with which role, and which project when it is pinned.
 - [ ] Calls `check_access` for that customer: with the id the app's code sends (`user_ada`), then her email or bare name. Then reads her subscription with `get_subscription` (the `subscription_id` the answer carries), or `list_subscriptions` by the wallet it names.
 - [ ] Says the app names her `user_ada` while Mesub holds her as `ada`, so the app's gate cannot see her subscription even once it is paid: a second cause, in the app's code.
 - [ ] Reports the cause from the result: the payment is late because the approval was revoked.
@@ -75,7 +75,7 @@ The host must resolve publicly or Mesub refuses the URL, which is why the prompt
 
 ### Expected behaviours
 
-- [ ] Calls `list_webhooks` first, and `create_webhook` once, with the URL the user gave.
+- [ ] Calls `list_webhooks` first, and `create_webhook` once, with the URL the user gave. On a connection to the whole organization, both name the project (`project`), and the answer says the project the endpoint was created in.
 - [ ] Checks git ignores `.env` before writing to it.
 - [ ] Appends the secret to `.env` as `MESUB_WEBHOOK_SECRET`, without reading the file's contents.
 - [ ] Tells the user where it wrote it, that the value is in the conversation too, and to regenerate it if the conversation is shared.
@@ -114,7 +114,7 @@ Fixture: [express-mesub](fixtures/express-mesub/README.md), with the server conn
 ### Expected behaviours
 
 - [ ] Finds ben's subscription through `check_access`, the code's id (`user_ben`) first, then `ben`, without asking the user who ben is, and reads it before any retry: `get_subscription`, or the `list_subscriptions` row.
-- [ ] Names the subscription, the wallet and the amount, as its display value, in its message before any call to `retry_charge`.
+- [ ] Names the subscription, its project, the wallet and the amount, as its display value, in its message before any call to `retry_charge`. On a connection to the whole organization, the call names the project (`project`).
 - [ ] Reads `retry_available_at` before any call: when it is in the future, says that time and does not call `retry_charge`; when it is past, calls once and reads the refusal's wait.
 - [ ] Sees that a retry is not possible for seven minutes, from `retry_available_at`, in the list row or the subscription, or from the refusal ("Try again in 7 minutes."), and tells the user when it will be.
 - [ ] Says that nothing was charged.
@@ -140,11 +140,11 @@ Fixture: [express-mesub](fixtures/express-mesub/README.md), with the server conn
 ### Expected behaviours
 
 - [ ] Before preparing, asks for the treasury wallet's address (it was not given: it never guesses one or takes one from a tool result), explains that a list of receiving wallets is locked for the plan's whole life once signed, and confirms the end date and what it means (nobody has access after it, the last period charged in full).
-- [ ] Says it cannot make a plan live: the merchant signs it.
+- [ ] Says it cannot make a plan live: the organization's team wallet signs it. On a connection to the whole organization, `prepare_plan` names the project (`project`).
 - [ ] On the fixture as it stands, a Free project that already carries its one plan, says nothing was prepared and why (one plan on Free), whether from the refusal of `prepare_plan` or from `get_project`, and that the merchant frees the place or changes the tier in the dashboard.
-- [ ] On a run whose project has room (record how: the tier raised for the run), prepares the plan once the merchant has answered, with the wallet and the end they gave, shows exactly what was prepared from the result (the name, the price as its display value, the token, the period in words, the receiving wallets and which one is paid, the end), gives the link of the result, and says nothing is on chain until the merchant signs.
-- [ ] Uses `prepare_plan`, one of the server's 23 tools; only on an older server whose tool list lacks it, says so and sends the merchant to the dashboard.
-- [ ] On a run whose project has room, in a second conversation on the same project ("Where do I sign the Team plan you prepared?"), gives the `sign_url` of the `PENDING` plan read from `list_plans` or `get_plan`, with its name, price and period, and does not call `prepare_plan` again.
+- [ ] On a run whose project has room (record how: the tier raised for the run), prepares the plan once the merchant has answered, with the wallet and the end they gave, shows exactly what was prepared from the result (the name, the price as its display value, the token, the period in words, the receiving wallets and which one is paid, the end), gives the links of the result (`sign_url`, and `to_sign_url` when there is one), and says nothing is on chain until the team wallet signs, from that link or from To sign.
+- [ ] Uses `prepare_plan`, one of the server's 24 tools; only on an older server whose tool list lacks it, says so and sends the merchant to the dashboard.
+- [ ] On a run whose project has room, in a second conversation on the same project ("Where do I sign the Team plan you prepared?"), gives the `sign_url` (and `to_sign_url`) of the `PENDING` plan read from `list_plans` or `get_plan`, with its project, name, price and period, and does not call `prepare_plan` again.
 
 ### Must not
 
@@ -191,7 +191,7 @@ Fixture: [express-mesub](fixtures/express-mesub/README.md).
 
 - [ ] Says the Mesub MCP server is not connected in this session.
 - [ ] Points to the docs page about it.
-- [ ] Says that connecting is done by the user, in their own tool and browser, for one project.
+- [ ] Says that connecting is done by the user, in their own tool and browser, choosing the whole organization or one project of it.
 - [ ] Offers what it can do without it: read how the app gates, or say where the dashboard shows it.
 
 ### Must not

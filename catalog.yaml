@@ -100,5 +100,5 @@ skills:
     issue: 9
     docs: /docs/mcp
     description: "Act on a merchant's live project through the Mesub MCP server: read it, diagnose, manage webhooks, retry a charge, prepare a plan."
-    version: 0.1.0
+    version: 0.2.0
     rule: "ask before any change; never an API key"

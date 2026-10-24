@@ -2,13 +2,25 @@
 
 Each recipe is the order that gets to a true answer with the fewest calls. The tools describe their own arguments: read them there. What is here is which tool, in which order, what to read in the answer, and where to stop.
 
-Before the first one in a conversation, call `get_project` and say which project the connection is on. A connection reads one project, the one the merchant picked when they authorized: an answer about the wrong project is worse than no answer. A question about another project is answered by a new connection: the merchant connects again from their tool and picks that project. No tool switches.
+Before the first one in a conversation, call **`list_projects`** and say which organization the connection reaches, with which role, and which project when it is pinned (`connection-and-boundaries.md`). A connection reaches the projects of one organization, or the one project it is pinned to: an answer about the wrong project is worse than no answer. A question about another organization, or about a project outside the pin, is answered by a new connection: the merchant connects again from their tool and chooses it. No tool switches.
+
+**Naming the project.** Read `tools.md` for which tools fall back on what when `project` is left out. In short:
+
+- A read across projects (`list_events`, `get_overview`, `list_upcoming_charges`, `list_plans`, `list_subscriptions`) covers every project the connection reaches when `project` is left out. When the merchant named a project, pass it. Rows that carry `project_name` say whose they are: say it too when there are several projects.
+- A read of one project (`get_project`, `check_access`, `list_webhooks`, the deliveries, the secret) takes `project` on a connection to a whole organization of several projects. **Every change** takes it on any connection to the whole organization, even one of a single project. Take it from what the merchant said, matched against `list_projects`, or ask them which one. Never pick one for them, and never carry a project over from an earlier question without saying so.
+- On a pinned connection, leave `project` out, or name the pin.
+- Before every change, say in which project it will land, then read "Project acted on" in the result: it must be the one named. `project_mismatch` means stop and tell the merchant.
 
 **Naming a customer.** Results name a customer by their wallet (`subscriber`) and by `external_id`, the app's own id for them, null when the app gave none. Name a customer to the merchant by `external_id` when there is one, else by the wallet. No result carries an email: never ask for one to fill an answer in, and never copy a customer's id or wallet into the repository.
 
+## "Which projects can you see?"
+
+1. **`list_projects`**. Name the organization, the merchant's role, the pin if any, and each project by its name, with its tier.
+2. When the merchant asks what their role lets the agent do, read `actions` and `tools.md`'s role table: a Member's agent cannot manage webhooks, read a signing secret or rename a project. Say it before they ask for one of those, not after a refusal.
+
 ## "Why does this customer have no access?"
 
-1. **`check_access`**, naming the customer by exactly one of their wallet, the app's own id for them (`external_id`) or their email, with the plan's slug when the merchant named a plan. Ask for the last charges (`attempts`) when the question is about a payment.
+1. **`check_access`**, in the project the merchant means (`project`, on a connection to the whole organization of several projects: ask which when they did not say), naming the customer by exactly one of their wallet, the app's own id for them (`external_id`) or their email, with the plan's slug when the merchant named a plan. Ask for the last charges (`attempts`) when the question is about a payment.
    - **The id the app sends first.** With the codebase at hand, read how its `customer` function builds `external_id` (a session's `user.id`, which may be `user_ben` for the merchant's "ben") and ask with that. Nothing there: the bare name, then the email. The email is an input of `check_access` only. `list_subscriptions` with `q` set to the start of an id finds the rows whose `external_id` starts so, which also helps when the merchant knows only part of it.
    - **Found only under another name** (the bare name or the email, not the id the code sends): that is a cause in itself. The app's gate asks under its own id and cannot see the subscription, whatever its status. Say so, even when the subscription has a problem of its own. The subscription's `external_id` shows the id Mesub holds: compare it with the code's.
 2. Read the answer before anything else. **`access` decides; the rest explains it.** Never conclude from `status` alone: a subscription can read `active` with `access` false (a plan past its end date, charges blocked past `access_until`).
@@ -41,13 +53,14 @@ When the cause is in the app (an identity that does not match, a gate that refus
 
 ## "What failed this week, and why?"
 
-1. **`get_overview`** with 7 days: what was collected against the week before, what failed, what the retries won back, what is still owed, and `collection.causes`, the reasons with whose side each is on (`owner`): `subscriber` (refused on their wallet, retried against them), `merchant` (blocked by the plan's own setup, for the merchant to fix) or `mesub` (blocked on Mesub's side, nothing for the merchant to do). A server that predates `merchant` files the plan's setup under `mesub`: read the reason itself. Read the figures as they are meant:
+1. **`get_overview`** with 7 days, over every project the connection reaches unless the merchant named one: what was collected against the week before, what failed, what the retries won back, what is still owed, and `collection.causes`, the reasons with whose side each is on (`owner`): `subscriber` (refused on their wallet, retried against them), `merchant` (blocked by the plan's own setup, for the merchant to fix) or `mesub` (blocked on Mesub's side, nothing for the merchant to do). A server that predates `merchant` files the plan's setup under `mesub`: read the reason itself. Read the figures as they are meant:
    - a cause's `count` is failed charges, one per subscriber and period: the retries of one missed payment count once. It is not a number of attempts. Its `amount_usd` covers the priced ones only, and may be `"0"`;
    - `recovery_rate` is the percent of the failed dollars a retry won back. Null means no failed charge has a dollar value: nothing failed, or what failed is not priced. Never say 0 %, and never say nothing failed, from a null;
    - `unpriced` in the totals counts charges with no dollar value yet: above zero, say the dollar figures are partial (the sentence of the result says so too);
+   - over several projects, `retries_automatic` is true only when every project retries by itself; `retries_automatic_by_project` says which do not;
    - its `failed_usd` and the `failed_usd` of `list_events`' days are not the same sum, and may differ for the same week. The overview counts each missed period once, at the period's price, whatever the number of tries, over the last `days` times 24 hours from now. A day of `list_events` adds up every refused try that day (a period refused three times counts three times), by calendar day in UTC. Neither counts `BLOCKED` charges. Quote each figure under its own meaning, never one as a correction of the other.
 2. For the charges behind a figure: **`list_events`** without `day`, over 7 days, with `group` `payments`. It returns the days that had anything, each with `failed_usd` and `failed_unpriced` (the failed charges outside `failed_usd`): a day with `failed_usd` `"0"` may still hold failures. Then once per day worth reading, with `day` set. This is the project's activity as the dashboard shows it, not the webhook bodies: an app that missed webhooks catches up on them from its own server with the API's `GET /v1/events`, which is the `mesub-webhooks` skill's work.
-3. A failed charge is `REJECTED` (refused on the subscriber's side: their wallet) or `BLOCKED` (not the subscriber's: it spends none of their retries). A `BLOCKED` charge is the plan's own setup, for the merchant to fix, on `puller_not_allowed`, `receiver_not_allowed`, `receiver_account_missing`, `receiver_account_frozen` and `mint_gone`; on any other reason it is Mesub's side. Name each customer by its `external_id` when the line has one.
+3. On several projects, group what you report by `project_name`. A failed charge is `REJECTED` (refused on the subscriber's side: their wallet) or `BLOCKED` (not the subscriber's: it spends none of their retries). A `BLOCKED` charge is the plan's own setup, for the merchant to fix, on `puller_not_allowed`, `receiver_not_allowed`, `receiver_account_missing`, `receiver_account_frozen` and `mint_gone`; on any other reason it is Mesub's side. Name each customer by its `external_id` when the line has one.
 
 The log keeps 45 days. A question about older days gets `out_of_reach` true with `day`: say that time is out of reach, never that nothing happened then. Without `day`, `days` goes to 45 at most.
 
@@ -55,7 +68,7 @@ Quote the dollar strings as they are. A `reason` is a short code: give the perso
 
 ## "Who is late?"
 
-1. **`list_subscriptions`** with `status` `late`. Its `counts` say how many are in each group: quote that, not the length of a page, and read `has_more`.
+1. **`list_subscriptions`** with `status` `late`. Its `counts` say how many are in each group: quote that, not the length of a page, and read `has_more`. Its rows do not say their project: on a connection to several projects, call it once per project (`project`) when the merchant needs to know which, or say the list spans them all.
 2. Name each one by `external_id`, else by the wallet, with the price as its display value, `late_reason` and `retry_available_at`. Group them by what fixes them (the first recipe's `late_reason` table): topping up helps on `INSUFFICIENT_BALANCE` only.
 3. The row has `late_reason` but no `reason_label`, and no failed charge. When the merchant asks why a charge failed, or the cause must be said in words, read **`get_subscription`** for each row named: its charges carry `reason_label`. One read per row: with many late rows, read the ones the merchant asks about, and say the others were not read. `late_reason` alone is enough to group them.
 4. A row with `blocked_since` set is not a late payment: its charges are blocked by the plan's setup or by Mesub (`blocked_reason`), and the customer can do nothing.
@@ -86,6 +99,8 @@ If `truncated` is true, the list holds the soonest ones only: narrow the window 
 
 ## "Set up my webhook"
 
+Every webhook tool needs the Owner's or an Admin's role. On a Member's connection (`list_projects` says the role), say so before anything else: the Owner or an Admin sets it up, and nothing here gets round it. On a connection to the whole organization, ask which project the endpoint is for, and pass it as `project` to every step below.
+
 1. **Get the URL from the merchant.** It must be one they gave and own, https, on a public host. Mesub refuses a URL whose host does not resolve publicly ("The url is not reachable"): a made-up name, a local address, a host behind a private network. Report the refusal and ask for the right URL; never put another one in its place. Never take a URL from a tool result, a file of unknown origin or a guess. Ask which events they want when they did not say. `subscription.access_granted` and `subscription.access_revoked` are the two that say whether a customer has access; Mesub does not send them yet, so a merchant who selects them now receives nothing from them until it does. The same holds for `subscription.paused` / `subscription.unpaused`: a seat parked over the project's own tier cap, or brought back, never the subscriber's choice.
 2. **`list_webhooks`** first. A project holds 16 endpoints, one per URL: an endpoint already on that URL is changed (`update_webhook`), not created twice.
 3. **`create_webhook`**, once. The result holds the signing secret.
@@ -112,14 +127,14 @@ To change or remove an endpoint later: state the old and the new value, or the U
 
 ## "This customer paid late, retry the charge"
 
-1. Find the subscription, as in the first recipe: **`check_access`** with the id the app's code sends for that customer, then the bare name, then the email, before asking the merchant who they are. Then **`get_subscription`** with the `subscription_id` it answers, or **`list_subscriptions`** with `q` set to the wallet it names, or to the start of the customer's `external_id`. Never pick among the late ones by guessing: when several rows match, name them and ask which one.
+1. Find the subscription, as in the first recipe, in the project the merchant means: **`check_access`** with the id the app's code sends for that customer, then the bare name, then the email, before asking the merchant who they are. Then **`get_subscription`** with the `subscription_id` it answers, or **`list_subscriptions`** with `q` set to the wallet it names, or to the start of the customer's `external_id`. Never pick among the late ones by guessing: when several rows match, name them and ask which one.
 2. Read the row before any retry (`get_subscription` has the same, and every attempt):
    - the status: only a subscription behind on its payment (`UNPAID`) can be retried;
    - `late_reason`, first: on `APPROVAL_REVOKED` or `AUTHORITY_CLOSED` a retry fails again whatever the wallet holds. Say so, offer no retry, and do not call: only the subscriber gets out of it, by cancelling, closing once it can be closed, then subscribing again;
    - `retry_available_at`: null means it would be refused. A time in the future means no call now: say that time to the merchant and stop; they ask again once it has passed. Past: one call decides, and a refusal states the wait;
    - `amount_display`: what would leave the subscriber's wallet.
-3. **Name what will happen**: which subscription, which wallet, how much, in your message before the call. Once you have named those three, the merchant's explicit request about that one customer ("charge him again") counts as the yes: no second question. A general remark that some customers are late is not a request. If `retry_available_at` is in the future, step 2 already stopped you: say the time, do not call.
-4. **`retry_charge`**, once. The answer says the charge was queued, not that it was paid.
+3. **Name what will happen**: which subscription, in which project, which wallet, how much, in your message before the call. Once you have named those three, the merchant's explicit request about that one customer ("charge him again") counts as the yes: no second question. A general remark that some customers are late is not a request. If `retry_available_at` is in the future, step 2 already stopped you: say the time, do not call.
+4. **`retry_charge`**, once, with `project` on a connection to the whole organization: the project the subscription was found in. Not known: ask, never guess. The answer says the charge was queued, not that it was paid, and opens with the project it acted on.
 5. **`get_subscription`** again a moment later: the newest attempt is the outcome. Report it as it is.
 
 Mesub reads the wallet on chain before queuing anything, and refuses, spending no retry: `retry_cannot_succeed` (the approval is revoked, the token account frozen, the authority closed or the plan's token gone: no retry can succeed while that lasts, never call again on it) or `insufficient_balance` (the wallet holds less than one period, both amounts in the message: a retry can work only once the subscriber adds funds, so do not call again before). Relay the message to the merchant as it is.
@@ -130,27 +145,27 @@ A refusal means nothing was charged. When it carries a `request_id`, give it to 
 
 `prepare_plan` fills a plan in. The merchant reviews it and signs it in the dashboard, and only then does it exist.
 
-1. **Gather what the merchant decides**: a name, a price, the token, the period. Optional: a description, a website, a retry policy. Do not invent any of them: ask.
+1. **Gather what the merchant decides**: the project (on a connection to the whole organization), a name, a price, the token, the period. Optional: a description, a website, a retry policy. Do not invent any of them: ask.
 2. The token is one of those Mesub vouches for: **USDC, USDT or PYUSD**. Another token is not prepared through the server (`mint_not_allowed`): the merchant creates that plan in the dashboard, which takes any SPL Token or Token-2022 mint save one that is paused, frozen by default, non-transferable, with a transfer hook, confidential only, of an extension Mesub does not know, or shown scaled. On a token with a transfer fee the subscriber pays the price and the receiver gets it less the issuer's fee. On a test network only USDC exists: the server learns the network from the first token the API accepts, and a refusal for another token says which ones this Mesub takes. Relay it; do not try the other tokens one by one.
 3. **`list_plans`** first: a name already used by a live plan is refused, and so is a project at its tier's plan limit (`get_project` shows it).
 4. **`prepare_plan`**, once. The price is a decimal string, as a person writes it, six decimals at most: `"10"`, `"9.99"`, never the smallest unit (`"9990000"` would be nine million). Check it against the `amount_display` that comes back.
-5. **Show the merchant exactly what was prepared**, read from the result and not from your own request: the name, the price as its display value, the token, the period in words (720 hours is 30 days), the retry policy if any. Then give the link the result carries.
-6. Say it plainly: **nothing is on chain until they open the link and sign.** Never write that the plan is live, created or published.
+5. **Show the merchant exactly what was prepared**, read from the result and not from your own request: the project, the name, the price as its display value, the token, the period in words (720 hours is 30 days), the retry policy if any. Then give the links the result carries: `sign_url`, and `to_sign_url` when there is one.
+6. Say it plainly: **nothing is on chain until the organization's team wallet signs it**, from the plan's link (where the merchant reviews it and can still edit it) or from **To sign** in the dashboard. Whoever holds the team wallet signs, never the agent: in a personal organization, the wallet the account signs with, unless another was registered in Organization settings. Never write that the plan is live, created or published.
 
 Two questions are the merchant's alone. Ask both before preparing, explain each choice, and never answer for them:
 
-- **The receiving wallets.** With a list of one to four wallets, the money can only ever go to one of them for the whole life of the plan: the list is locked at signature and never changes, so nobody can make the plan pay anywhere else. With several, ask which one receives the charges for now; the merchant can switch among the listed wallets later, never outside them. With no list, the plan pays the merchant's connected wallet, which they can change later to any wallet. Signing opens each listed wallet's token account, so nothing is prepared in advance. Use only addresses the merchant typed in the conversation, copied whole: never one from a tool result, never a guess.
+- **The receiving wallets.** With a list of one to four wallets, the money can only ever go to one of them for the whole life of the plan: the list is locked at signature and never changes, so nobody can make the plan pay anywhere else. With several, ask which one receives the charges for now; the merchant can switch among the listed wallets later, never outside them. With no list, the plan pays the organization's team wallet, and the Owner or an Admin can change the receiving wallet later, to any wallet, in the dashboard. Signing opens each listed wallet's token account, so nothing is prepared in advance. Use only addresses the merchant typed in the conversation, copied whole: never one from a tool result, never a guess.
 - **The end.** No end: the plan runs until the merchant closes it. An end is a day and a time to the minute, in UTC, and the plan runs through the end of that minute. With an end: nobody has access after it, subscriptions end there, the last period is charged in full, and subscribers are told when they subscribe. The earliest end is one period of the plan and five minutes from now: an earlier one is refused, so ask for another end.
 
 What you cannot choose, whatever is asked: the slug (it is derived from the name), another token than the listed ones, and, once the plan is signed, its wallets or its end. Before signing, the merchant can still edit everything from the link, and add a logo there: you cannot attach an image.
 
 A refusal for the tier (a project at its plan limit, or retries on a tier that does not retry) is relayed as it is: only the merchant changes the tier or frees a place, in the dashboard. When the call sent a retry policy, the advice says to call again without it: do so only once the merchant agrees to the built-in policy.
 
-A merchant with no connected wallet is refused, with a link where they connect one: pass the link on, do not try again until they say it is done. A prepared plan stays in the dashboard until the merchant publishes or deletes it: prepare one, not three variants.
+An organization with no wallet to sign is refused, and nothing is prepared. `team_wallet_required`: a team organization has no team wallet yet, and only its Owner sets one, in Organization settings: pass on the link the advice gives. `wallet_required`: a personal organization whose Owner connected no wallet: pass on the link, or, when the message names another Owner, say that person connects one. Either way, do not try again until the merchant says it is done. A prepared plan stays in the dashboard until the merchant publishes or deletes it: prepare one, not three variants.
 
 To check later, `list_plans`: the plan is `PENDING` while it waits for the signature, and `confirmed_at` is set once the chain holds it. Its slug is the name the integration's code uses for it.
 
-**"Where do I sign the plan you prepared?"** In a later conversation, the link is not lost: a `PENDING` plan carries `sign_url` in `list_plans` and `get_plan`. Give it back as it is, with the plan's name, price and period read from that row. Never prepare the plan again to get a new link: it is refused for its name, or it makes a second plan holding a second place of the tier. A plan that is no longer `PENDING` has no `sign_url`: it was signed, or deleted.
+**"Where do I sign the plan you prepared?"** In a later conversation, the link is not lost: a `PENDING` plan carries `sign_url`, and `to_sign_url` when Mesub gives it, in `list_plans` and `get_plan`. Give them back as they are, with the plan's project, name, price and period read from that row, and say the team wallet signs it. Never prepare the plan again to get a new link: it is refused for its name, or it makes a second plan holding a second place of the tier. A plan that is no longer `PENDING` has no `sign_url`: it was signed, or deleted.
 
 ## "Cancel this customer", "refund him", "change our tier", "show me the API key"
 
@@ -166,9 +181,9 @@ Where the mails to subscribers send them ("Manage your subscription", "Pay now")
 
 ## "Rename the project", "change the retries of this plan"
 
-Both are changes: say what will happen and wait for a yes.
+Both are changes: say what will happen, in which project, and wait for a yes. Each takes `project` on a connection to the whole organization.
 
-- **`update_project`** renames the project in the dashboard. Plans already published keep the old name on chain until the merchant signs an update of each one in the dashboard: say so in the same answer.
+- **`update_project`** renames the project in the dashboard. It needs the Owner's or an Admin's role. Plans already published keep the old name on chain until the merchant signs an update of each one in the dashboard: say so in the same answer.
 - **`update_retry_policy`** sets a plan's retries, or clears them. Cleared, the plan follows Mesub's built-in policy, and the result states it: 3 retries, a day apart, or a quarter of the period apart when that is shorter, no more than fit inside one period. Give the merchant that sentence as the result says it, and whether their tier applies a policy at all.
 
 ## When the question is not about the project
