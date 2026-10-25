@@ -8,7 +8,9 @@ Go through every check before saying the work is done. Say which ones you could 
 - You called `list_projects` (or, refused with `org_scope_unavailable`, `get_project`) and told the user which organization the connection reaches, with which role, and which project when it is pinned.
 - A late payment was read from the subscription (`list_subscriptions` or `get_subscription`), not `check_access` alone, and each failure's reason is given as its `reason_label`, or as not known when there is none.
 
-Pass: all three. If the tools were not there, the only correct report is that the server is not connected, with the docs page of `references/docs.md`. Check your answer holds no address for the server, no request for an API key and no result you did not get.
+Handed Mesub's setup text: both commands were run exactly as written (or given back to the user when they could not run here), the sign-in was left to the user, and no answer about the project came before `list_projects` was in the tool list.
+
+Pass: all three, and the setup line when it applies. If the tools were not there, the only correct report is that the server is not connected, with the docs page of `references/docs.md`. Check your answer holds no address for the server, no request for an API key and no result you did not get.
 
 ## 2. Every figure is quoted, not computed
 
@@ -97,14 +99,14 @@ Pass: each change made has its read, and the report says what the read showed.
 
 ## 9. A prepared plan was not called a plan
 
-Pass: the answer says the plan is prepared and waits for the signature of the organization's team wallet, from the plan's link or from To sign in the dashboard, gives the links, and nowhere says it is live, created, published or on chain, nor that the agent or the merchant's own wallet signs it. Asked again later for the link, the answer gives the `sign_url` (and `to_sign_url`) of the `PENDING` plan from `list_plans` or `get_plan`, and `prepare_plan` was not called a second time.
+Pass: the answer says the plan is prepared and waiting in To sign for the organization wallet's signature, from the plan's link (Sign and publish) or from To sign in the dashboard, gives the links, and nowhere says it is live, created, published or on chain, nor that the agent signs it. Asked again later for the link, the answer gives the `sign_url` (and `to_sign_url`) of the plan still waiting in To sign (`PENDING`) from `list_plans` or `get_plan`, and `prepare_plan` was not called a second time.
 
 ## What nothing here proves
 
 - That a retried charge will pay: the outcome is the chain's and the subscriber's wallet's.
 - That real events reach the handler: a test delivery proves the route and the secret, not a renewal.
 - That production holds the signing secret: only the user sees the host's settings.
-- That the team wallet signed a prepared plan.
+- That the organization wallet signed a prepared plan.
 - That the merchant's role is the same now: it is read again on every call.
 
 ## What to report
@@ -113,5 +115,5 @@ Pass: the answer says the plan is prepared and waits for the signature of the or
 - What was read, and the facts the answer rests on.
 - Each change made, with the yes it rests on and what the read after it showed.
 - Where a signing secret was written, never its value.
-- What the user must still do: have the team wallet sign a plan, ask the Owner or an Admin for what the role refused, set the secret in production, anything that is only in the dashboard.
+- What the user must still do: have the organization wallet sign a plan, ask the Owner or an Admin for what the role refused, set the secret in production, anything that is only in the dashboard.
 - What belongs to another skill, and which one.

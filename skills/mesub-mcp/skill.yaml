@@ -19,7 +19,7 @@ use_when:
   - a webhook endpoint must be registered, tested, changed or debugged on the project itself
   - a late subscriber must be charged again, or a plan prepared
   - the user asks to connect an agent to Mesub, or a Mesub tool answers that the connection must be made again
-  - a Mesub tool refuses a call for the merchant's role, the project or the organization's team wallet
+  - a Mesub tool refuses a call for the merchant's role, the project or the organization wallet
 do_not_use_when:
   - the task is writing or changing the integration's code and nothing must be read or done on the live project
   - the task is the handler that receives webhooks, a paid route, the subscribe window or the test suite

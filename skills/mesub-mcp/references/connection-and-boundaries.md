@@ -18,7 +18,7 @@ Look at your own tool list. The server is connected when it holds the Mesub tool
 
 When it is not connected, never:
 
-- write an address other than `https://mcp.mesub.io/mcp`, or connect for the user: the merchant adds it in their own tool;
+- write an address other than `https://mcp.mesub.io/mcp`, or add the server unasked: the merchant adds it in their own tool, or hands you Mesub's setup text, which asks you to (below). The sign-in is always theirs;
 - ask the user for an API key, or read one from an env file, to call Mesub yourself in its place;
 - answer as if a tool had been called.
 
@@ -35,6 +35,24 @@ Offer what can still be done without it: reading in the code how the app gates a
 Say it to the merchant in one sentence: "Connected to the organization Northwind, as a Member, all its projects: Shop and Docs", or "Connected to Northwind, pinned to the project Shop". Every answer after that is about those projects only, and an answer about the wrong one is worse than none.
 
 `list_projects` refused with `org_scope_unavailable`: the Mesub API behind the server is older and reaches one project per connection. Call `get_project` instead, say which project that is, and send no `project` argument to any tool.
+
+## When the user hands over Mesub's setup text
+
+The dashboard's onboarding gives the merchant a short text to paste to their agent. It reads:
+
+```text
+Mesub runs my app's subscription billing on Solana. Connect yourself to it:
+1. Install the Mesub skills: npx skills add Mesub-io/skills
+2. Add the Mesub MCP server: npx add-mcp "https://mcp.mesub.io/mcp" --name mesub -g
+3. Tell me how to sign in to Mesub from this tool, then wait while I do.
+```
+
+The user asked for both commands: that is the yes to run them. Then:
+
+1. **Run them as written**, from the project's root. `npx skills add Mesub-io/skills` installs the kit's skills in the project. `npx add-mcp ... --name mesub -g` adds the server to the user's AI tools, for every project (`-g`), and asks which tools: relay a question you cannot answer from what the user said, never pick for them. Never change the address or the name `mesub`. A command that cannot run here (no Node, no network, no terminal): say so, give it to the user to run, and go on.
+2. **The sign-in is the user's.** Tell them how their own tool starts the sign-in of a remote MCP server (its command or menu for MCP servers), then wait. Their browser opens Mesub, as below. Never ask for an API key, a password or a code, and never open the page for them.
+3. **The tools may not show at once.** Some tools load a new server only in a new session: if `list_projects` is not in your list once they have signed in, say so and ask them to start one.
+4. **Once the tools are there**, call `list_projects` and say the organization, the role and the pin, as above. Then go on with what the user wanted.
 
 ## How a merchant connects
 
@@ -53,7 +71,7 @@ What follows from it:
 - **One organization per connection.** A connection never reaches another organization, even one the merchant also belongs to. For another organization, or for a project outside the pin, the merchant connects again and chooses it on the consent page. No tool switches.
 - **A connection to the whole organization reaches more**: every project, those created later too. When the merchant needs one project only, pinning is the narrower choice: say so when they ask how to connect.
 - **A connection ends by itself after a day without use**, and stays open while it is used.
-- **The merchant can cut it at any time**, in the dashboard: under **AI & agents** for every connection of the organization, or inside a project under **Developers**, then **Connected agents**. Each connection has a Revoke, and the very next call is refused. Revoking a connection to the whole organization from a project's list cuts it from every project. Anyone can revoke their own; the Owner and Admins can revoke a Member's; only the Owner can revoke an Admin's or the Owner's own. Cutting a connection undoes nothing that was changed.
+- **The merchant can cut it at any time**, in the dashboard, under **AI & agents**: it lists every connection of the organization, whole or pinned, each with a Revoke, and the very next call is refused. Inside a project, **Developers**, then **Agents**, lists the connections that reach that project and leads to AI & agents to manage them. Anyone can revoke their own; the Owner and Admins can revoke a Member's; only the Owner can revoke an Admin's or the Owner's own. Cutting a connection undoes nothing that was changed.
 
 ## What the server can never do
 
@@ -63,7 +81,7 @@ No tool does any of these, and Mesub gives an agent no other way to them. Asking
 |---|---|
 | Do more than the merchant's role allows | The dashboard, by someone whose role allows it: the Owner or an Admin. Only the Owner makes someone an Admin |
 | Reach a project of another organization, or another project than the pin | A new connection, chosen by the merchant on the consent page |
-| Sign a plan | The dashboard, by whoever holds the organization's team wallet |
+| Sign a plan | The dashboard, by whoever holds the organization wallet: **Sign and publish** on the plan's page, or **To sign** |
 | See or change the API key | The dashboard. An API key is never pasted into a conversation |
 | Change the project's tier | The dashboard |
 | Delete a project or a plan | The dashboard |
@@ -77,7 +95,7 @@ No tool does any of these, and Mesub gives an agent no other way to them. Asking
 
 When asked for one of them: say it cannot be done through the server, say where it is done, and stop. Do not look for a tool that comes close. `update_project` renames the project in the dashboard and does nothing else (published plans keep the old name on chain until the merchant signs an update); `update_retry_policy` changes retries and nothing else of a plan; `delete_webhook` is not a way to "reset" anything.
 
-Also outside it: publishing a plan (the organization's team wallet signs what `prepare_plan` filled in), charging a subscriber who is not late, charging another amount than the plan's.
+Also outside it: publishing a plan (the organization wallet signs what `prepare_plan` filled in), charging a subscriber who is not late, charging another amount than the plan's.
 
 ## What belongs to the code skills
 

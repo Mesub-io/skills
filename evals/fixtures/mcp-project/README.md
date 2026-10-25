@@ -25,7 +25,7 @@ Named `Acme Reader`, on the Free tier. What that tier means for the prompts:
 
 ## The organization
 
-`Acme Reader` belongs to `Acme`, a team organization whose team wallet is set. The merchant of every run is its **Owner**, and `Acme Reader` is its only project, unless a variant below says otherwise.
+`Acme Reader` belongs to `Acme`, an organization (not a personal one) whose organization wallet is set. The merchant of every run is its **Owner**, and `Acme Reader` is its only project, unless a variant below says otherwise.
 
 ### Variants, for prompts 11 to 13 only
 

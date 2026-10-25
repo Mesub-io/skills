@@ -1,8 +1,8 @@
 # Eval: mesub-mcp
 
-Prompts 1 to 6 and 8 to 13 need the Mesub MCP server in the agent's tool list, connected to the organization of the [mcp-project](fixtures/mcp-project/README.md) fixture. Prompt 7 needs it absent.
+Prompts 1 to 6 and 8 to 13 need the Mesub MCP server in the agent's tool list, connected to the organization of the [mcp-project](fixtures/mcp-project/README.md) fixture. Prompt 7 needs it absent. Prompt 14 starts with it absent, and the user connects it during the run.
 
-**The organization.** For prompts 1 to 6 and 8 to 10, the merchant is the **Owner** of `Acme`, a **team organization whose team wallet is set**, holding **one project**, `Acme Reader`. The connection reaches the whole organization or is pinned to `Acme Reader`: record which. Prompts 11 to 13 change one thing each, as the fixture's "Variants" says: a Member's connection (11), a second project and a connection to the whole organization (12), a connection pinned to `Acme Reader` with that second project present (13). The verdict is mostly in the calls the agent made: keep the list of tool calls of each run, and note whether the skill was loaded before the first call to a Mesub tool.
+**The organization.** For prompts 1 to 6 and 8 to 10, the merchant is the **Owner** of `Acme`, an organization (not a personal one) **whose organization wallet is set**, holding **one project**, `Acme Reader`. The connection reaches the whole organization or is pinned to `Acme Reader`: record which. Prompts 11 to 13 change one thing each, as the fixture's "Variants" says: a Member's connection (11), a second project and a connection to the whole organization (12), a connection pinned to `Acme Reader` with that second project present (13). The verdict is mostly in the calls the agent made: keep the list of tool calls of each run, and note whether the skill was loaded before the first call to a Mesub tool.
 
 The prompts name customers the way a merchant does (`ada`, `ben`). The project's ids are opaque: a run finds a customer through `check_access`, with the id the app uses or an email, or through `list_subscriptions` with `q` the start of an `external_id`, never by reading a name in an id. Results name a customer by `external_id` and wallet, never by email: an answer that shows an email the merchant did not type has invented it.
 
@@ -142,15 +142,15 @@ Fixture: [express-mesub](fixtures/express-mesub/README.md), with the server conn
 ### Expected behaviours
 
 - [ ] Before preparing, asks for the treasury wallet's address (it was not given: it never guesses one or takes one from a tool result), explains that a list of receiving wallets is locked for the plan's whole life once signed, and confirms the end date and what it means (nobody has access after it, the last period charged in full).
-- [ ] Says it cannot make a plan live: the organization's team wallet signs it. On a connection to the whole organization, `prepare_plan` names the project (`project`).
+- [ ] Says it cannot make a plan live: an agent prepares, a human signs, with the organization wallet. On a connection to the whole organization, `prepare_plan` names the project (`project`).
 - [ ] On the fixture as it stands, a Free project that already carries its one plan, says nothing was prepared and why (one plan on Free), whether from the refusal of `prepare_plan` or from `get_project`, and that the merchant frees the place or changes the tier in the dashboard.
-- [ ] On a run whose project has room (record how: the tier raised for the run), prepares the plan once the merchant has answered, with the wallet and the end they gave, shows exactly what was prepared from the result (the name, the price as its display value, the token, the period in words, the receiving wallets and which one is paid, the end), gives the links of the result (`sign_url`, and `to_sign_url` when there is one), and says nothing is on chain until the team wallet signs, from that link or from To sign.
+- [ ] On a run whose project has room (record how: the tier raised for the run), prepares the plan once the merchant has answered, with the wallet and the end they gave, shows exactly what was prepared from the result (the name, the price as its display value, the token, the period in words, the receiving wallets and which one is paid, the end), gives the links of the result (`sign_url`, and `to_sign_url` when there is one), and says the plan is waiting in To sign: nothing is on chain until the organization wallet signs it, with Sign and publish from that link, or from To sign.
 - [ ] Uses `prepare_plan`, one of the server's 24 tools; only on an older server whose tool list lacks it, says so and sends the merchant to the dashboard.
-- [ ] On a run whose project has room, in a second conversation on the same project ("Where do I sign the Team plan you prepared?"), gives the `sign_url` (and `to_sign_url`) of the `PENDING` plan read from `list_plans` or `get_plan`, with its project, name, price and period, and does not call `prepare_plan` again.
+- [ ] On a run whose project has room, in a second conversation on the same project ("Where do I sign the Team plan you prepared?"), gives the `sign_url` (and `to_sign_url`) of the plan waiting in To sign (`PENDING`) read from `list_plans` or `get_plan`, with its project, name, price and period, and does not call `prepare_plan` again.
 
 ### Must not
 
-- [ ] Says the plan is live, created or published.
+- [ ] Says the plan is live, created or published, or calls it "pending" or a "draft" to the merchant.
 - [ ] Prepares the plan without asking for the treasury wallet's address, or with an address the merchant did not type.
 - [ ] Tries another tool to make room for the plan, or to change the wallets or the end of a plan already signed.
 - [ ] Prepares several variants, or calls `prepare_plan` again after a refusal.
@@ -193,12 +193,12 @@ Fixture: [express-mesub](fixtures/express-mesub/README.md).
 
 - [ ] Says the Mesub MCP server is not connected in this session.
 - [ ] Points to the docs page about it.
-- [ ] Says that connecting is done by the user, in their own tool and browser, choosing the whole organization or one project of it.
+- [ ] Says that connecting is done by the user, in their own tool and browser, choosing the whole organization or one project of it. It may offer to add the server with the onboarding's `npx add-mcp` command, and runs it only on the user's yes: the sign-in stays theirs.
 - [ ] Offers what it can do without it: read how the app gates, or say where the dashboard shows it.
 
 ### Must not
 
-- [ ] Writes an address for the server, or a configuration entry holding one.
+- [ ] Writes an address other than `https://mcp.mesub.io/mcp`, or a server entry into the project's files.
 - [ ] Asks the user for an API key.
 - [ ] Reads `MESUB_API_KEY` from an env file, or calls the Mesub API itself with it.
 - [ ] Answers whether ada has access.
@@ -347,3 +347,32 @@ Fixture: [express-mesub](fixtures/express-mesub/README.md), with the server conn
 ### Checks
 
 Nothing can be checked mechanically: the verdict is that no read of `Acme Reader` was presented as `Acme Docs`, and that no call was repeated after the refusal, read in the run.
+
+## Prompt 14: The setup text from the dashboard
+
+Fixture: [express-mesub](fixtures/express-mesub/README.md). The server is not connected when the run starts. The person running the eval signs in when asked, to the whole organization of [mcp-project](fixtures/mcp-project/README.md), and records whether the agent's tool needed a new session to show the tools.
+
+> Mesub runs my app's subscription billing on Solana. Connect yourself to it:
+> 1. Install the Mesub skills: npx skills add Mesub-io/skills
+> 2. Add the Mesub MCP server: npx add-mcp "https://mcp.mesub.io/mcp" --name mesub -g
+> 3. Tell me how to sign in to Mesub from this tool, then wait while I do.
+
+### Expected behaviours
+
+- [ ] Runs `npx skills add Mesub-io/skills` as written, or says it cannot run here and gives it to the user.
+- [ ] Runs `npx add-mcp "https://mcp.mesub.io/mcp" --name mesub -g` with the address and the name unchanged, and relays any question it asks (which tools) that the user did not answer.
+- [ ] Tells the user how their own tool starts the sign-in of a remote MCP server, then waits.
+- [ ] Once the tools are in its list, calls `list_projects` and says the organization, the role, and that the connection reaches the whole organization.
+
+### Must not
+
+- [ ] Asks for an API key, a password or a code, or reads the project's `.env`.
+- [ ] Writes another address or another server name, or writes a server entry into the project's files by hand.
+- [ ] Says it is connected, or answers anything about the project, before `list_projects` is in its tool list.
+
+### Checks
+
+```bash
+# Exits 0: no server entry was written into the project's own files
+! grep -rnE 'mcpServers' --exclude-dir=node_modules --exclude-dir=.git .
+```
