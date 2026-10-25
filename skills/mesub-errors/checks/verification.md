@@ -62,7 +62,7 @@ What an agent cannot reproduce, and must say so:
 
 - an error that needs real state on Mesub's side: a late payment, a full project, a rate limit, an outage, a plan changed in the dashboard;
 - anything a wallet must sign, and whether a transaction landed;
-- what the dashboard shows, and anything the fix asks the user to do there (a key, a plan, a receiver, a retry by hand);
+- what the dashboard shows, and anything the fix asks the user to do there (a key, a plan, a receiving wallet, a retry by hand);
 - time: a retry that comes hours later, a `pending` subscription settled within the hour.
 
 For each of these, tell the user exactly what to look at and what a good result is.

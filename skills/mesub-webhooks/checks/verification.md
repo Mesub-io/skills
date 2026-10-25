@@ -73,7 +73,7 @@ Pass: all five, read in the code.
 
 An agent cannot register an endpoint, read its secret or receive a delivery from Mesub. Tell the user exactly this:
 
-1. In the dashboard, under Developers then Webhooks, add the endpoint's public HTTPS URL and select its events. `subscription.renewal_upcoming`, `subscription.access_granted` and `subscription.access_revoked` are only sent if selected (the last two not before Mesub turns them on).
+1. In the dashboard, under Developers then Webhooks, add the endpoint's public HTTPS URL and select its events. Only the Owner or an Admin of the organization can. `subscription.renewal_upcoming`, `subscription.access_granted` and `subscription.access_revoked` are only sent if selected (the last two not before Mesub turns them on).
 2. Put that endpoint's signing secret in the server's environment as `MESUB_WEBHOOK_SECRET`, without pasting it anywhere else, and restart the server.
 3. On the endpoint, click **Send test**, once with no event picked and once for each event the handler has a branch for.
 4. Confirm each one reached the handler and was answered with a 2xx.

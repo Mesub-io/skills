@@ -23,6 +23,18 @@ Named `Acme Reader`, on the Free tier. What that tier means for the prompts:
 |---|---|---|---|---|
 | Pro | `pro` | 10 USDC | 720 hours | Active |
 
+## The organization
+
+`Acme Reader` belongs to `Acme`, an organization (not a personal one) whose organization wallet is set. The merchant of every run is its **Owner**, and `Acme Reader` is its only project, unless a variant below says otherwise.
+
+### Variants, for prompts 11 to 13 only
+
+- **Prompt 11, a Member.** A second account, a **Member** of `Acme`, connects instead of the Owner, to the whole organization. Nothing else changes.
+- **Prompt 12, two projects.** A second project, `Acme Docs`, on the Free tier, with no plan, no subscriber and no webhook. The Owner connects to the whole organization.
+- **Prompt 13, a pin.** `Acme Docs` exists as in prompt 12. The Owner connects pinned to `Acme Reader`.
+
+Remove `Acme Docs` and the Member after the runs that need them.
+
 ## The subscribers
 
 Held under the bare names `ada`, `ben` and `cleo`, while the codebase sends `user_ada` and `user_ben`: the mismatch is intended, see [the eval](../../mesub-mcp.md).

@@ -10,8 +10,8 @@ Before writing code:
 2. If there is no login at all, stop and say so. Mesub ties a subscription to a customer the app names: without a verified identity there is nothing safe to tie it to. Do not invent one, and do not take an id from the browser.
 3. Check what is installed: `package.json`, the lockfile, and `node_modules/@mesub/node/package.json` for the version. Both packages are on npm at 0.1.0 (step 2).
 4. Ask the user for two things an agent cannot produce:
-   - **The plan's slug.** They create the plan in the dashboard, under Plans, and their wallet signs it. The plan's Implement tab shows the slug; `mesub.plans.list()` returns every plan's `slug` too, and so does the Mesub MCP server's `list_plans` when it is connected. Never derive a slug from the plan's name: the merchant may have given it another one. If they have no plan yet, they make one first: code written against a slug that does not exist answers 404.
-   - **That the API key is in the server's environment.** They create it in the dashboard, under Developers. It starts with `SUB_` and is shown once.
+   - **The plan's slug.** They create the plan in the dashboard, under Plans, and the organization wallet signs it (Sign and publish); a plan a Member or an agent prepared waits in To sign until whoever holds that wallet signs it. The plan's Implement tab shows the slug; `mesub.plans.list()` returns every plan's `slug` too, and so does the Mesub MCP server's `list_plans` when it is connected. Never derive a slug from the plan's name: the merchant may have given it another one. If they have no plan yet, they make one first: code written against a slug that does not exist answers 404.
+   - **That the API key is in the server's environment.** The Owner or an Admin of the organization creates it in the dashboard, in the project's Developers. It starts with `SUB_` and is shown once.
 5. Tell the user what the project's tier allows before they rely on it: see "The Free tier" below.
 
 **Never ask the user to paste the API key into the conversation, and never write its value anywhere.** Ask them to add `MESUB_API_KEY` to the server's environment themselves, then check that the name is set without reading the value (the script below does). Why: a key pasted in a chat or committed to a file must be treated as leaked and rotated.
@@ -24,7 +24,7 @@ A project starts on Free. Say what it means before the user counts on it:
 - **No automatic retry.** When a renewal fails (the wallet held too little, say), Mesub does not try again by itself. Someone must act: the subscriber pays it now from the manage window, or the merchant retries by hand in the dashboard, 3 tries between them per missed period, 10 minutes apart, until `retry_deadline`. Past it, the subscription stops.
 - **`unpaid` grants no access.** While a payment is late, `hasAccess` answers `false` on Free. The paid tiers retry by themselves and keep access until the last retry.
 
-The tier is changed in the dashboard, under Plans. Never promise a retry that Free does not make.
+The tier is changed in the dashboard, in the organization's Billing, by its Owner. Never promise a retry that Free does not make.
 
 ## Step 1: the API key
 

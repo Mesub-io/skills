@@ -54,7 +54,7 @@ Every skill of the mesub-skills kit. Each one installs alone and works alone: fo
 
 ## `mesub-mcp`
 
-- Territory: Act on a merchant's live project through the Mesub MCP server: read it, diagnose, manage webhooks, retry a charge, prepare a plan.
+- Territory: Act on a merchant's live projects through the Mesub MCP server: read them, diagnose, manage webhooks, retry a charge, prepare a plan.
 - Installed if `mesub-mcp` is among your available skills, or if `npx -y skills list` names it.
 - To install it alone, once the user agrees: `npx -y skills add Mesub-io/skills --skill mesub-mcp`.
 - If the user declines or it cannot be installed, read https://docs.mesub.io/docs/mcp instead.

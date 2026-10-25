@@ -31,7 +31,7 @@ New codes are added. None is renamed, save two before the first integrator: `pla
 | API code | Status | Wait | What it means | What to do |
 |---|---|---|---|---|
 | `plan_not_found` | 404 | no | No plan of the project under that slug | Fix the slug, or the key is another project's. A broken integration, never "not subscribed" |
-| `plan_not_on_chain` | 409 | no | The plan was never published: still a draft | The user publishes it in the dashboard |
+| `plan_not_on_chain` | 409 | no | The plan was never signed: it is still waiting in To sign | Whoever holds the organization wallet signs it in the dashboard (Sign and publish, or To sign) |
 | `plan_removed` | 409 | no | The plan is gone from the chain (was `plan_deleted`) | Nothing to resume: the customer subscribes to a plan that exists |
 | `plan_sunset` | 409 | no | The plan takes no new subscribers | Stop offering it: show "Subscribe" only when the plan's `available` is true |
 | `plan_ended` | 409 | no | The plan is past its end date. With an API key, the answer of `create` | Stop offering it, as for `plan_sunset`. Its subscriptions ended with it: `end_reason` `plan_ended` in `reasons.md`. The dashboard answers the same code elsewhere: see below |
