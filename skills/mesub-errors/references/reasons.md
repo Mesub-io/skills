@@ -21,7 +21,7 @@ An installed `@mesub/node` whose types do not name `reason_code` still hands it 
 | `not_our_transaction` | submit | The signature is not of a transaction Mesub built for this subscription | Send the signature of the transaction Mesub handed out, not rebuilt |
 | `subscription_mismatch` | submit | What landed names another wallet, plan, amount or period: it is now `failed` | Create again. Never retry the same transaction |
 | `subscription_remade` | submit | It landed, and the subscription was closed and made again without Mesub since: now `failed` | Read the customer's subscriptions back |
-| `dev_not_running` | submit | Mesub's own Dev plan landed cancelled or part paid: now `failed` | Concerns Mesub's own plan only |
+| `dev_not_running` | submit | The subscription that pays Mesub for the Dev tier landed cancelled or part paid: now `failed` | Concerns paying Mesub for the Dev tier only |
 | `earlier_subscription_running` | submit | A comeback paid while the subscription it came back over ran again | Nothing: Mesub was told and sorts it out |
 | `cancellation_not_landed` | confirmCancel | It stands on chain with no cancellation | Build again with `cancel` |
 | `resume_not_landed` | confirmResume | It stands on chain still cancelled | Build again with `resume` |
@@ -142,7 +142,7 @@ Gate on `access`, never on `status`, and keep a default branch: a status may be 
 | `blocked_reason` | Cause | Who acts |
 |---|---|---|
 | `puller_not_allowed` | Mesub's puller was taken off the plan | The user, on the plan |
-| `receiver_not_allowed` | The receiving wallet is not among the plan's destinations | The user, on the plan |
+| `receiver_not_allowed` | The receiving wallet is not among the wallets the plan allows | The user, on the plan |
 | `receiver_account_missing` | The receiving wallet has no account for the plan's token | The user |
 | `receiver_account_frozen` | The receiving wallet's account for the plan's token is frozen | The user, with whoever froze it |
 | `mint_gone` | The plan's token no longer exists | Not the app, not the customer |

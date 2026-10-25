@@ -48,7 +48,7 @@ A charge can fail for a reason that is not the customer's: the plan's own setup,
 | `blocked_reason` | Whose cause | Who fixes it |
 |---|---|---|
 | `puller_not_allowed` | The merchant's: Mesub's puller was taken off the plan | The merchant, on the plan |
-| `receiver_not_allowed` | The merchant's: the receiving wallet is not among the plan's destinations | The merchant, on the plan |
+| `receiver_not_allowed` | The merchant's: the receiving wallet is not among the wallets the plan allows | The merchant, on the plan |
 | `receiver_account_missing` | The merchant's: the receiving wallet has no account for the plan's token, and nobody else can be paid | The merchant |
 | `receiver_account_frozen` | The merchant's: the receiving wallet's account for the plan's token is frozen | The merchant, with whoever froze it |
 | `mint_gone` | The merchant's plan: its token no longer exists | Not the app, not the customer |
@@ -63,7 +63,7 @@ A charge can fail for a reason that is not the customer's: the plan's own setup,
 - **Access has an end all the same: `access_until`.** `access` is never true past it on a blocked subscription. Under `mesub` that is the end of the period after the one paid for. Under a cause of the plan's setup it comes sooner: the time the plan gives a late payment for its retries, and minutes only when it gives none.
 - **Mesub keeps trying.** `next_charge_at`, or `next_retry_at` on one that was late already, is the next try. Access comes back with the first charge that goes through, or that the chain holds as paid, with nothing for the customer to sign.
 - **The customer did nothing wrong and can fix nothing.** Do not word it as a late payment, do not ask them to add funds or to subscribe again. Say the charge is on hold and until when they keep access (`access_until`).
-- **The fix is the merchant's.** For a cause of the plan's setup, tell the user of this skill which one it is: Mesub also mails the merchant once per plan. An agent cannot repair a plan from the app's code.
+- **The fix is the merchant's.** For a cause of the plan's setup, tell the user of this skill which one it is: Mesub also mails the organization's Owner and Admins once per plan. An agent cannot repair a plan from the app's code.
 - `blocked_reason` may gain values: keep a default branch. `@mesub/react` and `@mesub/node` 0.1.0 do not type `mint_paused` and `mint_transfer_hook`: compare them as strings.
 
 So `status: 'active'` with `access: false` is not only a plan past its end date: it is also a blocked subscription whose `access_until` has passed. One more reason to read `access`.

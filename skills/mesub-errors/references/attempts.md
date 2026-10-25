@@ -48,8 +48,8 @@ Null on a `paid` attempt, a short stable string in snake case on every other.
 | `plan_removed` (was `plan_gone`) | `skipped` | The plan was deleted. The subscription ends, `plan_removed` | Nothing to recover: customers subscribe to another plan |
 | `plan_replaced` | `skipped` | Another plan stands at its address. It ends, `plan_replaced` | Same |
 | `plan_ended` | `skipped` | The plan's end date has passed. It ends, `plan_ended` | Same |
-| `receiver_not_allowed` | `blocked` | The plan's receiver is not among the destinations it allows | The user fixes the plan's receiver in the dashboard |
-| `receiver_account_missing` | `blocked` | Neither the receiver nor the user's wallet has an account for that token | The user opens one |
+| `receiver_not_allowed` | `blocked` | The plan's receiving wallet is not among the wallets it allows | The user fixes the plan's receiving wallet in the dashboard |
+| `receiver_account_missing` | `blocked` | Neither the receiving wallet nor the user's wallet has an account for that token | The user opens one |
 | `receiver_account_frozen` | `blocked` | The account that receives the payments is frozen | The user checks the receiving account in the dashboard |
 | `puller_not_allowed` | `blocked` | Mesub's puller was taken off the plan | The user puts Mesub's puller back on the plan |
 | `mint_gone` | `blocked` | The plan's token no longer exists on chain, read twice | The user checks the plan's token in the dashboard |
@@ -92,6 +92,6 @@ Null on a `paid` attempt, a short stable string in snake case on every other.
 
 1. Read the newest attempts until the last `paid` one.
 2. Any `rejected` since: the cause is on the customer's side. Its `reason` says which, and `late_reason` on the subscription says the same more coarsely.
-3. Only `blocked` or `skipped` since: the customer did nothing wrong and no retry was spent. Check the plan first (receiver, puller), then wait.
+3. Only `blocked` or `skipped` since: the customer did nothing wrong and no retry was spent. Check the plan first (receiving wallet, puller), then wait.
 4. No attempt at all on a subscription that is `pending`, `expired` or `failed`: the checkout never started, nothing was ever charged.
 5. No attempt at the end of a period on an `active` subscription whose `next_charge_at` is null: it is in the last period of a plan with an end date. Nothing failed: no charge is due, and it ends with the plan (`reasons.md`).

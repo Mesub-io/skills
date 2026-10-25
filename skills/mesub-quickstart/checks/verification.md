@@ -70,7 +70,7 @@ This one needs a person with a wallet that holds enough of the plan's token for 
 1. Sign in to the app and click the button.
 2. Pick the wallet, read the review, then approve twice: the terms, then the first payment.
 3. Call the paid route again: it now answers 200.
-4. In the dashboard, the subscription is under Subscriptions and its first payment under Collection.
+4. In the dashboard, the subscription is under Subscriptions and its first payment under Payments.
 
 Pass: the user confirms step 3. Until then, report the integration as wired and checked up to the window, not as tested end to end.
 
