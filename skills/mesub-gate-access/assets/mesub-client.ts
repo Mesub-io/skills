@@ -38,7 +38,8 @@ function store(): KeyValue | undefined {
 
 const kv = store();
 
-// Reads MESUB_API_KEY from the server's environment. Built once, at module level:
+// Reads MESUB_API_KEY from the server's environment, and from @mesub/node 0.1.3 MESUB_BASE_URL
+// (the address the key is sent to, https://api.mesub.io when unset). Built once, at module level:
 // one built per request starts with an empty cache and no outage fallback.
 export const mesub = new Mesub({
     ...(kv && { cache: sharedStore(kv) }),

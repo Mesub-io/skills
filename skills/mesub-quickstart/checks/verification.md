@@ -22,8 +22,9 @@ Read, do not assume:
 - The env file that holds `MESUB_API_KEY` is matched by `.gitignore`.
 - No client file, and nothing under a browser prefix, names the key.
 - Nothing you wrote logs the key or the whole environment.
+- `MESUB_BASE_URL` is unset, or set by the user beside the key to the API address Mesub gave: never one you chose.
 
-Pass: all four. If a key was written to a tracked file or shown in the conversation at any point, tell the user it must be rotated in the dashboard, even if the file was fixed since.
+Pass: all five. If a key was written to a tracked file or shown in the conversation at any point, tell the user it must be rotated in the dashboard, even if the file was fixed since.
 
 ## 3. It compiles
 

@@ -56,7 +56,7 @@ Checked on an Express guard with no `client` option. What it costs, compared wit
 - **One client for the whole run**, so one cache: `reset()` does not empty it. Use a different customer in each test that involves an outage or the cache.
 - **Retries are on** (2 by default): an outage test waits about a second before the guard falls back.
 - **The global `fetch` is the fake's** for everything in the process. A call to any other host gets a plain 404 from the fake. Restore it after the run.
-- The base URL is exactly `https://api.mesub.io`: the default client has no other.
+- The base URL is exactly `https://api.mesub.io`: the default client calls it when `MESUB_BASE_URL` is unset. From `@mesub/node` 0.1.3 it reads that variable first, so delete it in the test setup (`delete process.env.MESUB_BASE_URL`) or the calls miss the fake.
 
 Prefer handing the client in whenever the framework allows it.
 
