@@ -13,7 +13,7 @@ One guard per framework. All three ask the same question as `hasAccess`, within 
 | Option | Required | What it is |
 |---|---|---|
 | `customer` | yes | A function of the request that returns who is signed in, or `null`. May be async |
-| `client` | no | The `Mesub` client to ask with. Left out, the guard uses one default client built from `MESUB_API_KEY`, shared by every guard and widget route given none |
+| `client` | no | The `Mesub` client to ask with. Left out, the guard uses one default client built from `MESUB_API_KEY` (and `MESUB_BASE_URL` when set, from 0.1.3), shared by every guard and widget route given none |
 | `onDenied` | no | Answer a refusal yourself: see `refusals.md` in this folder |
 
 `plan` is the first argument of `requirePlan` and `RequirePlan`, and an option of `withMesub`.

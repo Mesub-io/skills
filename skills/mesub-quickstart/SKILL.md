@@ -31,15 +31,15 @@ This skill takes a project from no Mesub code to one paying subscriber: the pack
 
 1. **The subscriber has no Mesub account.** Who they are comes from the app's own login. An app with no login needs one first.
 2. **The API key lives on the server only.** `@mesub/react` holds no key and never talks to Mesub: it calls routes on the app's own server.
-3. **A plan is named by its slug**, read in the dashboard, never guessed. Price, token and period live in the dashboard, not in code.
+3. **A plan is named by its slug**, read in the dashboard, never guessed. Price, token and period live in the dashboard.
 4. **Mesub charges every period by itself.** No cron, no job, no renewal code in the app.
 5. **On the Free tier**: one plan, 30 subscribers, no automatic retry, and no access while a payment is late. Tell the user: `references/steps.md`.
 
 ### The six steps
 
-Do them in order. Each one is detailed in `references/steps.md`: read the step before writing its code.
+Do them in order. Read each step in `references/steps.md` before writing its code.
 
-0. **Read the project, ask the user.** Find the framework and how a request learns who the user is. Check what is installed. Ask for the plan's slug, and ask the user to put `MESUB_API_KEY` in the server's environment themselves.
+0. **Read the project, ask the user.** Find the framework and how a request learns who the user is. Check what is installed. Ask for the plan's slug; ask the user to set `MESUB_API_KEY` on the server themselves, plus `MESUB_BASE_URL` only if Mesub gave another API address.
 1. **The API key and the one client.** `new Mesub()` reads `MESUB_API_KEY` by itself. Build it once (`assets/mesub-client.ts`), pass it as `client` everywhere. Without the key it throws at import, so a Next.js build needs it too. Confirm the env file is ignored by git.
 2. **Install** `@mesub/node` (in `dependencies`) and `@mesub/react` from npm, with the project's own package manager.
 3. **Mount the routes the widget calls** at `/api/mesub`, after the app's login: `assets/express-mesub.ts` or `assets/next-mesub-route.ts`.
@@ -47,7 +47,7 @@ Do them in order. Each one is detailed in `references/steps.md`: read the step b
 5. **The provider and the button**: `assets/mesub-provider.tsx`, then `assets/subscribe-button.tsx`. Its `endpoint` is exactly the path of step 3. Mesub runs on mainnet: set `chain="solana:mainnet"` (never `solana:mainnet-beta`), or the wallet signs elsewhere.
 6. **Check**: run the script below, then go through `checks/verification.md`.
 
-Copy an asset, then adapt its `ADAPT` lines. What each framework needs beyond that: `references/frameworks.md`.
+Copy an asset, adapt its `ADAPT` lines. What each framework needs beyond that: `references/frameworks.md`.
 
 ### Rules that are never negotiable
 

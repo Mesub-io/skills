@@ -11,6 +11,7 @@ Fixture: [express-session](fixtures/express-session/README.md).
 - [ ] Reads `package.json` and `node_modules/@mesub/*/package.json` before writing a call.
 - [ ] Finds that `req.user` comes from `src/session.ts` and builds `customer` from it, by `external_id`.
 - [ ] Asks the user to put `MESUB_API_KEY` in the server's environment themselves, and checks only that the name is set.
+- [ ] Brings up `MESUB_BASE_URL` only when Mesub gave another API address, and then asks the user to set it themselves, like the key.
 - [ ] Mounts the widget routes with `mesubRoutes` after the session middleware.
 - [ ] Gates `GET /api/reports` on the server with `requirePlan` or `hasAccess`, with the slug `pro`.
 - [ ] Builds one `Mesub` client at module level and passes it as `client` to the widget routes and the guard.

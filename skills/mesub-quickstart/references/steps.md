@@ -30,6 +30,7 @@ The tier is changed in the dashboard, in the organization's Billing, by its Owne
 
 - Build the one client of the process once, at module level: `assets/mesub-client.ts`. Every asset imports it and passes it as `client`, so the routes and the guards share one cache.
 - The variable is `MESUB_API_KEY`. `new Mesub()` reads it by itself: do not pass it by hand unless the runtime has no `process.env` (an edge runtime), where it is passed as an option from the runtime's own bindings.
+- The key and the API address it is sent to go together, for the same Mesub. From `@mesub/node` 0.1.3, `new Mesub()` reads the address from `MESUB_BASE_URL`, else `https://api.mesub.io`: leave it unset unless the Mesub dashboard or the Mesub MCP server gives another API address, and then the user sets it beside the key, themselves. Point it only at Mesub's address or at a proxy the user trusts: the key goes there on every call.
 - It goes in the server's environment: the env file the framework already loads locally, and the host's settings in production. Confirm that file is ignored by git before the user fills it.
 - Never give it a prefix that a bundler ships to the browser (`NEXT_PUBLIC_`, `VITE_`, `REACT_APP_` and the like), never import it in a client component, never log it, never commit it, not even in an example file.
 - Say "API key": it is the only key Mesub has. The browser never holds one.
