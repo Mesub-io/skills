@@ -53,6 +53,10 @@ Null on a `paid` attempt, a short stable string in snake case on every other.
 | `receiver_account_frozen` | `blocked` | The account that receives the payments is frozen | The user checks the receiving account in the dashboard |
 | `puller_not_allowed` | `blocked` | Mesub's puller was taken off the plan | The user puts Mesub's puller back on the plan |
 | `mint_gone` | `blocked` | The plan's token no longer exists on chain, read twice | The user checks the plan's token in the dashboard |
+| `receiver_account_needs_memo` | `blocked` | The account that receives the payments requires a memo on every transfer in | The user turns that off, or chooses another receiving wallet |
+| `receiver_account_confidential_only` | `blocked` | The account that receives the payments takes confidential transfers only | The user allows plain transfers into it, or chooses another receiving wallet |
+| `mint_paused` | `blocked` | The token's issuer paused it | Only the issuer lifts it; Mesub charges again once they do |
+| `mint_transfer_hook` | `blocked` | The token's issuer made its transfers run a program Mesub does not support yet | The issuer removes it, or the user makes a new plan with another token |
 | `program_130`, `program_501`, `program_506`, `program_516`, `program_519` | `blocked` | One of the changes above, made while the charge was on its way | As above |
 
 ### Mesub or the network

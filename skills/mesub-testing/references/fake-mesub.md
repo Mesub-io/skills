@@ -96,7 +96,7 @@ fake.grant({ external_id: 'user_42' }, 'pro', { ...blocked, access_until: inThre
 fake.deny({ external_id: 'user_42' }, 'pro', { ...blocked, status: 'active', payment_status: 'paid' });
 ```
 
-`blocked_reason` is `puller_not_allowed`, `receiver_not_allowed`, `receiver_account_missing`, `receiver_account_frozen`, `mint_gone`, `mesub` or `null`. The fake serves what the test gave and works nothing out: it does not end access when `access_until` passes, and never blocks or unblocks by itself.
+`blocked_reason` is `puller_not_allowed`, `receiver_not_allowed`, `receiver_account_missing`, `receiver_account_frozen`, `receiver_account_needs_memo`, `receiver_account_confidential_only`, `mint_gone`, `mint_paused`, `mint_transfer_hook`, `mesub` or `null`. The fake types the four after `receiver_account_frozen` from `@mesub/node` 0.1.6 (unreleased yet); on an older version, cast them. The fake serves what the test gave and works nothing out: it does not end access when `access_until` passes, and never blocks or unblocks by itself.
 
 ## A plan with an end date
 
