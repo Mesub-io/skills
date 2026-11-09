@@ -86,7 +86,7 @@ A guard answers **401** when nobody is signed in, **402** when the customer has 
 Rules that hold whatever the framework:
 
 - **Gate on the server.** Hiding a button in React is not a gate: the data must not leave the server without the check.
-- **Do not cache the answer yourself.** The SDK already keeps answers and already handles an outage: it serves the last answer it knew for that customer for up to 24 hours, and refuses one it never saw. A second cache on top only makes a cancellation arrive late.
+- **Do not cache the answer yourself.** The SDK already keeps answers and already handles an outage: it serves the last answer it knew for that customer for up to 24 hours (never past `access_until` when nothing renews it or its charges are blocked), and refuses one it never saw. A second cache on top only makes a cancellation arrive late.
 - **Do not turn an error into "not subscribed".** A wrong key or an unknown slug throws on purpose, so a broken integration is loud. Wrapping the check in a `try` that returns `false` hides it and locks out every paying subscriber.
 - **Do not store "is subscribed" in the app's database** to read it later. Ask Mesub on each request: it is the one that knows about the renewal that just failed.
 
