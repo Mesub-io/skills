@@ -23,6 +23,7 @@ A project starts on Free. Say what it means before the user counts on it:
 - **One plan and 30 subscribers.** A subscriber is a wallet with an `active`, `unpaid` or not yet ended `cancelled` subscription. Past 30, a new subscription is refused (`seat_cap_reached`).
 - **No automatic retry.** When a renewal fails (the wallet held too little, say), Mesub does not try again by itself. Someone must act: the subscriber pays it now from the manage window, or the merchant retries by hand in the dashboard, 3 tries between them per missed period, 10 minutes apart, until `retry_deadline`. Past it, the subscription stops.
 - **`unpaid` grants no access.** While a payment is late, `hasAccess` answers `false` on Free. The paid tiers retry by themselves and keep access until the last retry.
+- **A period of a day or more.** A plan on Free bills at most once a day, and on Dev too: a shorter period is refused with `period_too_short` when the plan is created. Only Business takes any period, hourly included. A plan already live keeps its period whatever the tier becomes.
 
 The tier is changed in the dashboard, in the organization's Billing, by its Owner. Never promise a retry that Free does not make.
 

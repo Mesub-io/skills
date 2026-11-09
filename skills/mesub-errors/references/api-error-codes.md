@@ -53,6 +53,16 @@ Answered when the user creates a plan with an end date in the dashboard. No call
 | `end_date_too_far` | 400 | no | The end date is more than 100 years away | Almost always a date sent in milliseconds: an end date is counted in Unix seconds |
 | `end_date_stale` | 409 | no | The plan was left unsigned until its end date no longer held | The user changes the date, then signs the creation |
 
+### A plan and the project's tier (the dashboard only)
+
+Answered when the user creates or edits a plan in the dashboard, or a Mesub agent prepares one. No call made with an API key answers them. None is retried as it is: the way out is the user's, in the dashboard.
+
+| API code | Status | Wait | What it means | What to do |
+|---|---|---|---|---|
+| `plan_cap_reached` | 403 | no | The project is at its tier's plan limit (Free 1, Dev 3). The message says when a prepared plan still unsigned holds the slot | The user frees a slot in the dashboard (a prepared plan deleted, a live one sunset), or moves the project up |
+| `retries_not_on_tier` | 403 | no | A retry policy was set on Free, which does not retry | No policy on Free, or the project moves up |
+| `period_too_short` | 403 | no | The period is shorter than the tier allows: on Free and Dev a plan bills at most once a day; Business takes any period. "Plans on the Free tier bill at most once a day: give this plan a period of a day or more." | A period of a day or more, or the project moves to Business. A plan already live keeps its period |
+
 ## Subscribing (`create`, and `submit` where noted)
 
 | API code | Status | Wait | What it means | What to do |
