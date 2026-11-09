@@ -93,6 +93,32 @@ return paid ? <Reports /> : <Upsell />;
 - It is not bound by `guardTimeout`. During an outage it waits for the client's own `timeout` and `maxRetries` (5 seconds an attempt and two retries by default) before it falls back.
 - Load the paid data after the check, in the same server code. A check in a layout does not protect a page's own data.
 
+### Next 16 with Cache Components
+
+With `cacheComponents: true`, a page that reads the session or asks Mesub outside `<Suspense>` fails `next build` at prerender. `export const dynamic` is refused under Cache Components: never add it. Two fixes:
+
+- `export const instant = false` on the page, as the asset does: the page blocks on the server at each request. Only on Next 16: Next 14 and 15 refuse that export at build.
+- Keep the page's shell static and move the session read and the check into a child component inside `<Suspense>`:
+
+```tsx
+export default function ReportsPage() {
+    return (
+        <Suspense fallback={<p>Loading…</p>}>
+            <PaidReports />
+        </Suspense>
+    );
+}
+
+async function PaidReports() {
+    const session = await sessionOf();
+    if (!session) redirect('/login');
+    const paid = await mesub.hasAccess({ external_id: session.userId }, 'pro');
+    return paid ? <Reports /> : <Upsell />;
+}
+```
+
+Never put `hasAccess` or the paid data under `use cache`: a cached yes outlives a cancellation, and the client already keeps its own outage fallback.
+
 A component that hides itself in the browser is not a gate: the data already left the server. `@mesub/react` opens the subscribe and manage windows and lists a customer's subscriptions for display. It has no guard.
 
 ## NestJS

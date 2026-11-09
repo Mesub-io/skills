@@ -62,6 +62,27 @@ export default async function Reports() {
 }
 ```
 
+- **Next 16 with `cacheComponents: true`.** The page above reads the session and asks Mesub outside `<Suspense>`, so `next build` fails at prerender. Never add `export const dynamic`: Cache Components refuses it. Either add `export const instant = false` to the page (it then blocks on the server at each request; Next 14 and 15 refuse that export, so only on 16), or keep the page static and move the check into a child inside `<Suspense>`:
+
+```tsx
+export default function Reports() {
+    return (
+        <Suspense fallback={<p>Loading…</p>}>
+            <PaidReports />
+        </Suspense>
+    );
+}
+
+async function PaidReports() {
+    const session = await yourSession();
+    if (!session) redirect('/login');
+    const paid = await mesub.hasAccess({ external_id: session.userId }, 'pro');
+    return paid ? <FullReports /> : <Upsell />;
+}
+```
+
+  Never cache `hasAccess` with `use cache`: a cached yes outlives a cancellation.
+
 - **The session.** `customer` receives the Web `Request`. Read the session with the auth library's own server helper. Do not parse a cookie by hand and do not trust a user id sent in a header.
 - **The key.** Next.js loads `.env.local` on the server. A variable without the `NEXT_PUBLIC_` prefix never reaches the browser: keep it that way.
 - **Client and server files.** `@mesub/node` is imported in server files only. `@mesub/react` already starts with `'use client'`, so the provider can be rendered straight from the root layout. A component that passes a function to the widget (`onSubscribed`, a custom `fetch`) must itself be a client component, as `assets/subscribe-button.tsx` is.
