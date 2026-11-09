@@ -16,7 +16,7 @@ Every delivery is a `POST` of this body, the same one `GET /v1/events` serves (`
     "api_version": "2026-10-02",
     "sequence": 3,
     "data": { "id": "cmg1x0abc0001", "status": "active", "access": true, "stop_reason": null },
-    "detail": { "amount": "9990000", "mint": "...", "period_start": "...", "period_end": "...", "signature": "..." }
+    "detail": { "amount": "9990000", "amount_received": "9990000", "mint": "...", "period_start": "...", "period_end": "...", "signature": "..." }
 }
 ```
 
@@ -54,7 +54,7 @@ The body above is the contract since `api_version` `2026-10-02`, and `WebhookEve
 |---|---|---|
 | `subscription.created` | The first payment landed | `first_payment`, and `previous_id` on a wallet coming back after a stop |
 | `subscription.renewal_upcoming` | A renewal is near, and whether it can pay | see below |
-| `subscription.renewed` | A period was paid | `amount`, `mint`, `period_start`, `period_end`, `signature` |
+| `subscription.renewed` | A period was paid | `amount`, `amount_received`, `mint`, `period_start`, `period_end`, `signature` |
 | `subscription.payment_failed` | A charge missed | `reason`, `amount`, `mint`, `period_start`, `period_end`, `next_retry_at`, `retry_deadline`, `retries_left`, `retry_mode` |
 | `subscription.stopped` | Mesub stopped charging after missed payments. `data.stop_reason` says why: `out_of_retries`, `retry_deadline_passed` or `authority_closed` | `reason` |
 | `subscription.cancelled` | The customer cancelled. Access runs to the period's end | empty |
@@ -99,7 +99,9 @@ Sent exactly when the access a subscription grants changes (`data.access`), what
 
 ## The details
 
-`subscription.created`: `first_payment`, `{ amount, mint, signature }`, what the subscriber's own transaction paid; null when Mesub recorded none (a period paid only in part, which the next charge collects); absent on events written before Mesub added it. Sent with or without the access events.
+`subscription.created`: `first_payment`, `{ amount, amount_received, mint, signature }`, what the subscriber's own transaction paid; null when Mesub recorded none (a period paid only in part, which the next charge collects); absent on events written before Mesub added it. Sent with or without the access events.
+
+`amount_received`, on `first_payment` and on `subscription.renewed`: what the merchant's wallet got of `amount`. Less than `amount` on a Token-2022 token with a transfer fee, the same on any other. **Book revenue from `amount_received`, not `amount`**: `amount` overstates it on a fee-bearing token. Null when Mesub could not tell, which leaves the received amount unknown on a fee-bearing token: on a token with no transfer fee it equals `amount`. Absent on events written before Mesub added it.
 
 Amounts are strings, in the token's smallest unit: never read them as floats. Dates are ISO 8601.
 
@@ -108,6 +110,7 @@ Amounts are strings, in the token's smallest unit: never read them as floats. Da
 | Field | What it holds |
 |---|---|
 | `amount`, `mint` | What was paid, and the token |
+| `amount_received` | What the merchant's wallet got of it: the revenue to book. Null when Mesub could not tell, absent on older events |
 | `period_start`, `period_end` | The period it paid for |
 | `signature` | The transaction that paid it |
 
