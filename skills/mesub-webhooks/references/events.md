@@ -32,7 +32,7 @@ Every delivery is a `POST` of this body, the same one `GET /v1/events` serves (`
 | `sequence` | Its place among **this subscription's** events: 1, 2, 3..., two events of one change included. Absent on a body written before Mesub numbered events, or one it could not number. See "Order and access" |
 | `data` | The subscription as it stood right after the change that raised the event, as `mesub.subscriptions.retrieve` would have answered then |
 | `detail` | The event's own fields, **at the top of the body**, not inside `data`. An empty object on most events |
-| `test` | `true` on a delivery sent by hand from the dashboard, absent otherwise |
+| `test` | `true` on a test delivery (**Send test** in the dashboard, or `send_test_webhook`), absent otherwise |
 
 `data` is the subscription at the event, however late the delivery: on a retry hours later it is hours old, so read `mesub.subscriptions.retrieve` or ask `hasAccess` for the state now. Events raised by the same change share it: a last retry that fails raises `subscription.payment_failed` and `subscription.stopped`, both with `status: stopped`, the failure's cause in `payment_failed`'s `detail`.
 
@@ -65,7 +65,7 @@ The body above is the contract since `api_version` `2026-10-02`, and `WebhookEve
 | `subscription.access_revoked` | Access ended: it grants none now and did just before | `changed_at`, `blocked_reason`, `access_until` |
 | `subscription.paused` | A seat was parked: the project holds more subscribers than its tier allows | empty |
 | `subscription.unpaused` | A parked seat is back: the tier has room again | empty |
-| `test` | Sent from the dashboard with no event picked | empty |
+| `test` | A test that names no event, as the Mesub MCP server's `send_test_webhook` sends without `event`. The dashboard's **Send test** always sends one of the endpoint's events | empty |
 
 Things that are easy to get wrong:
 
@@ -182,7 +182,7 @@ A plan can have an end date (`ends_at` on the plan). Nobody has access after it,
 
 ## Test deliveries
 
-A delivery sent with **Send test** in the dashboard is signed like a real one, in the same body. It carries `"test": true` at the top of its body and a made-up subscription whose id is `sub_test`. With an event picked, it has that event's type, so the type alone does not tell a test from a real event.
+A delivery sent with **Send test** in the dashboard is signed like a real one, in the same body. It carries `"test": true` at the top of its body and a made-up subscription whose id is `sub_test`. It has the type of the event chosen, one the endpoint takes, so the type alone does not tell a test from a real event.
 
 - Ignore it before any side effect: `assets/handle-event.ts` checks both the flag and the id.
 - The SDK types it as `test?: true` on `WebhookEvent`.

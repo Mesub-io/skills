@@ -143,7 +143,7 @@ const SHAPES = {
     { status: 'unpaid', payment_status: 'late', late_reason: 'insufficient_balance', next_retry_at: iso(1), retry_deadline: iso(7), next_retry_number: 1, retries_allowed: 3 },
     { reason: 'insufficient_balance', amount: AMOUNT, mint: MINT, period_start: iso(-10), period_end: iso(20), next_retry_at: iso(1), retry_deadline: iso(7), retries_left: 3, retry_mode: 'scheduled' },
   ],
-  'subscription.stopped': [{ status: 'stopped', payment_status: 'late', stop_reason: 'out_of_retries', ...over }, { reason: 'out_of_retries' }],
+  'subscription.stopped': [{ status: 'stopped', payment_status: 'late', stop_reason: 'out_of_retries', ...over }, { reason: 'insufficient_balance' }],
   'subscription.cancelled': [{ status: 'cancelled', next_charge_at: null }, {}],
   'subscription.resumed': [{}, {}],
   'subscription.ended': [{ status: 'ended', end_reason: 'cancelled', ...over }, { changed_at: now.toISOString(), end_reason: 'cancelled' }],
