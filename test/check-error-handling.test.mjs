@@ -36,6 +36,19 @@ test('the words Mesub serves today pass', () => {
   assert.deepEqual(levels(out), [], out)
 })
 
+test('the subscribing codes of create and transaction pass', () => {
+  const { status, out } = check(
+    `if (error.apiCode === 'approval_too_low') raiseCap()`,
+    `if (error.apiCode === 'comeback_approval_revoked') cancelThenClose()`,
+    `if (error.apiCode === 'insufficient_sol') addSol()`,
+    `if (error.apiCode === 'mint_paused' || error.apiCode === 'mint_transfer_hook') tokenHeld()`,
+    `if (error.apiCode === 'receiver_account_needs_memo') merchant()`,
+    `if (error.apiCode === 'receiver_account_confidential_only') merchant()`,
+  )
+  assert.equal(status, 0, out)
+  assert.deepEqual(levels(out), [], out)
+})
+
 test('end_reason authority_closed fails and names closed_elsewhere', () => {
   const { status, out } = check(`if (sub.end_reason === 'authority_closed') close()`)
   assert.equal(status, 1)
