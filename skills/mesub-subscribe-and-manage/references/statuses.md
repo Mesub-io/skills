@@ -51,9 +51,11 @@ A charge can fail for a reason that is not the customer's: the plan's own setup,
 | `receiver_not_allowed` | The merchant's: the receiving wallet is not among the wallets the plan allows | The merchant, on the plan |
 | `receiver_account_missing` | The merchant's: the receiving wallet has no account for the plan's token, and nobody else can be paid | The merchant |
 | `receiver_account_frozen` | The merchant's: the receiving wallet's account for the plan's token is frozen | The merchant, with whoever froze it |
+| `receiver_account_needs_memo` | The merchant's: that account requires a memo on every payment in, which Mesub's charges do not carry | The merchant: turn the requirement off, or choose another receiving wallet |
+| `receiver_account_confidential_only` | The merchant's: that account takes confidential transfers only, and Mesub's charges are plain ones | The merchant: allow plain transfers into it, or choose another receiving wallet |
 | `mint_gone` | The merchant's plan: its token no longer exists | Not the app, not the customer |
 | `mint_paused` | The token's issuer paused it (Token-2022) | The issuer, by lifting the pause |
-| `mint_transfer_hook` | The token's issuer gave its transfers a program Mesub does not support (Token-2022) | The issuer, by removing it |
+| `mint_transfer_hook` | The token's issuer gave its transfers a program Mesub does not support (Token-2022) | The issuer, by removing it; else the merchant makes a new plan with another token |
 | `mesub` | Mesub's, whatever it is | Nothing to fix on the merchant's side |
 | `null` | Not blocked | |
 
@@ -64,7 +66,7 @@ A charge can fail for a reason that is not the customer's: the plan's own setup,
 - **Mesub keeps trying.** `next_charge_at`, or `next_retry_at` on one that was late already, is the next try. Access comes back with the first charge that goes through, or that the chain holds as paid, with nothing for the customer to sign.
 - **The customer did nothing wrong and can fix nothing.** Do not word it as a late payment, do not ask them to add funds or to subscribe again. Say the charge is on hold and until when they keep access (`access_until`).
 - **The fix is the merchant's.** For a cause of the plan's setup, tell the user of this skill which one it is: Mesub also mails the organization's Owner and Admins once per plan. An agent cannot repair a plan from the app's code.
-- `blocked_reason` may gain values: keep a default branch. `@mesub/react` and `@mesub/node` 0.1.0 do not type `mint_paused` and `mint_transfer_hook`: compare them as strings.
+- `blocked_reason` may gain values: keep a default branch. `receiver_account_needs_memo`, `receiver_account_confidential_only`, `mint_paused` and `mint_transfer_hook` are typed from `@mesub/node` 0.1.6 and `@mesub/react` 0.1.3 (unreleased yet): on an older version, compare them as strings.
 
 So `status: 'active'` with `access: false` is not only a plan past its end date: it is also a blocked subscription whose `access_until` has passed. One more reason to read `access`.
 

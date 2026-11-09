@@ -145,6 +145,8 @@ Gate on `access`, never on `status`, and keep a default branch: a status may be 
 | `receiver_not_allowed` | The receiving wallet is not among the wallets the plan allows | The user, on the plan |
 | `receiver_account_missing` | The receiving wallet has no account for the plan's token | The user |
 | `receiver_account_frozen` | The receiving wallet's account for the plan's token is frozen | The user, with whoever froze it |
+| `receiver_account_needs_memo` | That account requires a memo on every payment in, which Mesub's charges do not carry | The user: turn it off, or choose another receiving wallet |
+| `receiver_account_confidential_only` | That account takes confidential transfers only, and Mesub's charges are plain ones | The user: allow plain transfers into it, or choose another receiving wallet |
 | `mint_gone` | The plan's token no longer exists | Not the app, not the customer |
 | `mint_paused` | The token's issuer paused it (Token-2022) | The issuer, by lifting the pause |
 | `mint_transfer_hook` | The token's issuer gave its transfers a program Mesub does not support (Token-2022) | The issuer, by removing it |
@@ -153,7 +155,7 @@ Gate on `access`, never on `status`, and keep a default branch: a status may be 
 - The status does not change and the customer is never `late` for it. Do not tell them to add funds.
 - Access ends on `access_until` all the same: the end of the period after the one paid for under `mesub`, sooner under a cause of the plan's setup.
 - Mesub keeps trying. Access comes back with the first charge that goes through, with nothing for the customer to sign.
-- Keep a default branch on `blocked_reason`. `@mesub/node` 0.1.0 does not type `mint_paused` and `mint_transfer_hook`: compare them as strings.
+- Keep a default branch on `blocked_reason`. `receiver_account_needs_memo`, `receiver_account_confidential_only`, `mint_paused` and `mint_transfer_hook` are typed from `@mesub/node` 0.1.6 and `@mesub/react` 0.1.3 (unreleased yet): on an older version, compare them as strings.
 
 ## Wording it for the customer
 

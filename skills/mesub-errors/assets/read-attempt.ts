@@ -33,8 +33,13 @@ const MERCHANT = new Set([
     'receiver_not_allowed',
     'receiver_account_missing',
     'receiver_account_frozen',
+    'receiver_account_needs_memo',
+    'receiver_account_confidential_only',
     'puller_not_allowed',
     'mint_gone',
+    // The token issuer's to lift, never Mesub's: the merchant chose the token.
+    'mint_paused',
+    'mint_transfer_hook',
 ]);
 const MESUB = new Set([
     'period_missed',
