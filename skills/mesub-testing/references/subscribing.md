@@ -1,6 +1,6 @@
 # Subscriptions and payments in the fake
 
-How the fake answers `mesub.subscriptions` and what a test can set: for an app that subscribes or manages from its own server, or that shows a customer's subscriptions and payments. Every code below was run against the fake of `@mesub/node` 0.1.0.
+How the fake answers `mesub.subscriptions` and what a test can set: for an app that subscribes or manages from its own server, or that shows a customer's subscriptions and payments. Every code below was run against the fake of `@mesub/node` 0.1.0, whose subscription calls are the same in 0.1.5.
 
 ## Put a subscription there
 
@@ -56,7 +56,7 @@ expect(fake.requests.filter((call) => call.method === 'POST' && call.path === '/
 
 `fail` applies to every call until `fail(null)`, the transaction call included: lift it before the app asks for the new one. The last line is the one that matters: one `create`, whatever the number of transactions.
 
-`@mesub/node` 0.1.0 has `subscriptions.transaction` and the fake serves its route.
+`@mesub/node` has `subscriptions.transaction` since 0.1.0, and the fake serves its route.
 
 `fake.endPlan(plan)` ends every subscription the fake holds on that plan, as it ends the access answers: `plan_ended` for an `active` or `unpaid` one, `cancelled` for a cancelled one. Giving a plan an end date: `fake-mesub.md` in this folder.
 

@@ -27,7 +27,7 @@ This skill writes tests that prove a Mesub integration behaves: who gets in, who
 
 ### Check what is installed first
 
-Read `node_modules/@mesub/node/package.json`: the version, and `"./testing"` under `exports`. If either is missing, stop and tell the user where it comes from (`references/docs.md`): no lookalike, no hand-written fake. Written from 0.1.0: the installed `dist/testing.d.ts` wins.
+Read `node_modules/@mesub/node/package.json`: the version, and `"./testing"` under `exports`. If either is missing, stop and tell the user where it comes from (`references/docs.md`): no lookalike, no hand-written fake. Written from 0.1.0, checked against 0.1.5: the installed `dist/testing.d.ts` wins.
 
 ### The shape of every test
 

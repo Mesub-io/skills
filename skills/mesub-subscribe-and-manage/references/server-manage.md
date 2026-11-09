@@ -129,7 +129,7 @@ for await (const attempt of mesub.subscriptions.allAttempts(id)) {
 | `signature` | The transaction that paid. `null` unless the outcome is `paid` |
 | `retry`, `retry_number`, `retries_allowed` | Whether it was a retry, which one, out of how many. The two numbers are `null` when it is not a retry of the plan's |
 | `period_start` | The start of the period it was for, or `null` |
-| `amount_received` | What the receiving wallet got, when Mesub serves it. Less than `amount` on a token whose issuer takes a transfer fee: `plan-token.md`. `@mesub/node` 0.1.0 does not type it: read it only when present |
+| `amount_received` | What the receiving wallet got, when Mesub serves it. Less than `amount` on a token whose issuer takes a transfer fee: `plan-token.md`. `@mesub/node` types it from 0.1.2 (the first on npm with it), null when Mesub does not know it |
 
 ## A late payment whose approval was revoked
 
