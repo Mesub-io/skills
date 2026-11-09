@@ -92,3 +92,13 @@ test('--type defaults to a subscription the handler does not drop as a test, and
     assert.equal(event.sequence, 3)
   })
 })
+
+test('subscription.stopped carries the last charge\'s reason, its stop_reason on the subscription', async () => {
+  await withHandler(async (url, accepted) => {
+    const { status, out } = await send(url, '--type', 'subscription.stopped')
+    assert.equal(status, 0, out)
+    const [event] = accepted
+    assert.equal(event.detail.reason, 'insufficient_balance')
+    assert.equal(event.data.stop_reason, 'out_of_retries')
+  })
+})
