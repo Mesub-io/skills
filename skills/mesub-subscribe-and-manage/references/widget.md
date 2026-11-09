@@ -39,7 +39,7 @@ Never `solana:mainnet-beta`: it type-checks, but no wallet knows that chain.
 </SubscribeButton>
 ```
 
-- `plan`: the plan's slug. Required. Read it in the dashboard (the plan's Implement tab) or from `mesub.plans.list()` on the server, never guess it from the plan's name: an unknown slug shows "Plan not found".
+- `plan`: the plan's slug. Required. Read it in the dashboard (the plan's Set up tab) or from `mesub.plans.list()` on the server, never guess it from the plan's name: an unknown slug shows "Plan not found".
 - `onSubscribed(subscription)`: called once Mesub confirmed the first payment, even if the window was closed meanwhile.
 - `children`: the label, "Subscribe" by default. While signing, confirming and once subscribed the button words itself.
 - Every other `<button>` prop goes to the button, and the ref is forwarded. An `onClick` that calls `preventDefault()` stops the window from opening: that is how to run the app's own check first.
