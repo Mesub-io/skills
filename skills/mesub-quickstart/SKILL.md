@@ -9,7 +9,7 @@ license: Apache-2.0
 
 ## Overview
 
-This skill takes a project from no Mesub code to one paying subscriber: the packages, the API key, the widget's routes, one paid route and the subscribe button. It also carries the kit's directory.
+This skill takes a project from no Mesub code to one paying subscriber: the packages, the API key, the widget's routes, one paid route and the subscribe button.
 
 ## When to use this skill
 
@@ -33,7 +33,7 @@ This skill takes a project from no Mesub code to one paying subscriber: the pack
 2. **The API key lives on the server only.** `@mesub/react` holds no key and never talks to Mesub: it calls routes on the app's own server.
 3. **A plan is named by its slug**, read in the dashboard, never guessed. Price, token and period live in the dashboard.
 4. **Mesub charges every period by itself.** No cron, no job, no renewal code in the app.
-5. **On the Free tier**: one plan, 30 subscribers, no automatic retry, and no access while a payment is late. Tell the user: `references/steps.md`.
+5. **On the Free tier**: one plan, 30 subscribers, a period of a day or more (Dev too), no automatic retry, no access while late. Tell the user: `references/steps.md`.
 
 ### The six steps
 
