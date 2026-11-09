@@ -54,7 +54,7 @@ Needs the user, and a public URL.
 
 1. A handler on a laptop has no public URL: the user starts a tunnel (ngrok is one) to the local port, and registers the tunnel's HTTPS URL plus the route's path as an endpoint, under Developers, then Webhooks.
 2. The user puts that endpoint's signing secret in the server's environment and restarts the server. A new endpoint has a new secret: the one of the production endpoint does not work here.
-3. On the endpoint, the user picks the event to simulate and clicks **Send test**. With no event picked, the plain `test` event is sent.
+3. On the endpoint, the user picks the event to simulate and clicks **Send test**. An endpoint takes at least one event, and the test is a sample of one of them, with `"test": true` at the top of its body.
 
 The endpoint must be enabled, and one test is pending at a time: wait for it to be delivered before sending the next.
 
