@@ -53,7 +53,7 @@ So a price reads `9.99 USDC`, `30000 Bonk`, or `30000 MOON, unverified (Dez1...x
 
 A plan can be in a Token-2022 mint (PYUSD is one). What it changes:
 
-- **A transfer fee.** When the token's issuer takes a fee on every transfer, the subscriber pays the plan's `amount` and the receiving wallet gets it less the issuer's fee. Mesub takes nothing of it. An attempt says what was received in `amount_received` when Mesub serves it (`@mesub/node` 0.1.0 does not type it). Never tell the merchant they receive the full price on such a token.
+- **A transfer fee.** When the token's issuer takes a fee on every transfer, the subscriber pays the plan's `amount` and the receiving wallet gets it less the issuer's fee. Mesub takes nothing of it. An attempt says what was received in `amount_received` when Mesub serves it (typed from `@mesub/node` 0.1.2, the first on npm with it). Never tell the merchant they receive the full price on such a token.
 - **Tokens a plan cannot be made in.** Mesub refuses a plan on a token that is paused, whose new accounts are frozen by default, that cannot be transferred, whose transfers call a program of the issuer's (a transfer hook), that moves in confidential balances only, that carries an extension Mesub does not know, or whose amounts show scaled in wallets (an interest-bearing or scaled UI amount token, `mint_display_scaled`).
 - **An issuer can change the token later.** If it pauses the token or adds a transfer hook, every charge is held: `blocked_reason` `mint_paused` or `mint_transfer_hook` (statuses reference). Nothing for the subscriber to do, and access ends at `access_until`.
 

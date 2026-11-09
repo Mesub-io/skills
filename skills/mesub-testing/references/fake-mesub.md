@@ -1,6 +1,6 @@
 # The fake, in full
 
-Everything `@mesub/node/testing` exports, read from the SDK's source at `@mesub/node` 0.1.0. The installed version is what runs: before using a name below, check it in `node_modules/@mesub/node/dist/testing.d.ts`.
+Everything `@mesub/node/testing` exports, read from the SDK's source at `@mesub/node` 0.1.0 and checked against 0.1.5. The installed version is what runs: before using a name below, check it in `node_modules/@mesub/node/dist/testing.d.ts`.
 
 The entry exports one class, `FakeMesub`, one function, `signWebhook`, and their types: `FakeMesubOptions`, `FakeAccess`, `FakeFailure`, `FakeRequest`, `FakePlanFields`, `FakeEventFields`, `FakeWebhookFields`, `SignedWebhook`, `SignWebhookOptions`. It brings no test framework and needs no other package. `@mesub/react` has no testing entry.
 

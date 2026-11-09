@@ -129,7 +129,7 @@ The validator refuses, in every file of a skill:
 
 Facts every author must write around, today:
 
-- `@mesub/node` and `@mesub/react` are on npm at 0.1.0, the only release. Write for 0.1.0: no branch or cast for an older version. A skill says how to check what is installed (`package.json`, the lockfile, `node_modules/@mesub/*/package.json` for the version) before using it, and installs nothing without the user's yes unless its own setup step says so.
+- On npm: `@mesub/node` 0.1.5 and `@mesub/react` 0.1.2 (0.1.1 never reached npm). Write for those: no branch or cast for an older version, and name the version a feature needs when it came after 0.1.0 (`MESUB_BASE_URL`: `@mesub/node` 0.1.3). A skill says how to check what is installed (`package.json`, the lockfile, `node_modules/@mesub/*/package.json` for the version) before using it, and installs nothing without the user's yes unless its own setup step says so.
 - Mesub runs on Solana mainnet for merchants: a plan's `network` is `mainnet-beta`, the wallet chain `solana:mainnet` (never `solana:mainnet-beta`). Name the network only where code needs it. Mesub's dev environment is internal staging, never one for merchants: no skill names a test network, the staging hosts, a dev key or a `baseUrl` for them.
 - docs.mesub.io is live. Link only to pages that exist in the docs repository, declare them in `sources`, and still put what the agent needs in the skill itself or its `references/` rather than behind a link.
 
