@@ -107,7 +107,7 @@ const signedTransaction = btoa(String.fromCharCode(...signed.serialize()));
 - Put nothing between the call and the signature: no confirmation screen, no extra click.
 - **Ask again before it runs out, not after.** When the wallet is not ready by `transaction_expires_at` (a wallet popup left open, a slow hardware wallet), call `transaction(id)` again and have the new one signed. Do not trust the date over the chain: a transaction refused as expired is rebuilt whatever the time says. `transaction_expires_at` can be `null` (the type allows it): then rely on a refusal as expired alone.
 
-It is refused like `create` (the plan stopped taking subscribers, `insufficient_balance`, `insufficient_sol`, `already_subscribed`), with `subscription_not_found`, and with `not_awaiting_signature` (409) when the subscription is no longer `pending`: signed already, expired or ended. For one that expired, `create` again.
+It is refused like `create` (the plan stopped taking subscribers, `insufficient_balance`, `insufficient_sol`, `approval_too_low`, `already_subscribed`), with `subscription_not_found`, and with `not_awaiting_signature` (409) when the subscription is no longer `pending`: signed already, expired or ended. For one that expired, `create` again.
 
 ## 4. Submit, on the server
 
@@ -171,11 +171,13 @@ Thrown as a `MesubError`. `apiCode` is Mesub's own code, `code` the SDK's broade
 | `create` | `already_subscribed` | This wallet already holds this plan: show it, do not retry |
 | `create` | `insufficient_balance` | The wallet cannot pay the first period |
 | `create`, `transaction` | `insufficient_sol` (409) | The wallet holds too little SOL for the deposits, the network fee and the minimum an account keeps (`costs` has the first two). Nothing was signed: show Mesub's message, which says how much is needed; the customer adds SOL to that wallet and tries again |
+| `create`, `transaction`, `submit` | `approval_too_low` (409) | The wallet caps what its subscriptions in this token may take below one payment of this plan. Show Mesub's message: the customer raises that cap in their own wallet, then tries again. Mesub never raises it for them |
+| `create`, `transaction`, `submit` | `comeback_approval_revoked` (409) | A return over the wallet's stopped subscription, and the wallet no longer approves this token. Subscribing again over it cannot work: the customer cancels the stopped subscription, closes it once `closable`, then subscribes again |
 | `create` | `payment_pending` | This wallet's subscription to the plan is `unpaid`: it pays it now or cancels it, never a second one |
 | `create` | `subscription_cancelled` | It is cancelled: resume it while it runs, or close it once `closable`, then subscribe |
 | `create` | `seat_cap_reached` | The project has no subscriber left on its tier (30 on Free): the merchant's to change, nothing for the customer |
 | `create` | `plan_not_found` | Fix the slug |
-| `create` | `plan_ended` | The plan is past its end date: stop offering it |
+| `create`, `transaction`, `submit` | `plan_ended` | The plan is past its end date: stop offering it |
 | `transaction` | `not_awaiting_signature` | It is no longer `pending`. Read it back: `active` landed, `expired` needs a new `create` |
 | `submit` | `terms_expired` | Create again and have the fresh terms signed |
 | `submit` | `terms_changed` | The plan changed since, or its end has come too close for the second charge the terms name. Create again: the new terms say it is a single charge |

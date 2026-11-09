@@ -34,7 +34,7 @@ New codes are added. None is renamed, save two before the first integrator: `pla
 | `plan_not_on_chain` | 409 | no | The plan was never signed: it is still waiting in To sign | Whoever holds the organization wallet signs it in the dashboard (Sign and publish, or To sign) |
 | `plan_removed` | 409 | no | The plan is gone from the chain (was `plan_deleted`) | Nothing to resume: the customer subscribes to a plan that exists |
 | `plan_sunset` | 409 | no | The plan takes no new subscribers | Stop offering it: show "Subscribe" only when the plan's `available` is true |
-| `plan_ended` | 409 | no | The plan is past its end date. With an API key, the answer of `create` | Stop offering it, as for `plan_sunset`. Its subscriptions ended with it: `end_reason` `plan_ended` in `reasons.md`. The dashboard answers the same code elsewhere: see below |
+| `plan_ended` | 409 | no | The plan is past its end date. With an API key, the answer of `create`, `subscriptions.transaction(id)`, `submit` and `subscriptions.retry` | Stop offering it, as for `plan_sunset`. Its subscriptions ended with it: `end_reason` `plan_ended` in `reasons.md`. The dashboard answers the same code elsewhere: see below |
 | `plan_replaced` | 409 | no | Another plan now stands at its address, not the one a subscription was signed for (was `plan_rebuilt`) | The user checks the plan in the dashboard |
 | `plan_mismatch` | 409 | no | The plan on chain is not the one Mesub recorded | The user checks the plan in the dashboard |
 | `receiver_account_missing` | 409 | no | Nobody the plan pays has an account for its token | The user opens a token account for the receiving wallet |
@@ -65,14 +65,22 @@ Answered when the user creates or edits a plan in the dashboard, or a Mesub agen
 
 ## Subscribing (`create`, and `submit` where noted)
 
+`subscriptions.transaction(id)` builds the same transaction again, so it answers the 409s of this table too, save `seat_cap_reached` and `subscription_changed`, and never `pending_cap_reached`. `submit` reads the plan, its token, its receiving account and the wallet's approval once more before it signs: the rows that say so are answered there too.
+
 | API code | Status | Wait | What it means | What to do |
 |---|---|---|---|---|
 | `already_subscribed` | 409 | no | This wallet already holds a running subscription to this plan | Not a failure to fix: show the subscription the customer has |
 | `insufficient_balance` | 409 | no | The wallet holds less of the plan's token than the first period costs | The customer adds funds, then create again |
-| `insufficient_sol` | 409 | no | The wallet holds too little SOL for what the transaction needs: the rent of the accounts it opens, the network fee, and the reserve an emptied account must keep. Also on `subscriptions.transaction(id)`. Nothing was signed | Show Mesub's `message`, which says how much the wallet holds and needs. The customer adds SOL to that wallet, then tries again |
+| `insufficient_sol` | 409 | no | The wallet holds too little SOL for what the transaction needs: the rent of the accounts it opens, the network fee, and the reserve an emptied account must keep. Nothing was signed | Show Mesub's `message`, which says how much the wallet holds and needs. The customer adds SOL to that wallet, then tries again |
+| `approval_too_low` | 409 | no | The wallet approves its subscriptions in this token for less than one payment of this plan: a cap it set itself. Also on `submit`. Nothing was signed | Show Mesub's `message`. The customer raises that approval cap in their own wallet, then tries again. Mesub never raises it for them: approved again in full, every subscription under it would be uncapped |
+| `comeback_approval_revoked` | 409 | no | A return to this plan over the wallet's stopped subscription, and the wallet no longer approves this token for its subscriptions. Also on `submit` | Subscribing again over it cannot work: the customer cancels the stopped subscription, closes it once `closable`, then subscribes again |
+| `mint_paused` | 409 | no | The plan's token is paused by its issuer: no payment in it can move. Also on `submit`, and on a new plan in the dashboard | Nothing the customer can do. Stop offering the plan until the issuer lifts the pause, and tell the user |
+| `mint_transfer_hook` | 409 | no | The plan's token now runs its issuer's own program on every transfer, which Mesub does not support. Also on `submit`, and on a new plan in the dashboard | Nothing the customer can do. Stop offering the plan until the issuer removes it, and tell the user |
+| `receiver_account_needs_memo` | 409 | no | The token account the plan pays requires a memo on every transfer in, which a charge carries none of. Also on `submit` | The user turns the memo requirement off on that account, or picks another. Nothing the customer can do |
+| `receiver_account_confidential_only` | 409 | no | The token account the plan pays takes confidential transfers only. Also on `submit` | The user picks another receiving account. Nothing the customer can do |
 | `seat_cap_reached` | 409 | no | The project is at its tier's subscriber limit | The user frees a seat or changes tier. Nothing the customer can do |
 | `pending_cap_reached` | 429 | yes | Too many subscriptions wait for a signature, in the project or for this customer | `Retry-After` says when one frees up, and may be most of an hour: tell the customer, do not hold the request |
-| `wallet_mismatch` | 409 | no | The wallet is not the one the subscription was created for | Sign with the wallet that subscribed. The widget routes also answer a 403 of their own under this code: see `where-it-failed.md` |
+| `wallet_mismatch` | 403 | no | Never answered by the API to an API key: the widget routes of `@mesub/node` answer it when the customer is named by wallet and another wallet tries to subscribe | Ask for the wallet the customer signed in with: see `where-it-failed.md` |
 | `payment_pending` | 409 | no | This wallet's subscription to the plan is `unpaid`: a payment failed | No new subscription: the late one is paid or cancelled. Read `late_reason` (`reasons.md`). On `insufficient_balance` the customer adds funds; on Dev and Business the next automatic retry then pays, on Free nothing retries by itself, so someone pays it now (the customer's Pay now, or the user's retry from the dashboard) before `retry_deadline`. On `approval_revoked` adding funds does not help: the customer cancels, closes once `closable`, then subscribes again |
 | `subscription_cancelled` | 409 | no | The wallet's subscription is cancelled and runs to the end of its period. On `cancel`: cancelled already | Resume it rather than subscribe again |
 | `subscription_stopped` | 409 | no | The wallet's subscription stopped after missed payments | Read the subscription back and show Mesub's `message`. This table cannot say more: read the errors page named in `docs.md` |
@@ -131,20 +139,16 @@ Sent once and never retried by the SDK: a second call is a second retry.
 
 ### A plan's token (the dashboard only)
 
-Answered when the user creates a plan in the dashboard (or a Mesub agent prepares one). A plan can be in any SPL Token or Token-2022 mint, save these. No call made with an API key answers them.
+Answered when the user creates a plan in the dashboard (or a Mesub agent prepares one). A plan can be in any SPL Token or Token-2022 mint, save these. No call made with an API key answers them. Two more refuse a new plan here and a subscription too, so they are under Subscribing: `mint_paused` and `mint_transfer_hook`. `insufficient_sol` with an API key is the subscriber's wallet, under Subscribing too.
 
 | API code | Status | Wait | What it means | What to do |
 |---|---|---|---|---|
 | `mint_not_a_token` | 400 | no | The address is no token program's mint | The user checks the token's address |
-| `mint_paused` | 409 | no | The token's issuer paused it: no payment moves until they lift the pause | Another token, or wait for the issuer |
 | `mint_frozen_by_default` | 400 | no | Every new account of the token is born frozen: the receiver's could take no payment | Another token |
 | `mint_non_transferable` | 400 | no | The token can never be transferred | Another token |
-| `mint_transfer_hook` | 409 | no | The token's transfers call a program of its issuer's, which Mesub does not support | Another token, or wait until the issuer removes it |
 | `mint_confidential_only` | 400 | no | The token moves in confidential balances only | Another token |
 | `mint_extension_unknown` | 400 | no | The token carries a Token-2022 extension Mesub does not know a payment goes through | Another token |
 | `mint_display_scaled` | 400 | no | The token's amounts show scaled in wallets (interest-bearing or scaled UI amount), so the price would read one way here and another there | Another token |
-| `receiver_account_needs_memo` | 409 | no | The receiving token account requires a memo on every transfer in | The user turns the memo requirement off on that account, or picks another |
-| `receiver_account_confidential_only` | 409 | no | The receiving token account takes confidential transfers only | The user picks another receiving account |
 | `insufficient_sol` | 409 | no | The user's wallet holds too little SOL to publish the plan: its rent, the receiving accounts it opens, the fee and the reserve | The user adds SOL to that wallet, then signs again |
 
 A token with a transfer fee is accepted: the subscriber pays the plan's amount and the receiver gets it less the issuer's fee (an attempt's `amount_received` when Mesub serves it). If the issuer later pauses the token or adds a transfer hook, charges are held with `blocked_reason` `mint_paused` or `mint_transfer_hook`: `reasons.md`.
