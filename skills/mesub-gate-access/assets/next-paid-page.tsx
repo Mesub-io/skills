@@ -9,6 +9,12 @@ async function sessionOf(): Promise<{ userId: string } | null> {
     throw new Error('Read the session with the app\'s own auth here.');
 }
 
+// Next 16 with cacheComponents: this page reads the session and asks Mesub on every request,
+// so it blocks instead of prerendering. Never `export const dynamic` there: it is refused.
+// ADAPT: delete this line on Next 14 or 15, whose build refuses an unknown page export.
+// Or keep the page static and check in a child inside <Suspense> (references/guards.md).
+export const instant = false;
+
 export default async function ReportsPage() {
     const session = await sessionOf();
     // ADAPT: or redirect to the app's login page.
