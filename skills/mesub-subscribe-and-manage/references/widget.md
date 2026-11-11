@@ -15,6 +15,7 @@ Once, around the app. It renders the one window every button and hook opens.
 | `fetch` | The app's own `(url, init) => Promise<Response>`, to add a header such as a bearer token |
 | `manageUrl` | Where "Cancel any time" leads on the receipt: see below |
 | `chain` | The network the wallet signs for and sends on, a `solana:...` string. See below |
+| `openInWalletUrl` | On a phone with no wallet found, the page the wallet app reopens (a path or a full URL). The current page by default. From `@mesub/react` 0.1.4 |
 
 **`manageUrl`** takes three kinds of value, and a fourth that fails silently:
 
@@ -96,6 +97,7 @@ const { state, subscriptions, error, reload, payNow, manage } = useSubscriptions
 |---|---|
 | `state` | `loading`, `ready`, `signed-out` (the routes answered 401) or `error` |
 | `subscriptions` | Newest first, each with `action` (`cancel`, `resume`, `close` or `null`) and `payable` (a late payment that paying now can settle: `unpaid`, not paused nor blocked, still approved by the wallet, before `retry_deadline`). Checkouts nobody signed are left out |
+| `hasMore` | True when the customer holds more subscriptions than the server listed: say so under a list of your own, and never read a plan missing from it as "not subscribed". From `@mesub/react` 0.1.3 |
 | `error` | The server's message in the `error` state, `null` otherwise |
 | `reload()` | Reads the list again |
 | `payNow(id)` | Pays that late payment now, with nothing to sign. Never throws: resolves to a `PayNowResult`, `{ ok, message, retryAfter? }`. `ok` true means the charge was sent, not paid: the list reads again and the outcome comes with the charge. `message` is the widget's own sentence for a refusal (add funds, wait N minutes, no retries left, and when Mesub is busy "Mesub can't take the payment right now. Nothing was charged."). `retryAfter`, in seconds, only when Mesub was busy (a 503 with `Retry-After`, about 20 seconds): disable the button and count it down, then clear the message. Offer it only on a `payable` row |

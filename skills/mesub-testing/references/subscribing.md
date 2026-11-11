@@ -1,6 +1,6 @@
 # Subscriptions and payments in the fake
 
-How the fake answers `mesub.subscriptions` and what a test can set: for an app that subscribes or manages from its own server, or that shows a customer's subscriptions and payments. Every code below was run against the fake of `@mesub/node` 0.1.0, whose subscription calls are the same in 0.1.5.
+How the fake answers `mesub.subscriptions` and what a test can set: for an app that subscribes or manages from its own server, or that shows a customer's subscriptions and payments. Every code below was run against the fake of `@mesub/node` 0.1.0, whose subscription calls are the same in 0.1.6.
 
 ## Put a subscription there
 

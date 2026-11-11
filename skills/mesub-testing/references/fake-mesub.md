@@ -1,6 +1,6 @@
 # The fake, in full
 
-Everything `@mesub/node/testing` exports, read from the SDK's source at `@mesub/node` 0.1.0 and checked against 0.1.5. The installed version is what runs: before using a name below, check it in `node_modules/@mesub/node/dist/testing.d.ts`.
+Everything `@mesub/node/testing` exports, read from the SDK's source at `@mesub/node` 0.1.0 and checked against 0.1.6. The installed version is what runs: before using a name below, check it in `node_modules/@mesub/node/dist/testing.d.ts`.
 
 The entry exports one class, `FakeMesub`, one function, `signWebhook`, and their types: `FakeMesubOptions`, `FakeAccess`, `FakeFailure`, `FakeRequest`, `FakePlanFields`, `FakeEventFields`, `FakeWebhookFields`, `SignedWebhook`, `SignWebhookOptions`. It brings no test framework and needs no other package. `@mesub/react` has no testing entry.
 
@@ -45,6 +45,7 @@ Check the exact names in the installed `dist/index.d.ts` and `dist/testing.d.ts`
 ## Properties
 
 - `fake.apiKey`, `fake.baseUrl`, `fake.webhookSecret`, `fake.fetch`: what a client of your own needs (below).
+- `fake.projectId` (`proj_fake`): what `mesub.project()` answers, from `@mesub/node` 0.1.6.
 - `fake.requests`: every call received, oldest first. Each has `method`, `path` (such as `/v1/access`), `query`, `headers` (a `Headers`) and `body` (the parsed JSON of a POST).
 
 ## The client
@@ -96,7 +97,7 @@ fake.grant({ external_id: 'user_42' }, 'pro', { ...blocked, access_until: inThre
 fake.deny({ external_id: 'user_42' }, 'pro', { ...blocked, status: 'active', payment_status: 'paid' });
 ```
 
-`blocked_reason` is `puller_not_allowed`, `receiver_not_allowed`, `receiver_account_missing`, `receiver_account_frozen`, `receiver_account_needs_memo`, `receiver_account_confidential_only`, `mint_gone`, `mint_paused`, `mint_transfer_hook`, `mesub` or `null`. The fake types `receiver_account_needs_memo`, `receiver_account_confidential_only`, `mint_paused` and `mint_transfer_hook` from `@mesub/node` 0.1.6 (unreleased yet); on an older version, cast them. The fake serves what the test gave and works nothing out: it does not end access when `access_until` passes, and never blocks or unblocks by itself.
+`blocked_reason` is `puller_not_allowed`, `receiver_not_allowed`, `receiver_account_missing`, `receiver_account_frozen`, `receiver_account_needs_memo`, `receiver_account_confidential_only`, `mint_gone`, `mint_paused`, `mint_transfer_hook`, `mesub` or `null`. The fake types `receiver_account_needs_memo`, `receiver_account_confidential_only`, `mint_paused` and `mint_transfer_hook` from `@mesub/node` 0.1.6; on an older version, cast them. The fake serves what the test gave and works nothing out: it does not end access when `access_until` passes, and never blocks or unblocks by itself.
 
 ## A plan with an end date
 

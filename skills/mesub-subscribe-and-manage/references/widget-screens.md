@@ -11,7 +11,7 @@ The window goes through `plan`, `wallet`, `review`, `approve`, `confirming` and 
 | What happens | What the window does | What it means for the app |
 |---|---|---|
 | Nobody is signed in on the site (the routes answer 401) | Says to sign in first, offers nothing to sign | Send signed-out visitors to the login before showing the button, or let the window say it |
-| No wallet is installed | Links to two wallets, and Reload | Nothing to fix in code |
+| No wallet is installed | Links to two wallets, and Reload. On a phone, from `@mesub/react` 0.1.4: "Open this page in your wallet", a link each for Phantom and Solflare that reopens the page in the wallet's browser, or leads to the app | Nothing to fix in code. `openInWalletUrl` on the provider picks the page reopened |
 | A wallet cannot sign a message, or a transaction without sending it | Leaves it out of the list and names what it lacks | Nothing to fix in code |
 | The wallet refuses to connect or to sign | Nothing is submitted. Try again asks the server anew and shows the review again | `subscribe()` resolves `null` if the visitor closes there |
 | The terms expired before or between the two signatures | Asks the server again and shows the review with fresh terms | Stale terms are never signed nor submitted |
