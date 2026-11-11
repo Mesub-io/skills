@@ -15,7 +15,7 @@ Every failed call to Mesub, after the SDK's own retries.
 | `body` | What Mesub answered, parsed when it is JSON; `undefined` when nothing came back. Mesub's error body carries `request_id` |
 | `message` | Mesub's sentence, for a person. It may be reworded: never branch on it |
 | `cause` | The underlying error, when there is one |
-| `subscriptionId`, `canResume`, `closableFrom` | From `@mesub/node` 0.1.7 (unreleased yet), on `subscription_cancelled` only: what to do with the cancelled subscription in the way (`api-error-codes.md`). `null` under any other code |
+| `subscriptionId`, `canResume`, `closableFrom` | From `@mesub/node` 0.1.7, on `subscription_cancelled` only: what to do with the cancelled subscription in the way (`api-error-codes.md`). `null` under any other code |
 
 ### `request_id`: what to quote to Mesub support
 
