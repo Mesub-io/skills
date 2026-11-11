@@ -82,7 +82,7 @@ Answered when the user creates or edits a plan in the dashboard, or a Mesub agen
 | `pending_cap_reached` | 429 | yes | Too many subscriptions wait for a signature, in the project or for this customer | `Retry-After` says when one frees up, and may be most of an hour: tell the customer, do not hold the request |
 | `wallet_mismatch` | 403 | no | Never answered by the API to an API key: the widget routes of `@mesub/node` answer it when the customer is named by wallet and another wallet tries to subscribe | Ask for the wallet the customer signed in with: see `where-it-failed.md` |
 | `payment_pending` | 409 | no | This wallet's subscription to the plan is `unpaid`: a payment failed | No new subscription: the late one is paid or cancelled. Read `late_reason` (`reasons.md`). On `insufficient_balance` the customer adds funds; on Dev and Business the next automatic retry then pays, on Free nothing retries by itself, so someone pays it now (the customer's Pay now, or the user's retry from the dashboard) before `retry_deadline`. On `approval_revoked` adding funds does not help: the customer cancels, closes once `closable`, then subscribes again |
-| `subscription_cancelled` | 409 | no | On a subscribe (`create`, `transaction`, `submit`): this wallet's subscription to the plan is cancelled. From the next API release (`@mesub/node` 0.1.7, unreleased yet) the body adds `subscription_id`, `can_resume` and `closable_from`, see below. On `cancel`: cancelled already | `can_resume` true: resume that subscription rather than subscribe again. Else close it (from `closable_from` when set), then subscribe again. `subscription_id` null: it is another customer's on this wallet, show Mesub's `message` |
+| `subscription_cancelled` | 409 | no | On a subscribe (`create`, `transaction`, `submit`): this wallet's subscription to the plan is cancelled. From API v0.1.10 (`@mesub/node` 0.1.7) the body adds `subscription_id`, `can_resume` and `closable_from`, see below. On `cancel`: cancelled already | `can_resume` true: resume that subscription rather than subscribe again. Else close it (from `closable_from` when set), then subscribe again. `subscription_id` null: it is another customer's on this wallet, show Mesub's `message` |
 | `subscription_stopped` | 409 | no | The wallet's subscription stopped after missed payments | Read the subscription back and show Mesub's `message`. This table cannot say more: read the errors page named in `docs.md` |
 | `subscription_terms_changed` | 409 | no | The plan's terms changed since the wallet's subscription stopped | Create again so the customer reads and signs the terms as they are now |
 | `comeback_in_flight` | 409 | yes | A return to this plan may still land | Ask again later, and read the subscription back first |
@@ -92,7 +92,7 @@ Answered when the user creates or edits a plan in the dashboard, or a Mesub agen
 
 ### `subscription_cancelled` on a subscribe
 
-From the next API release, the 409 carries three more fields at the top level of the body, and no other code does. `@mesub/node` 0.1.7 (unreleased yet) reads them as `subscriptionId`, `canResume` and `closableFrom` on the `MesubError`; on an older version, read them from `error.body`.
+From API v0.1.10, the 409 carries three more fields at the top level of the body, and no other code does. `@mesub/node` reads them from 0.1.7, as `subscriptionId`, `canResume` and `closableFrom` on the `MesubError`; on an older version, read them from `error.body`.
 
 | Field | What it holds |
 |---|---|
@@ -107,7 +107,7 @@ What to do, in this order:
 3. `closable_from` is set: close it from that date, then subscribe again.
 4. Otherwise: close it now (`close(id)` then `confirmClose`), then subscribe again.
 
-Resume and close are signed by the wallet that pays. `@mesub/react` 0.1.5 (unreleased yet) does this in the widget: Resume it, or Close it and subscribe.
+Resume and close are signed by the wallet that pays. From 0.1.5, `@mesub/react` does this in the widget: Resume it, or Close it and subscribe.
 
 ## Signing and sending (`submit`)
 

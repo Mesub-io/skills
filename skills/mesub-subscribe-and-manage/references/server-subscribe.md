@@ -187,7 +187,7 @@ Thrown as a `MesubError`. `apiCode` is Mesub's own code, `code` the SDK's broade
 
 ### After `subscription_cancelled`
 
-From the next API release, the refusal names the cancelled subscription in the way. `@mesub/node` 0.1.7 (unreleased yet) reads it as `subscriptionId`, `canResume` and `closableFrom`; on an older version, read `subscription_id`, `can_resume` and `closable_from` from `error.body`.
+From API v0.1.10, the refusal names the cancelled subscription in the way. `@mesub/node` reads it from 0.1.7, as `subscriptionId`, `canResume` and `closableFrom`; on an older version, read `subscription_id`, `can_resume` and `closable_from` from `error.body`.
 
 ```ts
 if (error instanceof MesubError && error.apiCode === 'subscription_cancelled') {
@@ -203,7 +203,7 @@ if (error instanceof MesubError && error.apiCode === 'subscription_cancelled') {
 }
 ```
 
-The id is given only for the customer this subscribe is for: the same `external_id` when one is given, else the same `email`, else no customer on either side. Never look the subscription up on the wallet instead: another customer's on that wallet is not this one's to resume or close. Resume and close are the manage calls (`server-manage.md`), signed by the wallet. The widget routes hand the three fields to the browser, inside `error` beside `code` and `message`, and `@mesub/react` 0.1.5 (unreleased yet) offers Resume it, or Close it and subscribe.
+The id is given only for the customer this subscribe is for: the same `external_id` when one is given, else the same `email`, else no customer on either side. Never look the subscription up on the wallet instead: another customer's on that wallet is not this one's to resume or close. Resume and close are the manage calls (`server-manage.md`), signed by the wallet. The widget routes hand the three fields to the browser, inside `error` beside `code` and `message`, and `@mesub/react` offers Resume it, or Close it and subscribe, from 0.1.5.
 
 ### After `transaction_expired`
 

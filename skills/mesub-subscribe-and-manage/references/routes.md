@@ -52,7 +52,7 @@ A refusal is `{ "error": { "code": "...", "message": "..." } }`.
 | 403 | `wallet_mismatch` | `customer` names a wallet and the page asked to subscribe another one |
 | 404 | `plan_not_found`, `subscription_not_found`, `not_found` | An unknown slug or one outside `plans`, a subscription that is not theirs, any other path |
 | 405 | `method_not_allowed` | Neither GET nor POST |
-| 409 and others | Mesub's own code | Mesub refused: its status, its code and its message, handed on as written. On `subscription_cancelled`, from `@mesub/node` 0.1.7 (unreleased yet), also `subscription_id`, `can_resume` and `closable_from` inside `error`, beside `code` and `message` |
+| 409 and others | Mesub's own code | Mesub refused: its status, its code and its message, handed on as written. On `subscription_cancelled`, from `@mesub/node` 0.1.7, also `subscription_id`, `can_resume` and `closable_from` inside `error`, beside `code` and `message` |
 | 429 | Mesub's code, or `rate_limited` | The API key's rate limit, answered at once with `Retry-After` |
 | 502 | the SDK's code | Mesub could not be reached or answered something unreadable. A fixed message, never the server's own details |
 | 500 | none | Thrown to the framework: Mesub refused the API key (missing, wrong, rotated), or something in front of Mesub turned the server away |

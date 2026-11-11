@@ -1,6 +1,6 @@
 # The fake, in full
 
-Everything `@mesub/node/testing` exports, read from the SDK's source at `@mesub/node` 0.1.0 and checked against 0.1.6. The installed version is what runs: before using a name below, check it in `node_modules/@mesub/node/dist/testing.d.ts`.
+Everything `@mesub/node/testing` exports, read from the SDK's source at `@mesub/node` 0.1.0 and checked against 0.1.7. The installed version is what runs: before using a name below, check it in `node_modules/@mesub/node/dist/testing.d.ts`.
 
 The entry exports one class, `FakeMesub`, one function, `signWebhook`, and their types: `FakeMesubOptions`, `FakeAccess`, `FakeFailure`, `FakeRequest`, `FakePlanFields`, `FakeEventFields`, `FakeWebhookFields`, `SignedWebhook`, `SignWebhookOptions`. It brings no test framework and needs no other package. `@mesub/react` has no testing entry.
 
@@ -134,7 +134,7 @@ fake.fail({ status: 429, code: 'rate_limited', retryAfter: 2 });
 fake.fail({ status: 401, code: 'invalid_api_key' });
 ```
 
-`fail` takes `'outage'`, `null`, or `{ status, code, message?, retryable?, retryAfter? }`, and from `@mesub/node` 0.1.7 (unreleased yet) `details?`: `{ subscription_id, can_resume, closable_from }`, added to the body as on a `subscription_cancelled` refusal. `retryAfter` is in seconds and is sent as `Retry-After`; `retry_too_soon` without one gets the tier's first wait, 1200 (600 on `free`). The failure applies to every call, the plan reads and the subscription calls included. A wrong key is answered 401 before the failure is looked at.
+`fail` takes `'outage'`, `null`, or `{ status, code, message?, retryable?, retryAfter? }`, and from `@mesub/node` 0.1.7 `details?`: `{ subscription_id, can_resume, closable_from }`, added to the body as on a `subscription_cancelled` refusal. `retryAfter` is in seconds and is sent as `Retry-After`; `retry_too_soon` without one gets the tier's first wait, 1200 (600 on `free`). The failure applies to every call, the plan reads and the subscription calls included. A wrong key is answered 401 before the failure is looked at.
 
 ## Reset
 

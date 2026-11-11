@@ -38,7 +38,7 @@ Every delivery is a `POST` of this body, the same one `GET /v1/events` serves (`
 
 ### What `verify` hands back
 
-The body above is the contract since `api_version` `2026-10-02`, and `WebhookEvent` of `@mesub/node` (0.1.0 to 0.1.6) types it, every event type above included. `amount_received` is typed on `first_payment` from 0.1.2 (the first on npm with it), and on `subscription.renewed` from 0.1.6. On an older version, read it only when present.
+The body above is the contract since `api_version` `2026-10-02`, and `WebhookEvent` of `@mesub/node` (0.1.0 to 0.1.7) types it, every event type above included. `amount_received` is typed on `first_payment` from 0.1.2 (the first on npm with it), and on `subscription.renewed` from 0.1.6. On an older version, read it only when present.
 
 - **`event.id`** is the event's `id`, typed `string | null`: null on a body written before `available_since`. `event.delivery_id` holds the `webhook-id` header. Deduplicate on `event.id ?? event.delivery_id`: only the event's id matches `GET /v1/events` and the other endpoints.
 - **`event.detail`** is the event's own fields, checked for the known types. On a body written before `available_since`, the SDK moves the `detail` it finds under `data` to the top, so the handler reads one place.
@@ -165,7 +165,7 @@ Sent once per period, when a subscription enters the last quarter of it and thre
 - It must be selected for the endpoint in the dashboard. An endpoint created before the event existed does not get it by itself.
 - **It is never sent for a charge that cannot happen.** A subscription in the last period of a plan with an end date has no renewal: no event, and no mail from Mesub. A reminder built on this event never reaches those customers.
 
-`@mesub/node` (0.1.0 to 0.1.6) types the event and checks its detail (`RenewalUpcomingDetail`): a `case` in the typed `switch` reads `event.detail.can_pay` directly.
+`@mesub/node` (0.1.0 to 0.1.7) types the event and checks its detail (`RenewalUpcomingDetail`): a `case` in the typed `switch` reads `event.detail.can_pay` directly.
 
 ## At a plan's end
 
