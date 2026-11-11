@@ -174,7 +174,7 @@ Thrown as a `MesubError`. `apiCode` is Mesub's own code, `code` the SDK's broade
 | `create`, `transaction`, `submit` | `approval_too_low` (409) | The wallet caps what its subscriptions in this token may take below one payment of this plan. Show Mesub's message: the customer raises that cap in their own wallet, then tries again. Mesub never raises it for them |
 | `create`, `transaction`, `submit` | `comeback_approval_revoked` (409) | A return over the wallet's stopped subscription, and the wallet no longer approves this token. Subscribing again over it cannot work: the customer cancels the stopped subscription, closes it once `closable`, then subscribes again |
 | `create` | `payment_pending` | This wallet's subscription to the plan is `unpaid`: it pays it now or cancels it, never a second one |
-| `create` | `subscription_cancelled` | It is cancelled: resume it while it runs, or close it once `closable`, then subscribe |
+| `create`, `transaction`, `submit` | `subscription_cancelled` | This wallet's subscription to the plan is cancelled: resume it, or close it then subscribe again. See below |
 | `create` | `seat_cap_reached` | The project has no subscriber left on its tier (30 on Free): the merchant's to change, nothing for the customer |
 | `create` | `plan_not_found` | Fix the slug |
 | `create`, `transaction`, `submit` | `plan_ended` | The plan is past its end date: stop offering it |
@@ -184,6 +184,26 @@ Thrown as a `MesubError`. `apiCode` is Mesub's own code, `code` the SDK's broade
 | `submit` | `transaction_expired` | The transaction was signed too late: nothing was sent, nothing was charged. Ask `transaction(id)` for a new one, as in step 3, and submit again under the same id. **Never create a new subscription for it** |
 | `submit` | `transaction_refused` | The network's simulation refused it for another cause. Nothing was sent. Not the same case: show Mesub's `message` as written |
 | `submit` | `subscription_not_found` | The id is not one of the project's |
+
+### After `subscription_cancelled`
+
+From the next API release, the refusal names the cancelled subscription in the way. `@mesub/node` 0.1.7 (unreleased yet) reads it as `subscriptionId`, `canResume` and `closableFrom`; on an older version, read `subscription_id`, `can_resume` and `closable_from` from `error.body`.
+
+```ts
+if (error instanceof MesubError && error.apiCode === 'subscription_cancelled') {
+    if (!error.subscriptionId) {
+        // another customer's on this wallet: show Mesub's message
+    } else if (error.canResume) {
+        // resume(error.subscriptionId): its access still runs, no second subscription
+    } else if (error.closableFrom) {
+        // close it from that date, then create again
+    } else {
+        // close(error.subscriptionId), then create again
+    }
+}
+```
+
+The id is given only for the customer this subscribe is for: the same `external_id` when one is given, else the same `email`, else no customer on either side. Never look the subscription up on the wallet instead: another customer's on that wallet is not this one's to resume or close. Resume and close are the manage calls (`server-manage.md`), signed by the wallet. The widget routes hand the three fields to the browser, inside `error` beside `code` and `message`, and `@mesub/react` 0.1.5 (unreleased yet) offers Resume it, or Close it and subscribe.
 
 ### After `transaction_expired`
 
