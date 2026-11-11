@@ -155,7 +155,7 @@ Gate on `access`, never on `status`, and keep a default branch: a status may be 
 - The status does not change and the customer is never `late` for it. Do not tell them to add funds.
 - Access ends on `access_until` all the same: the end of the period after the one paid for under `mesub`, sooner under a cause of the plan's setup.
 - Mesub keeps trying. Access comes back with the first charge that goes through, with nothing for the customer to sign.
-- Keep a default branch on `blocked_reason`. `receiver_account_needs_memo`, `receiver_account_confidential_only`, `mint_paused` and `mint_transfer_hook` are typed from `@mesub/node` 0.1.6 and `@mesub/react` 0.1.3 (unreleased yet): on an older version, compare them as strings.
+- Keep a default branch on `blocked_reason`. `receiver_account_needs_memo`, `receiver_account_confidential_only`, `mint_paused` and `mint_transfer_hook` are typed from `@mesub/node` 0.1.6 and `@mesub/react` 0.1.3: on an older version, compare them as strings.
 
 ## Wording it for the customer
 

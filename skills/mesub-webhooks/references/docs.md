@@ -11,7 +11,7 @@ This skill holds what a webhook handler needs. The docs hold the rest, and they 
 | [Test your integration](https://docs.mesub.io/docs/testing) | Everything else the fake of `@mesub/node/testing` does |
 
 - **The installed package decides what compiles.** Before using an event name, a field or an option, search the `.d.ts` files of `node_modules/@mesub/node/dist` and `node_modules/@mesub/node/README.md`. Never write a call from memory.
-- `@mesub/node` (0.1.0 to 0.1.5) types every event the docs list, the `test` flag and `sequence` included.
+- `@mesub/node` (0.1.0 to 0.1.6) types every event the docs list, the `test` flag and `sequence` included.
 - `subscription.access_granted` and `subscription.access_revoked` are sent, on every project, to an endpoint that selected them: `references/events.md`, "Order and access". If the docs page still says they are not sent yet, it is behind: they are.
 - If a docs page cannot be reached, say so and work from the installed package. Do not guess what the page said.
 - When you finish, give the user the Webhooks link, so they can check the work against it.

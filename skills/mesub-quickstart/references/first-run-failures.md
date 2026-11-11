@@ -8,6 +8,6 @@
 | The window opens on an error instead of the plan, the plan read is 404 | `endpoint` is not the mount path, or the slug is not a plan of this project | Compare the two paths, then the slug with the dashboard |
 | The window says "Sign in first" | The routes answer 401: `customer` returned `null` | The session is not reaching the route: cookie, middleware order, or a cross-origin call without credentials |
 | A subscriber is refused on the paid route (402) | The paid route names the customer differently from the widget routes | Use one `customer` function for both |
-| No wallet is offered | No wallet extension is installed in that browser | Nothing to fix in code |
+| No wallet is offered | No wallet extension is installed in that browser. On a phone, the browser sees no wallet app: from `@mesub/react` 0.1.4 the window offers to reopen the page in Phantom or Solflare | Nothing to fix in code |
 
 Past these, the failure belongs to another skill: see `kit-directory.md` in this folder.

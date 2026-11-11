@@ -66,7 +66,7 @@ A charge can fail for a reason that is not the customer's: the plan's own setup,
 - **Mesub keeps trying.** `next_charge_at`, or `next_retry_at` on one that was late already, is the next try. Access comes back with the first charge that goes through, or that the chain holds as paid, with nothing for the customer to sign.
 - **The customer did nothing wrong and can fix nothing.** Do not word it as a late payment, do not ask them to add funds or to subscribe again. Say the charge is on hold and until when they keep access (`access_until`).
 - **The fix is the merchant's.** For a cause of the plan's setup, tell the user of this skill which one it is: Mesub also mails the organization's Owner and Admins once per plan. An agent cannot repair a plan from the app's code.
-- `blocked_reason` may gain values: keep a default branch. `receiver_account_needs_memo`, `receiver_account_confidential_only`, `mint_paused` and `mint_transfer_hook` are typed from `@mesub/node` 0.1.6 and `@mesub/react` 0.1.3 (unreleased yet): on an older version, compare them as strings.
+- `blocked_reason` may gain values: keep a default branch. `receiver_account_needs_memo`, `receiver_account_confidential_only`, `mint_paused` and `mint_transfer_hook` are typed from `@mesub/node` 0.1.6 and `@mesub/react` 0.1.3: on an older version, compare them as strings.
 
 So `status: 'active'` with `access: false` is not only a plan past its end date: it is also a blocked subscription whose `access_until` has passed. One more reason to read `access`.
 
