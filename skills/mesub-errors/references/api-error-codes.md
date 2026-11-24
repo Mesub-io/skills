@@ -63,6 +63,15 @@ Answered when the user creates or edits a plan in the dashboard, or a Mesub agen
 | `retries_not_on_tier` | 403 | no | A retry policy was set on Free, which does not retry | No policy on Free, or the project moves up |
 | `period_too_short` | 403 | no | The period is shorter than the tier allows: on Free and Dev a plan bills at most once a day; Business takes any period. "Plans on the Free tier bill at most once a day: give this plan a period of a day or more." | A period of a day or more, or the project moves to Business. A plan already live keeps its period |
 
+### Where a draft pays, and deleting its project (the dashboard only)
+
+Answered in the dashboard when the user publishes a plan, signs one from To sign, or deletes a project. No call made with an API key answers them. Both are cleared in the dashboard, never by sending the same request again.
+
+| API code | Status | Wait | What it means | What to do |
+|---|---|---|---|---|
+| `destinations_unsigned` | 403 | no | The draft pays a wallet other than its own plan wallet, and that wallet has not approved where it pays. A wallet signs the creation as raw instructions, which do not show who it pays, so it approves the list first by signing a message | Whoever holds the plan wallet approves it: the dashboard asks for that signature in Publish and in To sign, then builds the creation |
+| `draft_handed_out` | 409 | no | The project has drafts whose creation was sent to their wallet to sign, and that wallet can still put them on chain without Mesub. The message names them | The user deletes each named draft from Plans first. That checks the chain, and takes a plan found there as it stands |
+
 ## Subscribing (`create`, and `submit` where noted)
 
 `subscriptions.transaction(id)` builds the same transaction again, so it answers the 409s of this table too, save `seat_cap_reached` and `subscription_changed`, and never `pending_cap_reached`. `submit` reads the plan, its token, its receiving account and the wallet's approval once more before it signs: the rows that say so are answered there too.
